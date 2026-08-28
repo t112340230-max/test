@@ -263,8 +263,14 @@ td .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right
             <label class="check"><input type="checkbox" id="thirst">起床明顯口渴</label>
           </div>
           <div class="f">
-            <span class="lbl">今日念書時數</span>
-            <div class="inrow"><input type="number" id="study" step="0.25" min="0" max="16" placeholder="3.75"><span class="unit">h</span></div>
+            <span class="lbl">今日目標時數</span>
+            <div class="inrow"><input type="number" id="study" step="0.25" min="0" max="18" placeholder="11"><span class="unit">h</span></div>
+            <span class="hint">由你的讀書計畫決定，不會被單日狀態砍掉</span>
+          </div>
+          <div class="f">
+            <span class="lbl">昨日完成題數</span>
+            <div class="inrow"><input type="number" id="output" step="1" min="0" max="300" placeholder="18"><span class="unit">題</span></div>
+            <span class="hint">自己解、沒看解答的才算。這是唯一的產出指標</span>
           </div>
           <div class="f">
             <span class="lbl">今日訓練</span>
@@ -321,8 +327,9 @@ td .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right
     </div>
 
     <div class="headline">
-      <div class="k">今日建議念書上限</div>
+      <div class="k">今日內容配置</div>
       <div class="v" id="studyV">—</div>
+      <div class="s mono" id="allocLine" style="color:var(--ink);font-size:13px"></div>
       <div class="s" id="verdict"></div>
     </div>
 
@@ -406,7 +413,7 @@ async function saveAll(d){
 }
 
 /* ============ 設定 ============ */
-const SETTINGS={sleepTarget:8.0, refStudy:4.0, refLoad:300};
+const SETTINGS={sleepTarget:8.0, tibTarget:9.0, dailyTarget:11.0, refLoad:300};
 const URINE=["#F9F7DA","#F6F1B6","#F2E894","#EDDE6C","#E4CE46","#D6B22C","#BF8E1E","#9E6712"];
 const DOW=["日","一","二","三","四","五","六"];
 
@@ -467,6 +474,18 @@ function assess(e,history){
       d:`${r1(tst)}h${eff!=null?" · 效率"+Math.round(eff*100)+"%":""}`};
     if(tst<target-1.2)flags.push(`睡眠 ${r1(tst)} 小時，比你的需求（${target}h）少 ${r1(target-tst)} 小時。`);
     if(eff!=null&&eff<0.82)flags.push(`睡眠效率 ${Math.round(eff*100)}%（躺 ${r1(tib)}h 睡 ${r1(tst)}h），入睡或維持睡眠有阻力。`);
+    // 躺床時間拉長之後，效率才是判準：容器超過睡眠能力會讓床與清醒建立連結
+    const effHist=win.map(h=>{const t=hoursBetween(h.bedTime,h.wakeTime);
+      return (t&&h.tst!=null&&t>0)?h.tst/t:null;}).filter(x=>x!=null);
+    if(tib!=null&&tib>=SETTINGS.tibTarget-0.25&&effHist.length>=5){
+      const me=mean(effHist);
+      if(me<0.85){
+        flags.push(`<b>近期平均睡眠效率 ${Math.round(me*100)}%，低於 85%。</b>躺床 ${r1(tib)} 小時但填不滿，這種狀態持續下去會拉長入睡潛伏期。`);
+        plan.push(`把躺床縮回 ${r1(SETTINGS.tibTarget-0.5)} 小時（上床延後 30 分鐘、起床時間不動）。睡眠壓實之後效率通常兩三天內回升，實際睡眠時數反而會增加。`);
+      }else if(me>=0.90&&mean(win.map(h=>h.tst).filter(x=>x!=null))<SETTINGS.sleepTarget-0.3){
+        plan.push("效率 90% 以上但實際睡眠仍不足，代表容器太小而不是睡不著。可以再往前挪 20 分鐘上床。");
+      }
+    }
     if(baselineN>=6&&sleepDebt>=6){
       flags.push(`<b>7 日睡眠債 ${r1(sleepDebt)} 小時。</b>慢性睡眠限制下，主觀警醒感會先停止惡化、但持續注意力仍持續下滑（Van Dongen 2003）。此時「感覺還好」不能當依據。`);
       plan.push("這週優先還睡眠債：提早 30 分鐘上床的邊際效益高於多讀 30 分鐘。");
@@ -539,18 +558,35 @@ function assess(e,history){
   const capacity=wSum>0?clamp(parts.reduce((s,p)=>s+p.v*p.w,0)/wSum,0,100):50;
   const coverage=wSum/MAXW;
 
-  /* 載重 */
-  const refStudy=Math.max(mean(history.slice(0,7).map(h=>h.study).filter(x=>x>0))||SETTINGS.refStudy,2);
+  /* 載重：以固定目標時數為錨，不用滾動平均（避免建議值自我腐蝕的負向棘輪） */
+  const refStudy=SETTINGS.dailyTarget;
   const cog=clamp(50*((e.study||0)/refStudy),0,92);
   const tLoad=(e.trainMin||0)*(e.trainRpe||0);
   const refLoad2=Math.max(mean(history.slice(0,7).map(h=>(h.trainMin||0)*(h.trainRpe||0)).filter(x=>x>0))||SETTINGS.refLoad,200);
-  const train=tLoad>0?clamp(22*(tLoad/refLoad2),0,32):0;
+  /* 係數暫壓到 6：認知負荷與體能負荷不是同一種資源，原本的 22 沒有依據。
+     等 Lv5 分組對照用你自己的資料算出訓練日對隔日容量的真實效應再校準。 */
+  const train=tLoad>0?clamp(6*(tLoad/refLoad2),0,10):0;
   const stress=clamp((e.stressors||[]).length*8,0,24);
   const demand=clamp(cog+train+stress,8,145);
   const fs=capacity/demand;
-  const suggestedStudy=clamp(Math.round((capacity/1.15-train-stress)/50*refStudy*4)/4,0,14);
+  const targetH=e.study||SETTINGS.dailyTarget;
 
-  return {capacity,demand,fs,subs,flags,plan,suggestedStudy,baselineN,personal,coverage,hSum,tst,sleepDebt,tLoad,refStudy};
+  /* 內容配置：時數不動，改配比。峰值時段能吸收新概念的比例隨容量變化 */
+  let mix;
+  if(capacity>=75)      mix={nw:.45,pb:.35,rv:.20,t:"新進度優先"};
+  else if(capacity>=60) mix={nw:.30,pb:.45,rv:.25,t:"以解題為主"};
+  else if(capacity>=45) mix={nw:.15,pb:.50,rv:.35,t:"新進度只留一段"};
+  else                  mix={nw:0,  pb:.45,rv:.55,t:"今天不碰新概念"};
+  const alloc={
+    hours:targetH,
+    nw:Math.round(targetH*mix.nw*4)/4,
+    pb:Math.round(targetH*mix.pb*4)/4,
+    rv:Math.round(targetH*mix.rv*4)/4,
+    label:mix.t
+  };
+  const suggestedStudy=clamp(Math.round((capacity/1.15-train-stress)/50*refStudy*4)/4,0,18);
+
+  return {capacity,demand,fs,subs,flags,plan,suggestedStudy,alloc,baselineN,personal,coverage,hSum,tst,sleepDebt,tLoad,refStudy};
 }
 
 function damage(results,idx){
@@ -609,7 +645,7 @@ function readForm(){
     urine:(document.querySelector("input[name=urine]:checked")||{}).value?+document.querySelector("input[name=urine]:checked").value:null,
     thirst:$("thirst").checked,
     weight:num("weight"), water:num("water"), rhr:num("rhr"), hrv:num("hrv"),
-    study:num("study"), trainType:$("trainType").value,
+    study:num("study"), output:num("output"), trainType:$("trainType").value,
     trainMin:num("trainMin"), trainRpe:num("trainRpe"),
     bedTime:$("bedTime").value||null, wakeTime:$("wakeTime").value||null,
     caffeine:$("caffeine").value||null,
@@ -623,7 +659,7 @@ function writeForm(e){
   setSeg("hStress",e.hStress??3);setSeg("hSore",e.hSore??2);
   document.querySelectorAll("input[name=urine]").forEach(r=>r.checked=(+r.value===e.urine));
   $("thirst").checked=!!e.thirst;
-  ["weight","water","rhr","hrv","study","trainMin","trainRpe"].forEach(k=>$(k).value=e[k]??"");
+  ["weight","water","rhr","hrv","study","output","trainMin","trainRpe"].forEach(k=>$(k).value=e[k]??"");
   $("trainType").value=e.trainType||"none";
   $("bedTime").value=e.bedTime||""; $("wakeTime").value=e.wakeTime||"";
   $("caffeine").value=e.caffeine||"";
@@ -637,12 +673,12 @@ function clearForm(){
   setSeg("hSleep",3);setSeg("hFatigue",3);setSeg("hStress",3);setSeg("hSore",2);
   document.querySelectorAll("input[name=urine]").forEach(r=>r.checked=false);
   $("thirst").checked=false;
-  ["weight","water","rhr","hrv"].forEach(k=>$(k).value="");
-  $("study").value=t&&t.study!=null?t.study:"";
+  ["weight","water","rhr","hrv","output"].forEach(k=>$(k).value="");
+  $("study").value=t&&t.study!=null?t.study:SETTINGS.dailyTarget;
   $("trainType").value=(t&&t.trainType)||"none";
   $("trainMin").value=t&&t.trainMin!=null?t.trainMin:"";
   $("trainRpe").value=t&&t.trainRpe!=null?t.trainRpe:"";
-  $("bedTime").value=(t&&t.bedTime)||"23:00";
+  $("bedTime").value=(t&&t.bedTime)||"22:00";
   $("wakeTime").value=(t&&t.wakeTime)||"07:00";
   $("caffeine").value=""; $("note").value="";
   document.querySelectorAll(".stressor").forEach(c=>c.checked=false);
@@ -653,7 +689,7 @@ function clearForm(){
 function updateAdvCount(){
   let n=0;
   if(document.querySelector("input[name=urine]:checked"))n++;
-  ["weight","water","rhr","hrv","study","trainMin","trainRpe"].forEach(k=>{if($(k).value!=="")n++;});
+  ["weight","water","rhr","hrv","study","output","trainMin","trainRpe"].forEach(k=>{if($(k).value!=="")n++;});
   if($("thirst").checked)n++;
   if($("trainType").value!=="none")n++;
   n+=document.querySelectorAll(".stressor:checked").length;
@@ -663,10 +699,11 @@ function updateAdvCount(){
 /* ============ 建議 ============ */
 function buildPlan(res,e){
   const p=[...res.plan], fs=res.fs;
-  if(fs<0.80)p.unshift(`<b>計畫超出容量。</b>念書降到 ${res.suggestedStudy} 小時，只做低耗能項目：複習已學章節、重抄公式、刷做過的題。新進度的 VOD 挪到明天。`);
-  else if(fs<1.00)p.unshift(`<b>小幅降載。</b>建議 ${res.suggestedStudy} 小時左右。最難的新章節排最前段，後段換成計算題或整理筆記這類靠程序記憶的工作。`);
-  else if(fs<1.25)p.unshift(`照原訂執行，今天不加碼。新進度優先排前段。`);
-  else p.unshift(`<b>容量充足。</b>適合放最難啃的內容。要加量的話週增幅控制在 10% 以內。`);
+  const a=res.alloc;
+  if(fs<0.80)p.unshift(`<b>時數不動，配置換掉。</b>${a.hours} 小時照跑，但新進度只留 ${a.nw}h。今天的吸收率撐不住新結構概念，硬看 VOD 等於白看——把時間倒進解題 ${a.pb}h 與錯題複習 ${a.rv}h，這兩項對疲勞的抵抗力高得多。`);
+  else if(fs<1.00)p.unshift(`<b>小幅重配。</b>${a.hours} 小時不變。新進度 ${a.nw}h 全部壓在早上前兩段，中午之後轉解題與提取。`);
+  else if(fs<1.25)p.unshift(`照原訂執行。新進度 ${a.nw}h 排最前段，這是今天唯一能吸收新概念的窗口。`);
+  else p.unshift(`<b>容量充足。</b>把最難的章節放進早上兩段。今天適合啃你一直在繞開的那個主題。`);
 
   if(res.subs.sleep&&res.subs.sleep.v<55)
     p.push("下午 13:00–15:00 睡 20 分鐘（不超過 30 分鐘，避免進入深睡後醒來更鈍）。");
@@ -704,7 +741,9 @@ function render(){
     else{color="var(--over)";label="顯著超載";text="容量與計畫落差大。硬幹通常換來效率極低的幾小時，加上隔天更差的容量。今天以修復為主。";}
     $("fsNum").textContent=fs.toFixed(2); $("fsNum").style.color=color;
     $("fsTag").textContent=label; $("fsTag").style.color=color;
-    $("studyV").textContent=res.suggestedStudy+" 小時";
+    const a=res.alloc;
+    $("studyV").textContent=a.hours+" 小時 · "+a.label;
+    $("allocLine").innerHTML=`新進度 ${a.nw}h　解題 ${a.pb}h　複習提取 ${a.rv}h`;
     $("verdict").textContent=text;
 
     const S=140;
@@ -824,7 +863,8 @@ function renderAnalysis(){
       {n:"主觀總分",f:r=>-r.hSum},
       {n:"訓練負荷",f:r=>-((r.entry.trainMin||0)*(r.entry.trainRpe||0))},
       {n:"念書時數",f:r=>-(r.entry.study||0)},
-      {n:"當日壓力分",f:r=>-r.entry.hStress}
+      {n:"當日壓力分",f:r=>-r.entry.hStress},
+      {n:"目標時數",f:r=>-(r.entry.study||0)}
     ];
     const rows=vars.map(v=>{
       const xs=[],ys=[];
@@ -898,12 +938,12 @@ function download(name,text,type){
   setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},400);
 }
 function toCsv(){
-  const head=["date","dow","fs","capacity","demand","damage","tst","sleep_debt","hooper","h_sleep","h_fatigue","h_stress","h_sore","urine","thirst","weight","water","rhr","hrv","study_h","train_type","train_min","train_rpe","load_au","coverage","stressors","note"];
+  const head=["date","dow","fs","capacity","demand","damage","tst","sleep_debt","hooper","h_sleep","h_fatigue","h_stress","h_sore","urine","thirst","weight","water","rhr","hrv","target_h","output_q","q_per_hour","train_type","train_min","train_rpe","load_au","coverage","stressors","note"];
   const L=[head.join(",")];
   RESULTS.forEach(r=>{const e=r.entry;
     L.push([r.date,DOW[dowOf(r.date)],r.fs.toFixed(3),Math.round(r.capacity),Math.round(r.demand),r.D.toFixed(3),
       r.tst??"",r1(r.sleepDebt),r.hSum,e.hSleep,e.hFatigue,e.hStress,e.hSore,e.urine??"",e.thirst?1:0,
-      e.weight??"",e.water??"",e.rhr??"",e.hrv??"",e.study??"",e.trainType||"",e.trainMin??"",e.trainRpe??"",
+      e.weight??"",e.water??"",e.rhr??"",e.hrv??"",e.study??"",e.output??"",(e.output!=null&&e.study)?(e.output/e.study).toFixed(2):"",e.trainType||"",e.trainMin??"",e.trainRpe??"",
       (e.trainMin||0)*(e.trainRpe||0),(r.coverage*100).toFixed(0),
       `"${(e.stressors||[]).join(" / ")}"`,`"${(e.note||"").replace(/"/g,'""')}"`].join(","));
   });
@@ -914,7 +954,7 @@ function toCsv(){
 function bind(){
   $("tstMinus").addEventListener("click",()=>setTst(tstCur-0.25));
   $("tstPlus").addEventListener("click",()=>setTst(tstCur+0.25));
-  ["weight","water","rhr","hrv","study","trainMin","trainRpe","trainType","thirst"].forEach(k=>
+  ["weight","water","rhr","hrv","study","output","trainMin","trainRpe","trainType","thirst"].forEach(k=>
     $(k).addEventListener("change",updateAdvCount));
   document.addEventListener("change",e=>{
     if(e.target.name==="urine"||e.target.classList.contains("stressor"))updateAdvCount();
