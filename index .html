@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="承載">
+<meta name="theme-color" content="#E6E8E3">
+<title>每日承載評估 — 容量／載重追蹤</title>
+<style>
+:root{
+  --paper:#E6E8E3;
+  --panel:#FCFCFA;
+  --ink:#16191C;
+  --ink-2:#5A6169;
+  --ink-3:#8A9199;
+  --rule:#C7CBC4;
+  --rule-soft:#E2E4DE;
+  --ok:#2E7D6F;
+  --warn:#C08418;
+  --over:#A63A2B;
+  --steel:#3D5A73;
+  --f-mono: ui-monospace, "SF Mono", SFMono-Regular, "JetBrains Mono", Menlo, Consolas, monospace;
+  --f-sans: "PingFang TC","Noto Sans TC","Microsoft JhengHei", system-ui, -apple-system, sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:var(--f-sans);
+  color:var(--ink);
+  background-color:var(--paper);
+  background-image:
+    linear-gradient(var(--rule-soft) 1px, transparent 1px),
+    linear-gradient(90deg, var(--rule-soft) 1px, transparent 1px);
+  background-size:24px 24px;
+  padding:20px 14px 64px;
+  line-height:1.55;
+}
+.wrap{max-width:860px;margin:0 auto}
+
+/* ---------- 標頭 ---------- */
+.masthead{border:1px solid var(--ink);background:var(--panel);padding:18px 20px;margin-bottom:14px}
+.eyebrow{font-family:var(--f-mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+.masthead h1{font-size:21px;font-weight:800;letter-spacing:.02em;margin:6px 0 4px}
+.masthead p{font-size:13px;color:var(--ink-2);max-width:60ch}
+.masthead .rule{height:1px;background:var(--ink);margin:14px 0 12px}
+.datebar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.datebar label{font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;color:var(--ink-2)}
+
+/* ---------- 面板 ---------- */
+.panel{border:1px solid var(--rule);background:var(--panel);margin-bottom:14px}
+.panel > h2{
+  font-family:var(--f-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ink-2);padding:11px 18px;border-bottom:1px solid var(--rule-soft);
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+}
+.panel > h2 .note{font-size:10px;letter-spacing:.04em;color:var(--ink-3);text-transform:none}
+.body{padding:18px}
+
+/* ---------- 表單 ---------- */
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px 18px}
+.grid.three{grid-template-columns:repeat(3,1fr)}
+.span2{grid-column:1/-1}
+@media(max-width:640px){.grid,.grid.three{grid-template-columns:1fr}}
+.field{display:flex;flex-direction:column;gap:5px}
+.field > .lbl{font-size:12px;font-weight:700;letter-spacing:.02em}
+.field > .hint{font-size:11px;color:var(--ink-3);line-height:1.4}
+.inrow{display:flex;align-items:center;gap:6px}
+input[type=number],input[type=time],input[type=date],select,textarea{
+  font-family:var(--f-mono);font-size:14px;color:var(--ink);
+  background:#fff;border:1px solid var(--rule);border-radius:2px;
+  padding:7px 9px;width:100%;outline:none;
+}
+textarea{font-family:var(--f-sans);resize:vertical;min-height:52px}
+input:focus,select:focus,textarea:focus{border-color:var(--steel);box-shadow:0 0 0 2px rgba(61,90,115,.16)}
+.unit{font-family:var(--f-mono);font-size:11px;color:var(--ink-3);white-space:nowrap}
+
+.slider{display:flex;align-items:center;gap:10px}
+.slider input[type=range]{flex:1;accent-color:var(--steel);height:20px}
+.slider .val{font-family:var(--f-mono);font-size:15px;font-weight:700;width:2ch;text-align:right}
+.scale-ends{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:10px;color:var(--ink-3);margin-top:-2px}
+
+.urine{display:flex;gap:0;border:1px solid var(--rule);width:fit-content;max-width:100%;flex-wrap:wrap}
+.urine label{position:relative;cursor:pointer}
+.urine input{position:absolute;opacity:0;width:100%;height:100%;left:0;top:0;margin:0;cursor:pointer}
+.urine span{
+  display:flex;align-items:flex-end;justify-content:center;
+  width:34px;height:40px;font-family:var(--f-mono);font-size:10px;color:rgba(0,0,0,.55);
+  padding-bottom:2px;border-right:1px solid rgba(0,0,0,.08);
+}
+.urine label:last-child span{border-right:none}
+.urine input:checked + span{outline:2px solid var(--ink);outline-offset:-2px;font-weight:700;color:#000}
+.urine input:focus-visible + span{outline:2px solid var(--steel);outline-offset:-2px}
+
+.check{display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer}
+.check input{width:16px;height:16px;accent-color:var(--steel);cursor:pointer}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips .check{border:1px solid var(--rule);padding:6px 10px;border-radius:2px;background:#fff}
+
+/* ---------- 按鈕 ---------- */
+.btn{
+  font-family:var(--f-sans);font-size:14px;font-weight:700;letter-spacing:.03em;
+  background:var(--ink);color:#fff;border:1px solid var(--ink);border-radius:2px;
+  padding:11px 18px;cursor:pointer;transition:background .15s ease;
+}
+.btn:hover{background:#000}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn.ghost:hover{background:var(--rule-soft)}
+.btn.sm{font-size:12px;padding:7px 12px}
+.btn:focus-visible{outline:2px solid var(--steel);outline-offset:2px}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;align-items:center}
+.saved{font-family:var(--f-mono);font-size:11px;color:var(--ok)}
+
+/* ---------- 結果:安全係數 ---------- */
+.fs-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:4px}
+.fs-num{font-family:var(--f-mono);font-size:52px;font-weight:800;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.fs-tag{font-size:13px;font-weight:800;letter-spacing:.08em;padding:4px 10px;border:1px solid currentColor;border-radius:2px}
+.fs-def{font-family:var(--f-mono);font-size:11px;color:var(--ink-3);margin-bottom:16px}
+.verdict{font-size:14px;line-height:1.6;margin-bottom:18px;max-width:62ch}
+
+.bar-block{margin-bottom:6px}
+.bar-labels{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:10px;letter-spacing:.1em;color:var(--ink-3);margin-bottom:5px}
+.track{position:relative;height:38px;background:#fff;border:1px solid var(--rule)}
+.fill{position:absolute;left:0;top:0;bottom:0;background:var(--steel);transition:width .5s cubic-bezier(.2,.7,.3,1)}
+.fill.over{
+  background-image:repeating-linear-gradient(45deg,var(--over) 0 6px,#8e2f22 6px 12px);
+  background-color:var(--over);
+}
+.caps{position:absolute;top:-4px;bottom:-4px;width:3px;background:var(--ink);transition:left .5s ease}
+.caps::after{
+  content:attr(data-l);position:absolute;top:-16px;left:50%;transform:translateX(-50%);
+  font-family:var(--f-mono);font-size:9px;letter-spacing:.08em;white-space:nowrap;color:var(--ink);
+}
+.ticks{display:flex;margin-top:4px}
+.ticks div{flex:1;border-left:1px solid var(--rule);font-family:var(--f-mono);font-size:9px;color:var(--ink-3);padding-left:3px}
+.readouts{display:flex;gap:24px;flex-wrap:wrap;margin-top:20px;padding-top:16px;border-top:1px solid var(--rule-soft)}
+.readout .k{font-family:var(--f-mono);font-size:10px;letter-spacing:.1em;color:var(--ink-3)}
+.readout .v{font-family:var(--f-mono);font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+
+/* ---------- 子系統 ---------- */
+.subs{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--rule-soft);border-top:1px solid var(--rule-soft)}
+@media(max-width:640px){.subs{grid-template-columns:repeat(2,1fr)}}
+.sub{background:var(--panel);padding:14px 12px}
+.sub .k{font-family:var(--f-mono);font-size:10px;letter-spacing:.06em;color:var(--ink-3);margin-bottom:6px}
+.sub .v{font-family:var(--f-mono);font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.sub .meter{height:4px;background:var(--rule-soft);margin-top:8px}
+.sub .meter i{display:block;height:100%}
+.sub .d{font-family:var(--f-mono);font-size:10px;color:var(--ink-3);margin-top:6px;min-height:1.2em}
+
+/* ---------- 清單 ---------- */
+.list{list-style:none;display:flex;flex-direction:column;gap:9px}
+.list li{font-size:13.5px;line-height:1.55;padding-left:22px;position:relative}
+.list li b{font-weight:700}
+.list li::before{
+  position:absolute;left:0;top:.1em;font-family:var(--f-mono);font-size:11px;font-weight:700;
+}
+.list.flags li::before{content:"!";color:var(--over)}
+.list.plan li::before{content:"→";color:var(--ok)}
+.sect-h{font-family:var(--f-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);margin:20px 0 10px;padding-top:16px;border-top:1px solid var(--rule-soft)}
+.sect-h:first-child{margin-top:0;padding-top:0;border-top:none}
+
+/* ---------- 趨勢 ---------- */
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:640px){.charts{grid-template-columns:1fr}}
+.chart .ct{font-family:var(--f-mono);font-size:10px;letter-spacing:.08em;color:var(--ink-3);margin-bottom:4px;display:flex;justify-content:space-between}
+.chart svg{width:100%;height:64px;display:block;background:#fff;border:1px solid var(--rule-soft)}
+
+/* ---------- 表格 ---------- */
+.tbl-scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-family:var(--f-mono);font-size:11.5px;white-space:nowrap}
+th,td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--rule-soft)}
+th{color:var(--ink-3);font-weight:500;letter-spacing:.06em;text-align:right;border-bottom:1px solid var(--rule)}
+th:first-child,td:first-child{text-align:left}
+tbody tr:hover{background:var(--rule-soft)}
+td .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.rowbtn{background:none;border:none;color:var(--steel);cursor:pointer;font-family:var(--f-mono);font-size:11px;text-decoration:underline;padding:0}
+
+.empty{font-size:13px;color:var(--ink-3);line-height:1.6;padding:6px 0}
+.banner{border:1px solid var(--warn);background:#FDF7E7;padding:10px 14px;font-size:12.5px;color:#6b4a06;margin-bottom:14px}
+.foot{font-size:11.5px;color:var(--ink-3);line-height:1.6;margin-top:22px;border-top:1px solid var(--rule);padding-top:14px}
+.hidden{display:none !important}
+@media (prefers-reduced-motion: reduce){*{transition:none !important;animation:none !important}}
+
+/* ---------- 手機 ---------- */
+@media(max-width:640px){
+  body{padding:12px 10px calc(24px + env(safe-area-inset-bottom))}
+  .masthead{padding:16px 16px}
+  .masthead h1{font-size:19px}
+  .masthead p{font-size:12.5px}
+  .body{padding:16px 14px}
+  .panel > h2{padding:11px 14px}
+  /* 16px 以下 iOS Safari 會在聚焦時自動放大整頁 */
+  input[type=number],input[type=time],input[type=date],select,textarea{font-size:16px;padding:10px}
+  .slider input[type=range]{height:34px}
+  .slider .val{font-size:18px}
+  .urine{width:100%;flex-wrap:nowrap}
+  .urine label{flex:1}
+  .urine span{width:100%;height:56px;font-size:11px}
+  .check{padding:2px 0}
+  .chips .check{padding:9px 12px}
+  .fs-num{font-size:44px}
+  .readouts{gap:16px 24px}
+  .subs{grid-template-columns:repeat(2,1fr)}
+  .sect-h{margin:22px 0 10px}
+  /* 保存鍵永遠在拇指範圍內 */
+  .body > .actions:has(#btnSave){
+    position:sticky;bottom:0;z-index:5;
+    margin:14px -14px calc(-16px + 0px);padding:12px 14px calc(12px + env(safe-area-inset-bottom));
+    background:var(--panel);border-top:1px solid var(--rule);
+  }
+  #btnSave{flex:1;padding:15px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">Daily Load Assessment</div>
+    <h1>每日承載評估</h1>
+    <p>把今天的身體當成結構、把讀書與訓練計畫當成外力。輸出不是「你今天狀態幾分」，而是「今天的容量能撐多少載重」。</p>
+    <div class="rule"></div>
+    <div class="datebar">
+      <label for="entryDate">評估日期</label>
+      <input type="date" id="entryDate" style="width:auto">
+      <button class="btn ghost sm" id="btnToday" type="button">回到今天</button>
+      <span class="saved hidden" id="savedTag">已保存</span>
+    </div>
+  </header>
+
+  <div class="banner hidden" id="storageBanner">
+    這個環境無法保存紀錄，資料只留在目前分頁。離開前請用下方「匯出 JSON」備份。
+  </div>
+
+  <!-- ============ 輸入 ============ -->
+  <section class="panel">
+    <h2>晨間輸入 <span class="note">約 30 秒，欄位可留空</span></h2>
+    <div class="body">
+
+      <div class="sect-h">睡眠</div>
+      <div class="grid three">
+        <div class="field">
+          <span class="lbl">就寢時間</span>
+          <input type="time" id="bedTime" value="23:00">
+        </div>
+        <div class="field">
+          <span class="lbl">起床時間</span>
+          <input type="time" id="wakeTime" value="07:00">
+        </div>
+        <div class="field">
+          <span class="lbl">實際睡著約幾小時</span>
+          <div class="inrow"><input type="number" id="tst" step="0.25" min="0" max="16" placeholder="留空自動推估"><span class="unit">h</span></div>
+          <span class="hint">扣掉翻來覆去和半夜醒著的時間</span>
+        </div>
+      </div>
+
+      <div class="sect-h">主觀狀態 — Hooper 量表（1 最好 · 7 最差）</div>
+      <div class="grid">
+        <div class="field">
+          <span class="lbl">睡眠品質</span>
+          <div class="slider"><input type="range" id="hSleep" min="1" max="7" value="3"><span class="val" id="hSleepV">3</span></div>
+          <div class="scale-ends"><span>睡得很沉</span><span>整夜很淺</span></div>
+        </div>
+        <div class="field">
+          <span class="lbl">疲勞感</span>
+          <div class="slider"><input type="range" id="hFatigue" min="1" max="7" value="3"><span class="val" id="hFatigueV">3</span></div>
+          <div class="scale-ends"><span>精神飽滿</span><span>非常疲累</span></div>
+        </div>
+        <div class="field">
+          <span class="lbl">壓力感</span>
+          <div class="slider"><input type="range" id="hStress" min="1" max="7" value="3"><span class="val" id="hStressV">3</span></div>
+          <div class="scale-ends"><span>很放鬆</span><span>非常緊繃</span></div>
+        </div>
+        <div class="field">
+          <span class="lbl">肌肉痠痛</span>
+          <div class="slider"><input type="range" id="hSore" min="1" max="7" value="2"><span class="val" id="hSoreV">2</span></div>
+          <div class="scale-ends"><span>完全沒有</span><span>嚴重痠痛</span></div>
+        </div>
+      </div>
+
+      <div class="sect-h">水分 — WUT 三聯判定</div>
+      <div class="grid">
+        <div class="field span2">
+          <span class="lbl">晨間尿色</span>
+          <div class="urine" id="urineScale"></div>
+          <span class="hint">起床後第一泡。5 號以上（偏深黃）視為脫水指標之一。</span>
+        </div>
+        <div class="field">
+          <span class="lbl">晨重（選填）</span>
+          <div class="inrow"><input type="number" id="weight" step="0.1" min="30" max="200" placeholder="如 65.0"><span class="unit">kg</span></div>
+          <span class="hint">用途是推估水分狀態，不是體重管理。跟自己的 7 日基線比，變化 −1% 以上才有意義。</span>
+        </div>
+        <div class="field">
+          <span class="lbl">昨日飲水量（選填）</span>
+          <div class="inrow"><input type="number" id="water" step="100" min="0" max="10000" placeholder="如 2000"><span class="unit">ml</span></div>
+          <label class="check" style="margin-top:6px"><input type="checkbox" id="thirst">起床時明顯口渴</label>
+        </div>
+      </div>
+
+      <div class="sect-h">自律神經（選填 · 有穿戴裝置才填）</div>
+      <div class="grid">
+        <div class="field">
+          <span class="lbl">晨間靜止心率</span>
+          <div class="inrow"><input type="number" id="rhr" step="1" min="30" max="140" placeholder="如 56"><span class="unit">bpm</span></div>
+        </div>
+        <div class="field">
+          <span class="lbl">HRV（rMSSD）</span>
+          <div class="inrow"><input type="number" id="hrv" step="1" min="5" max="300" placeholder="如 62"><span class="unit">ms</span></div>
+        </div>
+      </div>
+
+      <div class="sect-h">今日計畫載重</div>
+      <div class="grid three">
+        <div class="field">
+          <span class="lbl">預計念書時數</span>
+          <div class="inrow"><input type="number" id="study" step="0.25" min="0" max="16" placeholder="如 3.75"><span class="unit">h</span></div>
+        </div>
+        <div class="field">
+          <span class="lbl">今日訓練</span>
+          <select id="trainType">
+            <option value="none">無</option>
+            <option value="climb">攀岩</option>
+            <option value="lift">重訓</option>
+            <option value="run">跑步／有氧</option>
+            <option value="hike">長程登山</option>
+            <option value="other">其他</option>
+          </select>
+        </div>
+        <div class="field">
+          <span class="lbl">訓練時長／強度 RPE</span>
+          <div class="inrow">
+            <input type="number" id="trainMin" step="5" min="0" max="900" placeholder="分鐘">
+            <input type="number" id="trainRpe" step="1" min="1" max="10" placeholder="RPE 1-10">
+          </div>
+          <span class="hint">RPE：6 還能聊天 · 8 講話會斷 · 10 力竭</span>
+        </div>
+        <div class="field span2">
+          <span class="lbl">今天有沒有額外壓力事件</span>
+          <div class="chips">
+            <label class="check"><input type="checkbox" class="stressor" value="考試／小考">考試</label>
+            <label class="check"><input type="checkbox" class="stressor" value="報告或口頭簡報">報告簡報</label>
+            <label class="check"><input type="checkbox" class="stressor" value="面試或會議">面試會議</label>
+            <label class="check"><input type="checkbox" class="stressor" value="長途通勤或移動">長途移動</label>
+            <label class="check"><input type="checkbox" class="stressor" value="生病或身體不適">身體不適</label>
+          </div>
+        </div>
+        <div class="field">
+          <span class="lbl">昨日最後咖啡因時間（選填）</span>
+          <input type="time" id="caffeine">
+        </div>
+      </div>
+
+      <div class="sect-h">備註</div>
+      <textarea id="note" placeholder="今天特別想記下來的事（選填）"></textarea>
+
+      <div class="actions">
+        <button class="btn" id="btnSave" type="button">計算並保存今日評估</button>
+        <button class="btn ghost sm" id="btnClear" type="button">清空欄位</button>
+        <button class="btn ghost sm hidden" id="btnDelete" type="button">刪除這天的紀錄</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 結果 ============ -->
+  <section class="panel hidden" id="resultPanel">
+    <h2>承載判定 <span class="note" id="baseNote"></span></h2>
+    <div class="body">
+      <div class="fs-head">
+        <div class="fs-num" id="fsNum">—</div>
+        <div class="fs-tag" id="fsTag">—</div>
+      </div>
+      <div class="fs-def">FS = 今日容量 ÷ 今日載重　·　≥1.25 可加量　1.00–1.25 照計畫　0.80–1.00 需降載　&lt;0.80 顯著超載</div>
+      <div class="verdict" id="verdict"></div>
+
+      <div class="bar-block">
+        <div class="bar-labels"><span>載重 DEMAND</span><span>容量 CAPACITY</span></div>
+        <div class="track">
+          <div class="fill" id="barFill" style="width:0%"></div>
+          <div class="caps" id="barCap" data-l="容量" style="left:0%"></div>
+        </div>
+        <div class="ticks"><div>0</div><div>35</div><div>70</div><div>105</div></div>
+      </div>
+
+      <div class="readouts">
+        <div class="readout"><div class="k">CAPACITY</div><div class="v" id="capV">—</div></div>
+        <div class="readout"><div class="k">DEMAND</div><div class="v" id="demV">—</div></div>
+        <div class="readout"><div class="k">建議念書上限</div><div class="v" id="studyV">—</div></div>
+        <div class="readout"><div class="k">累積損傷 D<sub>14</sub></div><div class="v" id="dmgV">—</div></div>
+      </div>
+    </div>
+
+    <div class="subs" id="subs"></div>
+
+    <div class="body">
+      <div id="flagsWrap" class="hidden">
+        <div class="sect-h" style="margin-top:0;padding-top:0;border-top:none">偵測到的訊號</div>
+        <ul class="list flags" id="flagsList"></ul>
+      </div>
+      <div id="planWrap" class="hidden">
+        <div class="sect-h">今日調整建議</div>
+        <ul class="list plan" id="planList"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 趨勢 ============ -->
+  <section class="panel hidden" id="trendPanel">
+    <h2>趨勢 <span class="note">近 30 日</span></h2>
+    <div class="body">
+      <div class="charts" id="charts"></div>
+    </div>
+  </section>
+
+  <!-- ============ 紀錄 ============ -->
+  <section class="panel">
+    <h2>紀錄 <span class="note" id="countNote"></span></h2>
+    <div class="body">
+      <div class="tbl-scroll">
+        <table id="logTable" class="hidden">
+          <thead><tr>
+            <th>日期</th><th>FS</th><th>容量</th><th>載重</th><th>睡眠</th><th>Hooper</th><th>念書</th><th>負荷</th><th></th>
+          </tr></thead>
+          <tbody id="logBody"></tbody>
+        </table>
+      </div>
+      <p class="empty" id="logEmpty">還沒有任何紀錄。填完上面的欄位按下計算，第一筆就會出現在這裡。個人基線需要 4 天以上的資料才會啟用，在那之前系統會用一般參考值判定，並在判定結果旁標示。</p>
+      <div class="actions">
+        <button class="btn ghost sm" id="btnCsv" type="button">匯出 CSV</button>
+        <button class="btn ghost sm" id="btnJson" type="button">匯出 JSON</button>
+        <button class="btn ghost sm" id="btnImport" type="button">匯入 JSON</button>
+        <input type="file" id="fileInput" accept=".json,application/json" class="hidden">
+      </div>
+    </div>
+  </section>
+
+  <p class="foot">
+    方法來源：Hooper 主觀量表（睡眠／疲勞／壓力／痠痛）、Foster session-RPE 訓練負荷（RPE × 分鐘）、WUT 脫水三聯判定（體重變化、尿色、口渴，任兩項陽性即判定可能脫水）、7 日滾動個人基線。安全係數與累積損傷是借用結構工程的類比來組織這些指標，不是臨床或醫學判定。持續的異常疲勞、心悸或睡眠障礙請找醫師，不要靠這張表。
+  </p>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ================= 儲存層 ================= */
+const KEY = "daily-readiness:v1";
+const hasStore = !!(window.storage && typeof window.storage.get === "function");
+let hasLocal = false;
+try{ localStorage.setItem("__probe","1"); localStorage.removeItem("__probe"); hasLocal = true; }
+catch(err){ hasLocal = false; }
+// cloud = 在 Claude 內開啟；local = 自架網頁或本機檔案；none = 兩者都不可用
+const MODE = hasStore ? "cloud" : (hasLocal ? "local" : "none");
+let memFallback = null;
+const EMPTY = () => ({entries:{}, settings:{}});
+
+async function loadAll(){
+  if(MODE === "cloud"){
+    try{
+      const r = await window.storage.get(KEY);
+      return r && r.value ? JSON.parse(r.value) : EMPTY();
+    }catch(e){ return EMPTY(); }
+  }
+  if(MODE === "local"){
+    try{
+      const raw = localStorage.getItem(KEY);
+      return raw ? JSON.parse(raw) : EMPTY();
+    }catch(e){ return EMPTY(); }
+  }
+  return memFallback || EMPTY();
+}
+async function saveAll(data){
+  memFallback = data;
+  if(MODE === "cloud"){
+    try{ await window.storage.set(KEY, JSON.stringify(data)); return true; }catch(e){ return false; }
+  }
+  if(MODE === "local"){
+    try{ localStorage.setItem(KEY, JSON.stringify(data)); return true; }catch(e){ return false; }
+  }
+  return false;
+}
+
+/* ================= 設定 ================= */
+const SETTINGS = {
+  sleepTarget: 8.0,     // 個人主觀需求睡眠時數
+  refStudy: 4.0,        // 念書時數基準（無歷史時使用）
+  refLoad: 300          // 訓練負荷基準 AU（無歷史時使用）
+};
+
+const URINE_COLORS = ["#F9F7DA","#F6F1B6","#F2E894","#EDDE6C","#E4CE46","#D6B22C","#BF8E1E","#9E6712"];
+
+/* ================= 工具 ================= */
+const $ = id => document.getElementById(id);
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const r1 = v => Math.round(v*10)/10;
+const mean = a => a.length ? a.reduce((s,x)=>s+x,0)/a.length : null;
+const sd = a => {
+  if(a.length < 2) return null;
+  const m = mean(a);
+  return Math.sqrt(a.reduce((s,x)=>s+(x-m)*(x-m),0)/(a.length-1));
+};
+function todayStr(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+function daysBetween(a,b){
+  return Math.round((new Date(b+"T00:00:00") - new Date(a+"T00:00:00"))/86400000);
+}
+function hoursBetween(t1,t2){
+  if(!t1 || !t2) return null;
+  const [h1,m1] = t1.split(":").map(Number);
+  const [h2,m2] = t2.split(":").map(Number);
+  let d = (h2*60+m2) - (h1*60+m1);
+  if(d <= 0) d += 1440;
+  return d/60;
+}
+function num(id){
+  const v = parseFloat($(id).value);
+  return isNaN(v) ? null : v;
+}
+
+/* ================= 核心計算 ================= */
+// 回傳 {capacity, demand, fs, subs:{}, flags:[], plan:[], suggestedStudy, baselineN}
+function assess(e, history){
+  // history: 該日之前的紀錄，日期新→舊
+  const win = history.slice(0,7);
+  const baselineN = win.length;
+  const personal = baselineN >= 4;
+
+  const flags = [], plan = [];
+  const subs = {};
+
+  /* --- 1. 睡眠 --- */
+  const tib = hoursBetween(e.bedTime, e.wakeTime);
+  let tst = e.tst;
+  if(tst == null && tib != null) tst = Math.max(0, tib - 0.5);   // 未填時保守推估
+  const target = SETTINGS.sleepTarget;
+  let sleepScore = null, sleepDebt = 0, eff = null;
+
+  if(tst != null){
+    const durScore = clamp((tst/target - 0.6)/0.4*100, 0, 100);
+    eff = (tib && tib > 0) ? clamp(tst/tib, 0, 1) : null;
+    const effScore = eff != null ? clamp((eff - 0.62)/0.30*100, 0, 100) : 85;
+
+    // 7 日滾動睡眠債（含今天）
+    sleepDebt = Math.max(0, target - tst);
+    win.forEach(h => { if(h.tst != null) sleepDebt += Math.max(0, target - h.tst); });
+    const debtPenalty = clamp(sleepDebt*2.5, 0, 22);
+
+    sleepScore = clamp(0.66*durScore + 0.34*effScore - debtPenalty, 0, 100);
+    subs.sleep = {v:sleepScore, w:34, k:"睡眠", d:`${r1(tst)}h${eff!=null?" · 效率 "+Math.round(eff*100)+"%":""}`};
+
+    if(tst < target - 1.2) flags.push(`睡眠 ${r1(tst)} 小時，比你自陳的需求（${target}h）少 ${r1(target-tst)} 小時。`);
+    if(eff != null && eff < 0.82) flags.push(`睡眠效率 ${Math.round(eff*100)}%（躺 ${r1(tib)}h 睡 ${r1(tst)}h），入睡或維持睡眠有阻力。`);
+    if(sleepDebt >= 6){
+      flags.push(`<b>7 日累積睡眠債 ${r1(sleepDebt)} 小時。</b>慢性睡眠限制的關鍵問題是主觀警醒感會停止惡化、但持續注意力仍持續下滑（Van Dongen 2003），所以此時「感覺還好」不能當作依據，請直接看數字。`);
+      plan.push("這週優先還睡眠債：提早 30 分鐘上床，比多讀 30 分鐘的邊際效益高。");
+    }
+  }
+
+  /* --- 2. 主觀 Hooper --- */
+  const hSum = e.hSleep + e.hFatigue + e.hStress + e.hSore;   // 4–28
+  let subjScore = clamp((28 - hSum)/24*100, 0, 100);
+  let hDelta = null;
+  if(personal){
+    const hb = mean(win.map(h => h.hSleep + h.hFatigue + h.hStress + h.hSore));
+    hDelta = hSum - hb;
+    const rel = clamp(50 - hDelta*7, 0, 100);
+    subjScore = clamp(0.65*subjScore + 0.35*rel, 0, 100);
+  }
+  subs.subj = {v:subjScore, w:30, k:"主觀狀態", d:`Hooper ${hSum}/28${hDelta!=null?` · ${hDelta>=0?"+":""}${r1(hDelta)} vs 基線`:""}`};
+  if(e.hStress >= 6) flags.push("主觀壓力達 6 分以上，屬於高負荷區間。");
+  if(e.hSore >= 6) flags.push("肌肉痠痛 6 分以上，結締組織的恢復比肌肉慢，今天不適合再加強度。");
+  if(hDelta != null && hDelta >= 5) flags.push(`主觀量表比你自己的 7 日基線差 ${r1(hDelta)} 分，這是趨勢偏離而不只是今天感覺不好。`);
+
+  /* --- 3. 水分 WUT --- */
+  let wut = 0, wutMax = 2, wDeltaPct = null;
+  const wHist = win.map(h => h.weight).filter(x => x != null);
+  if(e.weight != null && wHist.length >= 3){
+    const wb = mean(wHist);
+    wDeltaPct = (e.weight - wb)/wb*100;
+    wutMax = 3;
+    if(wDeltaPct <= -1.0) wut++;
+  }
+  if(e.urine != null && e.urine >= 5) wut++;
+  if(e.thirst) wut++;
+  const hydTable = {0:100, 1:72, 2:42, 3:22};
+  const hydScore = hydTable[Math.min(wut,3)];
+  subs.hyd = {v:hydScore, w:12, k:"水分", d:`WUT ${wut}/${wutMax}${wDeltaPct!=null?` · ${wDeltaPct>0?"+":""}${wDeltaPct.toFixed(1)}%`:""}`};
+
+  if(wut >= 2){
+    flags.push(`WUT 三聯中有 ${wut} 項陽性，判定為可能脫水。輕度脫水最先影響的就是持續注意力與短期記憶。`);
+    plan.push("上午先補 500–600ml，之後每小時 200ml。若體重掉超過 1%，補水時加一點電解質，不要只灌純水。");
+  }
+  if(e.weight != null && wDeltaPct != null && wDeltaPct >= 1.2){
+    flags.push(`晨重比基線高 ${wDeltaPct.toFixed(1)}%。單日這種幅度多半是水分滯留（高鈉、高訓練量後發炎反應、或睡眠不足），不是真的長肉。`);
+  }
+  if(e.water != null && e.weight != null){
+    const refWater = e.weight*35;
+    if(e.water < refWater*0.7){
+      flags.push(`昨日飲水約 ${e.water}ml，低於 ${Math.round(refWater)}ml 的粗估參考值。（這個係數只是起點，實際需求受氣溫與活動量影響很大，還是以尿色和體重為準。）`);
+    }
+  }
+
+  /* --- 4. 自律神經 --- */
+  let ansScore = null;
+  const rhrHist = win.map(h=>h.rhr).filter(x=>x!=null);
+  const hrvHist = win.map(h=>h.hrv).filter(x=>x!=null);
+  if((e.rhr != null && rhrHist.length >= 3) || (e.hrv != null && hrvHist.length >= 3)){
+    let s = 100, d = [];
+    if(e.rhr != null && rhrHist.length >= 3){
+      const rb = mean(rhrHist);
+      const dr = e.rhr - rb;
+      s -= clamp((dr - 2)*9, 0, 45);
+      d.push(`RHR ${dr>=0?"+":""}${r1(dr)}`);
+      if(dr >= 5) flags.push(`晨間靜止心率比 7 日基線高 ${r1(dr)} bpm，常見於恢復不足、脫水或感染前期。`);
+    }
+    if(e.hrv != null && hrvHist.length >= 3){
+      const ln = x => Math.log(x);
+      const hb = mean(hrvHist.map(ln));
+      const hs = sd(hrvHist.map(ln)) || 0.10;
+      const z = (ln(e.hrv) - hb)/Math.max(hs, 0.05);
+      s -= clamp(-z*22, 0, 45);
+      d.push(`HRV z ${z>=0?"+":""}${z.toFixed(1)}`);
+      if(z <= -1.0) flags.push("HRV 低於個人基線 1 個標準差以上，副交感恢復偏低，今天不是衝強度的日子。");
+    }
+    ansScore = clamp(s, 0, 100);
+    subs.ans = {v:ansScore, w:13, k:"自律神經", d:d.join(" · ")};
+  }
+
+  /* --- 5. 昨日負荷殘餘 --- */
+  let resScore = null;
+  const yest = history[0];
+  if(yest && daysBetween(yest.date, e.date) <= 2){
+    const yLoad = (yest.trainMin || 0) * (yest.trainRpe || 0);
+    const loadHist = win.map(h => (h.trainMin||0)*(h.trainRpe||0));
+    const refLoad = Math.max(mean(loadHist) || SETTINGS.refLoad, 150);
+    resScore = clamp(100 - clamp((yLoad/refLoad - 1)*38, 0, 48), 0, 100);
+    subs.res = {v:resScore, w:11, k:"昨日殘餘", d:`${Math.round(yLoad)} AU`};
+    if(yLoad/refLoad >= 1.6 && yLoad > 400){
+      flags.push(`昨天的訓練負荷 ${Math.round(yLoad)} AU，約為近期平均的 ${(yLoad/refLoad).toFixed(1)} 倍。`);
+    }
+  }
+
+  /* --- 容量 --- */
+  const parts = Object.values(subs);
+  const wSum = parts.reduce((s,p)=>s+p.w, 0);
+  const capacity = wSum > 0 ? clamp(parts.reduce((s,p)=>s+p.v*p.w, 0)/wSum, 0, 100) : 50;
+
+  /* --- 載重 --- */
+  const studyHist = history.slice(0,7).map(h=>h.study).filter(x=>x!=null && x>0);
+  const refStudy = Math.max(mean(studyHist) || SETTINGS.refStudy, 2);
+  const study = e.study || 0;
+  const cog = clamp(50*(study/refStudy), 0, 92);
+
+  const tLoad = (e.trainMin||0)*(e.trainRpe||0);
+  const loadHist2 = history.slice(0,7).map(h=>(h.trainMin||0)*(h.trainRpe||0)).filter(x=>x>0);
+  const refLoad2 = Math.max(mean(loadHist2) || SETTINGS.refLoad, 200);
+  const train = tLoad > 0 ? clamp(22*(tLoad/refLoad2), 0, 32) : 0;
+
+  const stress = clamp((e.stressors||[]).length*8, 0, 24);
+  const demand = clamp(cog + train + stress, 8, 145);
+
+  const fs = capacity/demand;
+
+  /* --- 反解建議念書上限（讓 FS 落在 1.15） --- */
+  const cogAllow = capacity/1.15 - train - stress;
+  const suggestedStudy = clamp(Math.round((cogAllow/50*refStudy)*4)/4, 0, 14);
+
+  return {capacity, demand, fs, subs, flags, plan, suggestedStudy, baselineN, personal,
+          hSum, tst, sleepDebt, tLoad, cog, train, stress, refStudy};
+}
+
+/* 累積損傷：對過去 14 日的超載量做半衰期 5 天的加權和（Miner 線性累積的類比） */
+function damage(results, idx){
+  let D = 0;
+  const today = results[idx];
+  for(let i = idx; i >= 0 && i > idx-14; i--){
+    const r = results[i];
+    const age = daysBetween(r.date, today.date);
+    if(age > 14) break;
+    const over = Math.max(0, r.demand/r.capacity - 1);
+    D += over * Math.pow(0.5, age/5);
+  }
+  return D;
+}
+
+/* ================= 狀態 ================= */
+let DATA = {entries:{}, settings:{}};
+let RESULTS = [];   // 依日期升冪，含 date/capacity/demand/fs/D
+
+function sortedEntries(){
+  return Object.values(DATA.entries).sort((a,b)=> a.date < b.date ? -1 : 1);
+}
+function recomputeAll(){
+  const asc = sortedEntries();
+  RESULTS = [];
+  asc.forEach((e, i) => {
+    const hist = asc.slice(0, i).reverse();          // 新→舊
+    const res = assess(e, hist);
+    res.date = e.date; res.entry = e;
+    RESULTS.push(res);
+  });
+  RESULTS.forEach((r, i) => { r.D = damage(RESULTS, i); });
+}
+function resultFor(date){ return RESULTS.find(r => r.date === date) || null; }
+
+/* ================= 讀寫表單 ================= */
+function buildUrineScale(){
+  const box = $("urineScale");
+  box.innerHTML = "";
+  URINE_COLORS.forEach((c, i) => {
+    const l = document.createElement("label");
+    l.innerHTML = `<input type="radio" name="urine" value="${i+1}"><span style="background:${c}">${i+1}</span>`;
+    box.appendChild(l);
+  });
+}
+function readForm(){
+  const date = $("entryDate").value || todayStr();
+  const stressors = [...document.querySelectorAll(".stressor:checked")].map(c=>c.value);
+  const u = document.querySelector('input[name=urine]:checked');
+  return {
+    date,
+    bedTime: $("bedTime").value || null,
+    wakeTime: $("wakeTime").value || null,
+    tst: num("tst"),
+    hSleep: +$("hSleep").value, hFatigue: +$("hFatigue").value,
+    hStress: +$("hStress").value, hSore: +$("hSore").value,
+    urine: u ? +u.value : null,
+    thirst: $("thirst").checked,
+    weight: num("weight"), water: num("water"),
+    rhr: num("rhr"), hrv: num("hrv"),
+    study: num("study"),
+    trainType: $("trainType").value,
+    trainMin: num("trainMin"), trainRpe: num("trainRpe"),
+    stressors,
+    caffeine: $("caffeine").value || null,
+    note: $("note").value.trim() || null
+  };
+}
+function writeForm(e){
+  $("entryDate").value = e.date;
+  $("bedTime").value = e.bedTime || "";
+  $("wakeTime").value = e.wakeTime || "";
+  $("tst").value = e.tst ?? "";
+  ["hSleep","hFatigue","hStress","hSore"].forEach(k=>{
+    $(k).value = e[k] ?? 3; $(k+"V").textContent = e[k] ?? 3;
+  });
+  document.querySelectorAll('input[name=urine]').forEach(r => r.checked = (+r.value === e.urine));
+  $("thirst").checked = !!e.thirst;
+  $("weight").value = e.weight ?? "";
+  $("water").value = e.water ?? "";
+  $("rhr").value = e.rhr ?? "";
+  $("hrv").value = e.hrv ?? "";
+  $("study").value = e.study ?? "";
+  $("trainType").value = e.trainType || "none";
+  $("trainMin").value = e.trainMin ?? "";
+  $("trainRpe").value = e.trainRpe ?? "";
+  document.querySelectorAll(".stressor").forEach(c => c.checked = (e.stressors||[]).includes(c.value));
+  $("caffeine").value = e.caffeine || "";
+  $("note").value = e.note || "";
+}
+// 找可繼承的範本：優先同一個星期幾（作息通常以週為循環），否則取最近一筆
+function templateFor(date){
+  const asc = sortedEntries();
+  if(!asc.length) return null;
+  const dow = new Date(date+"T00:00:00").getDay();
+  for(let i = asc.length-1; i >= 0; i--){
+    const e = asc[i];
+    if(e.date === date) continue;
+    if(daysBetween(e.date, date) > 21) break;
+    if(new Date(e.date+"T00:00:00").getDay() === dow) return e;
+  }
+  return asc[asc.length-1].date === date ? (asc[asc.length-2] || null) : asc[asc.length-1];
+}
+
+function clearForm(){
+  // 每天必須重新量的：主觀評分、尿色、體重、口渴 — 一律清空
+  ["tst","weight","water","rhr","hrv"].forEach(k=>$(k).value="");
+  ["hSleep","hFatigue","hStress"].forEach(k=>{$(k).value=3;$(k+"V").textContent=3;});
+  $("hSore").value=2; $("hSoreV").textContent=2;
+  document.querySelectorAll('input[name=urine]').forEach(r=>r.checked=false);
+  document.querySelectorAll(".stressor").forEach(c=>c.checked=false);
+  $("thirst").checked=false;
+  $("caffeine").value=""; $("note").value="";
+
+  // 每週重複、幾乎不變的：沿用同星期幾的上一筆
+  const t = templateFor($("entryDate").value || todayStr());
+  $("bedTime").value  = (t && t.bedTime)  || "23:00";
+  $("wakeTime").value = (t && t.wakeTime) || "07:00";
+  $("study").value    = t && t.study != null ? t.study : "";
+  $("trainType").value= (t && t.trainType) || "none";
+  $("trainMin").value = t && t.trainMin != null ? t.trainMin : "";
+  $("trainRpe").value = t && t.trainRpe != null ? t.trainRpe : "";
+}
+
+/* ================= 建議產生 ================= */
+function buildPlan(res, e){
+  const p = [...res.plan];
+  const fs = res.fs;
+
+  if(fs < 0.80){
+    p.unshift(`<b>今天的計畫超出容量。</b>把念書時數降到 ${res.suggestedStudy} 小時，並且只做低耗能的項目：複習已學過的章節、重抄公式卡、刷做過的題目。新進度的 VOD 挪到明天。`);
+  }else if(fs < 1.00){
+    p.unshift(`<b>小幅降載。</b>建議念書 ${res.suggestedStudy} 小時左右。把需要最高專注的新章節放在最前段，後段換成計算題或整理筆記這類靠程序記憶的工作。`);
+  }else if(fs < 1.25){
+    p.unshift(`照原訂計畫執行，但今天不加碼。新進度優先排在前段，工數計算或複習排後段。`);
+  }else{
+    p.unshift(`<b>容量充足。</b>今天適合放最難啃的內容。若想加量，週增幅控制在 10% 以內，避免一次跳太多。`);
+  }
+
+  if(res.subs.sleep && res.subs.sleep.v < 55){
+    p.push("下午 13:00–15:00 之間睡 20 分鐘（不要超過 30 分鐘，避免進入深睡後醒來更鈍）。這對睡眠不足後的持續注意力有實證效果。");
+  }
+  if(e.hStress >= 5){
+    p.push("壓力偏高的日子，攀岩照排但降強度——只做熟悉路線或技術性慢攀。你自己驗證過攀岩對焦慮有效，此時要留的是紓壓效果，不是訓練刺激。");
+  }
+  if(e.hSore >= 6 && (e.trainType === "climb" || e.trainType === "lift")){
+    p.push("痠痛 6 分以上時避開指力極限動作。指屈肌腱與滑車的恢復速度明顯慢於肌肉，這類傷通常來自恢復不足而不是單次拉太狠。");
+  }
+  if(e.caffeine && e.bedTime){
+    const gap = hoursBetween(e.caffeine, e.bedTime);
+    if(gap != null && gap < 8 && gap > 0){
+      p.push(`最後一杯咖啡因距離就寢只有 ${r1(gap)} 小時。半衰期約 5 小時，代表上床時體內還有相當比例殘留，會壓低深睡比例。往前挪到 ${(()=>{const [h,m]=e.bedTime.split(":").map(Number);let t=(h*60+m-8*60+1440)%1440;return String(Math.floor(t/60)).padStart(2,"0")+":"+String(t%60).padStart(2,"0");})()} 之前。`);
+    }
+  }
+  if(res.D > 1.0){
+    p.push(`<b>累積損傷 D=${res.D.toFixed(2)}，已超過警戒值 1.0。</b>你連續數天在超載區間。構件的疲勞破壞不是單次大力造成的，是次臨界載重反覆累積出來的——這兩天安排一天明顯減載（念書減半、訓練改成純活動度），比硬撐划算。`);
+  }
+  return p;
+}
+
+/* ================= 渲染 ================= */
+function render(){
+  const date = $("entryDate").value;
+  const e = DATA.entries[date];
+  $("btnDelete").classList.toggle("hidden", !e);
+
+  const res = resultFor(date);
+  const rp = $("resultPanel");
+
+  if(!res){
+    rp.classList.add("hidden");
+  }else{
+    rp.classList.remove("hidden");
+    const fs = res.fs;
+    $("fsNum").textContent = fs.toFixed(2);
+    const tag = $("fsTag"), vd = $("verdict");
+    let color, label, text;
+    if(fs >= 1.25){ color="var(--ok)"; label="可加量"; text="容量明顯高於今天的計畫載重。這是把最難的內容排進來的日子，也是唯一適合往上加量的時機。"; }
+    else if(fs >= 1.00){ color="var(--ok)"; label="照計畫"; text="容量剛好覆蓋計畫載重，安全餘裕不多。照原訂執行，但今天不要臨時加碼。"; }
+    else if(fs >= 0.80){ color="var(--warn)"; label="需降載"; text="今天的計畫超過容量。這不代表要放棄，代表要換內容——降低單位時間的認知強度，保住「每天不中斷」這件事。"; }
+    else { color="var(--over)"; label="顯著超載"; text="容量與計畫落差很大。硬幹的結果通常是效率極低的幾小時，加上隔天更差的容量。今天以修復為主。"; }
+    tag.textContent = label; tag.style.color = color;
+    $("fsNum").style.color = color;
+    vd.innerHTML = text;
+
+    const SCALE = 140;
+    const dPct = clamp(res.demand/SCALE*100, 0, 100);
+    const cPct = clamp(res.capacity/SCALE*100, 0, 100);
+    const fill = $("barFill");
+    fill.style.width = dPct + "%";
+    fill.classList.toggle("over", res.demand > res.capacity);
+    $("barCap").style.left = cPct + "%";
+
+    $("capV").textContent = Math.round(res.capacity);
+    $("demV").textContent = Math.round(res.demand);
+    $("studyV").textContent = res.suggestedStudy + "h";
+    const dv = $("dmgV");
+    dv.textContent = res.D.toFixed(2);
+    dv.style.color = res.D > 1.0 ? "var(--over)" : (res.D > 0.5 ? "var(--warn)" : "var(--ink)");
+
+    $("baseNote").textContent = res.personal
+      ? `個人基線 ${res.baselineN} 日資料`
+      : `基線建立中 ${res.baselineN}/4 日 · 目前採一般參考值`;
+
+    // 子系統
+    const order = ["sleep","subj","hyd","ans","res"];
+    const subs = $("subs");
+    subs.innerHTML = "";
+    order.forEach(k=>{
+      const s = res.subs[k];
+      const div = document.createElement("div");
+      div.className = "sub";
+      if(!s){
+        div.innerHTML = `<div class="k">${({sleep:"睡眠",subj:"主觀狀態",hyd:"水分",ans:"自律神經",res:"昨日殘餘"})[k]}</div>
+          <div class="v" style="color:var(--ink-3)">—</div>
+          <div class="meter"><i style="width:0"></i></div>
+          <div class="d">資料不足，未計入</div>`;
+      }else{
+        const c = s.v >= 70 ? "var(--ok)" : (s.v >= 50 ? "var(--warn)" : "var(--over)");
+        div.innerHTML = `<div class="k">${s.k}</div>
+          <div class="v">${Math.round(s.v)}</div>
+          <div class="meter"><i style="width:${clamp(s.v,0,100)}%;background:${c}"></i></div>
+          <div class="d">${s.d||""}</div>`;
+      }
+      subs.appendChild(div);
+    });
+
+    // 訊號與建議
+    const fw = $("flagsWrap"), fl = $("flagsList");
+    if(res.flags.length){ fl.innerHTML = res.flags.map(f=>`<li>${f}</li>`).join(""); fw.classList.remove("hidden"); }
+    else fw.classList.add("hidden");
+
+    const plan = buildPlan(res, res.entry);
+    const pw = $("planWrap"), pl = $("planList");
+    if(plan.length){ pl.innerHTML = plan.map(p=>`<li>${p}</li>`).join(""); pw.classList.remove("hidden"); }
+    else pw.classList.add("hidden");
+  }
+
+  renderTrend();
+  renderLog();
+}
+
+function spark(values, opts){
+  const W = 300, H = 64, pad = 6;
+  const valid = values.filter(v=>v!=null);
+  if(valid.length < 2) return `<svg viewBox="0 0 ${W} ${H}"><text x="8" y="36" font-size="11" fill="#8A9199" font-family="monospace">資料不足</text></svg>`;
+  let lo = Math.min(...valid), hi = Math.max(...valid);
+  if(opts.min != null) lo = Math.min(lo, opts.min);
+  if(opts.max != null) hi = Math.max(hi, opts.max);
+  if(hi - lo < 1e-6){ hi = lo + 1; }
+  const x = i => pad + i*(W-2*pad)/Math.max(values.length-1,1);
+  const y = v => H - pad - (v-lo)/(hi-lo)*(H-2*pad);
+
+  let ref = "";
+  if(opts.ref != null && opts.ref >= lo && opts.ref <= hi){
+    ref = `<line x1="0" x2="${W}" y1="${y(opts.ref)}" y2="${y(opts.ref)}" stroke="#C7CBC4" stroke-dasharray="3 3" stroke-width="1"/>`;
+  }
+  let d = "", started = false;
+  values.forEach((v,i)=>{
+    if(v == null){ started = false; return; }
+    d += (started ? " L " : " M ") + x(i).toFixed(1) + " " + y(v).toFixed(1);
+    started = true;
+  });
+  const dots = values.map((v,i)=> v==null ? "" :
+    `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="1.6" fill="${opts.color}"/>`).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${ref}
+    <path d="${d}" fill="none" stroke="${opts.color}" stroke-width="1.8" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+    ${dots}</svg>`;
+}
+
+function renderTrend(){
+  const recent = RESULTS.slice(-30);
+  const tp = $("trendPanel");
+  if(recent.length < 2){ tp.classList.add("hidden"); return; }
+  tp.classList.remove("hidden");
+
+  const charts = [
+    {t:"安全係數 FS", ref:1.0, color:"#3D5A73", vals:recent.map(r=>r.fs),
+     last:r=>r.fs.toFixed(2)},
+    {t:"容量 vs 載重", color:"#2E7D6F", vals:recent.map(r=>r.capacity), overlay:recent.map(r=>r.demand),
+     last:r=>Math.round(r.capacity)+" / "+Math.round(r.demand)},
+    {t:"睡眠時數", ref:SETTINGS.sleepTarget, color:"#7A5EA8", vals:recent.map(r=>r.entry.tst ?? (r.entry.bedTime?hoursBetween(r.entry.bedTime,r.entry.wakeTime)-0.5:null)),
+     last:r=>r.tst!=null?r1(r.tst)+"h":"—"},
+    {t:"累積損傷 D", ref:1.0, color:"#A63A2B", vals:recent.map(r=>r.D),
+     last:r=>r.D.toFixed(2)}
+  ];
+  $("charts").innerHTML = charts.map(c=>{
+    let svg = spark(c.vals, {ref:c.ref, color:c.color, min:c.ref});
+    if(c.overlay){
+      const both = c.vals.concat(c.overlay);
+      const lo = Math.min(...both.filter(v=>v!=null)), hi = Math.max(...both.filter(v=>v!=null));
+      svg = spark(c.vals, {color:c.color, min:lo, max:hi}).replace("</svg>","") +
+            spark(c.overlay, {color:"#A63A2B", min:lo, max:hi}).replace(/^<svg[^>]*>/,"");
+    }
+    return `<div class="chart"><div class="ct"><span>${c.t}</span><span>${c.last(recent[recent.length-1])}</span></div>${svg}</div>`;
+  }).join("");
+}
+
+function renderLog(){
+  const rows = RESULTS.slice().reverse();
+  $("countNote").textContent = rows.length ? `${rows.length} 筆` : "";
+  const tbl = $("logTable"), empty = $("logEmpty");
+  if(!rows.length){ tbl.classList.add("hidden"); empty.classList.remove("hidden"); return; }
+  tbl.classList.remove("hidden"); empty.classList.add("hidden");
+  $("logBody").innerHTML = rows.map(r=>{
+    const c = r.fs >= 1.25 ? "#2E7D6F" : (r.fs >= 1.0 ? "#2E7D6F" : (r.fs >= 0.8 ? "#C08418" : "#A63A2B"));
+    const load = (r.entry.trainMin||0)*(r.entry.trainRpe||0);
+    return `<tr>
+      <td><span class="dot" style="background:${c}"></span>${r.date}</td>
+      <td>${r.fs.toFixed(2)}</td>
+      <td>${Math.round(r.capacity)}</td>
+      <td>${Math.round(r.demand)}</td>
+      <td>${r.tst!=null?r1(r.tst):"—"}</td>
+      <td>${r.hSum}</td>
+      <td>${r.entry.study ?? "—"}</td>
+      <td>${load||"—"}</td>
+      <td><button class="rowbtn" data-d="${r.date}">開啟</button></td>
+    </tr>`;
+  }).join("");
+  $("logBody").querySelectorAll(".rowbtn").forEach(b=>{
+    b.addEventListener("click", ()=>{
+      $("entryDate").value = b.dataset.d;
+      writeForm(DATA.entries[b.dataset.d]);
+      render();
+      $("resultPanel").scrollIntoView({behavior:"smooth", block:"start"});
+    });
+  });
+}
+
+/* ================= 匯出匯入 ================= */
+function download(name, text, type){
+  const blob = new Blob([text], {type});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();}, 500);
+}
+function toCsv(){
+  const head = ["date","fs","capacity","demand","damage","tst","sleep_debt","hooper_sum","h_sleep","h_fatigue","h_stress","h_sore","urine","thirst","weight","water","rhr","hrv","study_h","train_type","train_min","train_rpe","train_load_au","stressors","note"];
+  const lines = [head.join(",")];
+  RESULTS.forEach(r=>{
+    const e = r.entry;
+    const row = [r.date, r.fs.toFixed(3), Math.round(r.capacity), Math.round(r.demand), r.D.toFixed(3),
+      r.tst ?? "", r1(r.sleepDebt), r.hSum, e.hSleep, e.hFatigue, e.hStress, e.hSore,
+      e.urine ?? "", e.thirst?1:0, e.weight ?? "", e.water ?? "", e.rhr ?? "", e.hrv ?? "",
+      e.study ?? "", e.trainType || "", e.trainMin ?? "", e.trainRpe ?? "", (e.trainMin||0)*(e.trainRpe||0),
+      `"${(e.stressors||[]).join(" / ")}"`, `"${(e.note||"").replace(/"/g,'""')}"`];
+    lines.push(row.join(","));
+  });
+  return "\uFEFF" + lines.join("\n");
+}
+
+/* ================= 綁定 ================= */
+function bind(){
+  ["hSleep","hFatigue","hStress","hSore"].forEach(k=>{
+    $(k).addEventListener("input", ()=> $(k+"V").textContent = $(k).value);
+  });
+  $("btnToday").addEventListener("click", ()=>{
+    $("entryDate").value = todayStr();
+    const e = DATA.entries[todayStr()];
+    if(e) writeForm(e); else clearForm();
+    render();
+  });
+  $("entryDate").addEventListener("change", ()=>{
+    const e = DATA.entries[$("entryDate").value];
+    if(e) writeForm(e); else clearForm();
+    render();
+  });
+  $("btnClear").addEventListener("click", clearForm);
+
+  $("btnSave").addEventListener("click", async ()=>{
+    const e = readForm();
+    DATA.entries[e.date] = e;
+    recomputeAll();
+    render();
+    const ok = await saveAll(DATA);
+    const tag = $("savedTag");
+    tag.textContent = ok ? "已保存" : "已計算（未保存）";
+    tag.style.color = ok ? "var(--ok)" : "var(--warn)";
+    tag.classList.remove("hidden");
+    setTimeout(()=>tag.classList.add("hidden"), 2200);
+    $("resultPanel").scrollIntoView({behavior:"smooth", block:"start"});
+  });
+
+  $("btnDelete").addEventListener("click", async ()=>{
+    const d = $("entryDate").value;
+    delete DATA.entries[d];
+    recomputeAll(); clearForm(); $("entryDate").value = d; render();
+    await saveAll(DATA);
+  });
+
+  $("btnCsv").addEventListener("click", ()=> download("readiness-"+todayStr()+".csv", toCsv(), "text/csv;charset=utf-8"));
+  $("btnJson").addEventListener("click", ()=> download("readiness-"+todayStr()+".json", JSON.stringify(DATA,null,2), "application/json"));
+  $("btnImport").addEventListener("click", ()=> $("fileInput").click());
+  $("fileInput").addEventListener("change", async ev=>{
+    const f = ev.target.files[0]; if(!f) return;
+    try{
+      const obj = JSON.parse(await f.text());
+      if(!obj.entries) throw new Error("格式不符");
+      Object.assign(DATA.entries, obj.entries);   // 合併，不覆蓋既有
+      recomputeAll(); render(); await saveAll(DATA);
+    }catch(err){
+      alert("匯入失敗：檔案不是這個工具匯出的 JSON。請改選 readiness-*.json。");
+    }
+    ev.target.value = "";
+  });
+}
+
+/* ================= 啟動 ================= */
+(async function init(){
+  buildUrineScale();
+  bind();
+  if(MODE === "none") $("storageBanner").classList.remove("hidden");
+  DATA = await loadAll();
+  if(!DATA.entries) DATA.entries = {};
+  $("entryDate").value = todayStr();
+  if(DATA.entries[todayStr()]) writeForm(DATA.entries[todayStr()]);
+  recomputeAll();
+  render();
+})();
+
+})();
+</script>
+</body>
+</html>
