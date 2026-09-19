@@ -7,6 +7,7 @@
 <meta name="theme-color" content="#F3F4F1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="今天">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%233D6B5C'/%3E%3Crect x='8' y='9' width='16' height='2.6' rx='1.3' fill='%23fff'/%3E%3Crect x='8' y='15' width='11' height='2.6' rx='1.3' fill='%23fff' opacity='.75'/%3E%3Crect x='8' y='21' width='6' height='2.6' rx='1.3' fill='%23fff' opacity='.5'/%3E%3C/svg%3E">
 <title>今天</title>
 <style>
 :root{
@@ -60,8 +61,12 @@ p{margin:0}
 .now .pb{height:4px;background:var(--track);border-radius:2px;overflow:hidden;margin-top:12px}
 .now .pb i{display:block;height:100%;border-radius:2px;background:var(--muted)}
 .now.rest .big{color:var(--muted)}
+.now .vd{margin-top:14px;padding-top:12px;border-top:1px solid var(--rule);font-size:13.5px;color:var(--muted)}
+.now .vd b{font-weight:500;color:var(--ink)}
+.now .vd.tight b{color:var(--gs)}
 
 h2{font-size:13px;font-weight:500;color:var(--faint);letter-spacing:.08em;margin:34px 0 10px}
+h2 .hint{float:right;font-weight:400;letter-spacing:0}
 
 .row{display:grid;grid-template-columns:96px 3px 1fr;gap:12px;align-items:center;padding:9px 0;border-top:1px solid var(--rule)}
 .row:first-of-type{border-top:0}
@@ -75,17 +80,35 @@ h2{font-size:13px;font-weight:500;color:var(--faint);letter-spacing:.08em;margin
 .k.jg{background:var(--jg)} .k.l{background:var(--l)} .k.x{background:var(--x)}
 .k.t{background:var(--gs)}
 
-.tick{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--rule)}
+/* 記錄帶 */
+.streak{display:flex;gap:3px;margin:16px 0 0}
+.streak i{flex:1;height:24px;border-radius:2px;background:var(--track);position:relative}
+.streak i.l1{background:var(--c);opacity:.28}
+.streak i.l2{background:var(--c);opacity:.52}
+.streak i.l3{background:var(--c);opacity:.76}
+.streak i.l4{background:var(--c)}
+.streak i.tdy{outline:1.5px solid var(--ink);outline-offset:1.5px}
+.sline{color:var(--faint);font-size:12.5px;margin-top:9px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.sline b{font-weight:500;color:var(--muted)}
+
+.tick{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--rule)}
 .tick:first-of-type{border-top:0}
 .tick .dot{width:9px;height:9px;border-radius:50%;flex:none}
 .dot.gs{background:var(--gs)} .dot.ml{background:var(--ml)} .dot.jg{background:var(--jg)}
-.tick .who{width:38px;font-size:14px;color:var(--muted)}
-.tick .what{flex:1;font-size:14.5px;min-width:0}
+.tick .who{width:38px;font-size:14px;color:var(--muted);flex:none}
+.tick .what{flex:1 1 130px;font-size:14.5px;min-width:0}
 .tick .what em{font-style:normal;color:var(--muted);font-size:13px;display:block}
+.tick .acts{display:flex;gap:6px;margin-left:auto;flex:none}
+.tick.jam{background:var(--gs-bg);border-radius:6px;padding-left:10px;padding-right:10px}
+.jamnote{font-size:13px;color:var(--gs);padding:0 0 11px;margin-top:-4px}
+.jamnote b{font-weight:500}
+
 button{font:inherit;font-size:13px;padding:4px 12px;border:1px solid var(--rule);
-  background:var(--paper);color:var(--ink);border-radius:6px;cursor:pointer}
+  background:var(--paper);color:var(--ink);border-radius:6px;cursor:pointer;white-space:nowrap}
 button:hover{border-color:var(--muted)}
 button.mini{padding:3px 9px;color:var(--faint)}
+button.alarm{border-color:var(--gs);color:var(--gs)}
+button.go{border-color:var(--c);color:var(--c)}
 
 .wg{border-top:1px solid var(--rule);padding:11px 0;display:flex;gap:12px;align-items:baseline}
 .wg:first-child{border-top:0}
@@ -102,6 +125,7 @@ button.mini{padding:3px 9px;color:var(--faint)}
 .timer .tbig{font-size:52px;font-weight:500;line-height:1.1;margin:4px 0 2px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 .timer.rest .tbig{color:var(--c)}
 .timer.work .tbig{color:var(--ink)}
+.timer.jam .tbig{color:var(--gs)}
 .timer .tsub{color:var(--muted);font-size:13.5px;min-height:20px}
 .timer .btns{display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap}
 .timer button{padding:6px 16px;font-size:14px}
@@ -116,6 +140,8 @@ details summary{cursor:pointer;font-size:14px;color:var(--muted);list-style:none
 details summary::-webkit-details-marker{display:none}
 details summary::before{content:"＋";color:var(--faint);font-size:13px}
 details[open] summary::before{content:"−"}
+details summary .tag{margin-left:auto;font-size:12px;color:var(--faint)}
+details summary .tag.hot{color:var(--gs)}
 details .body{padding-top:12px}
 
 .bar{height:6px;background:var(--track);border-radius:3px;overflow:hidden;margin:6px 0 2px}
@@ -125,6 +151,21 @@ details .body{padding-top:12px}
 .pline .rr{margin-left:auto;color:var(--faint);font-size:12.5px;font-variant-numeric:tabular-nums}
 .pace{font-size:12.5px;color:var(--muted);margin-top:2px}
 .pace.behind{color:var(--gs)}
+
+/* 可行性試算 */
+.bud{font-size:14px}
+.bud .brow{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--rule)}
+.bud .brow:first-child{border-top:0}
+.bud .brow span:last-child{font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap}
+.bud .brow.sum{border-top:1px solid var(--ink);margin-top:2px;font-weight:500}
+.bud .brow.sum span:last-child{color:var(--ink)}
+.bud .brow.sum.bad span:last-child{color:var(--gs)}
+.verdictbox{margin-top:12px;padding:11px 13px;border-radius:6px;font-size:13.5px;line-height:1.6;
+  background:var(--c-bg);color:var(--c)}
+.verdictbox.bad{background:var(--gs-bg);color:var(--gs)}
+.verdictbox b{font-weight:500}
+.tune{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.tune input[type=range]{flex:1 1 140px;accent-color:var(--c)}
 
 .gridwrap{overflow-x:auto}
 .tt{min-width:560px;display:grid;grid-template-columns:44px repeat(7,1fr);gap:2px}
@@ -154,8 +195,27 @@ ul.todo input{margin:6px 0 0;width:15px;height:15px;accent-color:var(--c);flex:n
 ul.todo .nt{display:block;color:var(--muted);font-size:12.5px}
 ul.todo li.done{opacity:.36;text-decoration:line-through}
 label{cursor:pointer}
-textarea{width:100%;min-height:90px;font:inherit;font-size:12.5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-  background:var(--bg);color:var(--ink);border:1px solid var(--rule);border-radius:6px;padding:8px;resize:vertical}
+
+/* 卡點清單 */
+.jl{border-top:1px solid var(--rule);padding:10px 0;display:flex;gap:10px;align-items:baseline;font-size:14px}
+.jl:first-child{border-top:0}
+.jl .n2{flex:1;min-width:0}
+.jl .n2 em{font-style:normal;display:block;font-size:12.5px;color:var(--muted)}
+.jl .ct{color:var(--gs);font-size:12.5px;white-space:nowrap}
+.jl.solved{opacity:.4}
+.jl.solved .ct{color:var(--faint)}
+
+/* 週回顧 */
+.rvold{background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:11px 13px;
+  font-size:13.5px;color:var(--muted);margin-bottom:12px;white-space:pre-wrap}
+.rvold b{display:block;font-weight:500;color:var(--faint);font-size:12px;margin-bottom:4px;letter-spacing:.06em}
+
+textarea,input[type=url],input[type=number]{width:100%;font:inherit;font-size:13.5px;
+  background:var(--bg);color:var(--ink);border:1px solid var(--rule);border-radius:6px;padding:9px;resize:vertical}
+textarea{min-height:84px}
+textarea.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;min-height:90px}
+.fld{margin-bottom:12px}
+.fld label{display:block;font-size:12.5px;color:var(--faint);margin-bottom:5px}
 .bkbtn{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
 .msg{font-size:12.5px;color:var(--c);min-height:18px;margin-top:6px}
 :focus-visible{outline:2px solid var(--ml);outline-offset:2px}
@@ -174,6 +234,10 @@ textarea{width:100%;min-height:90px;font:inherit;font-size:12.5px;font-family:ui
 <h2>今天</h2>
 <div id="day"></div>
 
+<h2>最近四週<span class="hint" id="shint"></span></h2>
+<div class="streak" id="streak" role="img" aria-label="最近 28 天的讀書記錄"></div>
+<p class="sline" id="sline"></p>
+
 <h2>要開哪一堂</h2>
 <div id="ticks"></div>
 
@@ -182,11 +246,12 @@ textarea{width:100%;min-height:90px;font:inherit;font-size:12.5px;font-family:ui
 
 <div class="timer" id="timer">
   <p class="tlab" id="tlab">計時器</p>
-  <p class="tbig" id="tbig" aria-live="off">50:00</p>
+  <p class="tbig" id="tbig">50:00</p>
   <p class="tsub" id="tsub">按開始，50 分鐘後它會叫你</p>
   <div class="btns">
     <button id="tstart">開始 50 分</button>
     <button id="tbreak">休息 10 分</button>
+    <button id="tjam" class="alarm">卡住 40 分</button>
     <button id="tstop">停</button>
   </div>
   <p class="cyc" id="tcyc"></p>
@@ -197,6 +262,14 @@ textarea{width:100%;min-height:90px;font:inherit;font-size:12.5px;font-family:ui
 <div class="rule"><b>主動休息，每 50 分停 10 分。</b>離開座位前先設好計時器。不要在檔案結尾停——看到最後五分鐘就跳下一個檔播五分鐘再休息。休息時不碰手機、不躺床。</div>
 
 <h2 style="margin-bottom:0">其他</h2>
+<details id="dbud">
+  <summary>這張表排不排得下<span class="tag" id="budtag"></span></summary>
+  <div class="body" id="bud"></div>
+</details>
+<details id="djam">
+  <summary>卡點清單<span class="tag" id="jamtag"></span></summary>
+  <div class="body" id="jamlist"></div>
+</details>
 <details>
   <summary>這一週</summary>
   <div class="body gridwrap"><div class="tt" id="tt"></div></div>
@@ -204,6 +277,10 @@ textarea{width:100%;min-height:90px;font:inherit;font-size:12.5px;font-family:ui
 <details>
   <summary>三科走到哪了</summary>
   <div class="body" id="prog"></div>
+</details>
+<details>
+  <summary>週回顧</summary>
+  <div class="body" id="review"></div>
 </details>
 <details>
   <summary>接下來的關鍵日</summary>
@@ -214,20 +291,28 @@ textarea{width:100%;min-height:90px;font:inherit;font-size:12.5px;font-family:ui
   <div class="body"><ul class="todo" id="todo"></ul></div>
 </details>
 <details>
-  <summary>備份進度</summary>
+  <summary>設定與備份</summary>
   <div class="body">
+    <div class="fld">
+      <label for="cfgvod">VOD 登入網址（填了之後計時器會多一顆「開 VOD」）</label>
+      <input type="url" id="cfgvod" placeholder="https://" spellcheck="false">
+    </div>
+    <div class="fld">
+      <label for="cfghrs">一堂課連看帶寫，實際要幾小時（沒資料時的預設值）</label>
+      <input type="number" id="cfghrs" min="1" max="8" step="0.5">
+    </div>
     <p class="ctx" style="margin:0 0 8px">進度只存在這台裝置。換裝置或清瀏覽器前，把下面這段複製起來；要還原就貼回去按匯入。</p>
-    <textarea id="bk" spellcheck="false" aria-label="進度備份資料"></textarea>
+    <textarea id="bk" class="mono" spellcheck="false" aria-label="進度備份資料"></textarea>
     <div class="bkbtn">
       <button id="bkcopy">複製</button>
       <button id="bkload">匯入貼上的內容</button>
+      <button id="bksave" class="go">存設定</button>
     </div>
     <p class="msg" id="bkmsg"></p>
   </div>
 </details>
 
-<p class="foot">只有「今天」那一段要緊，其他都收起來了。<br>
-考試日期是暫定值，簡章公告後改檔案裡的 EXAM_DATE。進度存在這台裝置的瀏覽器裡。</p>
+<p class="foot" id="foot"></p>
 
 </div>
 
@@ -240,7 +325,10 @@ const EXAM_DATE="2027-02-01",     // 考研筆試（暫定）
       PHASE2="2026-10-03",        // 題庫班開始，課表換第二版
       CRAM_END="2026-12-15",      // 三科題庫班結束，之後週五六回到一般表
       VOD_DEADLINE="2026-12-24",  // VOD 三科要看完的最後期限（期末考結束）
-      QUOTA={gs:3,ml:3,jg:3};     // 每週預計推進的堂數
+      QUOTA={gs:3,ml:3,jg:3},     // 每週預計推進的堂數
+      DEF_HRS=4,                  // 一堂課連看帶寫的預設時數（函授一堂約 3 小時 + 寫題）
+      JAM_LIMIT=2;                // 同一堂重播幾次就該跳過
+
 
 /* ===== 資料 ===== */
 const D=[
@@ -398,28 +486,70 @@ const pd=s=>{const[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
 const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 const fmt=d=>(d.getMonth()+1)+"/"+d.getDate();
 const diff=(a,b)=>Math.round((b-a)/DAY);
-const mn=t=>+t.slice(0,2)*60 + +t.slice(3,5);            // "13:30" -> 810
+const mn=t=>+t.slice(0,2)*60 + +t.slice(3,5);
 const hm=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const ls={
   get(k,f){try{const v=localStorage.getItem(k);return v===null?f:JSON.parse(v)}catch(e){return f}},
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},
   del(k){try{localStorage.removeItem(k)}catch(e){}}
 };
+const $=id=>document.getElementById(id);
 
 const start=pd(TERM_START), exam=pd(EXAM_DATE), vodEnd=pd(VOD_DEADLINE);
 let today=new Date(); today=new Date(today.getFullYear(),today.getMonth(),today.getDate());
 let todayKey=iso(today);
+const monOf=d=>{const m=new Date(d);m.setDate(m.getDate()-((d.getDay()===0?7:d.getDay())-1));return m};
 
-/* ===== 進度 ===== */
-const K_PROG="plan-prog", K_TODO="plan-todo", K_WKB="plan-wkbase-", K_CYC="plan-cyc-", K_TMR="plan-timer";
+/* ===== 儲存 ===== */
+const K_PROG="plan-prog", K_ORIG="plan-origin", K_LOG="plan-log", K_JAM="plan-jam",
+      K_RV="plan-review", K_CFG="plan-cfg", K_TODO="plan-todo", K_TMR="plan-timer",
+      K_WKB="plan-wkbase-", K_CYC="plan-cyc-";
+
+let LOG=ls.get(K_LOG,null), JAM=ls.get(K_JAM,{}), RV=ls.get(K_RV,{}),
+    CFG=Object.assign({vod:"",hrs:DEF_HRS}, ls.get(K_CFG,{}));
+
+/* 舊版把每天的區塊數存成 plan-cyc-日期，搬進 plan-log 再清掉 */
+if(LOG===null){
+  LOG={};
+  try{
+    for(let i=localStorage.length-1;i>=0;i--){
+      const k=localStorage.key(i);
+      if(k&&k.startsWith(K_CYC)){
+        const d=k.slice(K_CYC.length), v=parseInt(localStorage.getItem(k),10);
+        if(v>0) LOG[d]={c:v,l:0};
+        localStorage.removeItem(k);
+      }
+    }
+  }catch(e){}
+  ls.set(K_LOG,LOG);
+}
+
 (function loadProg(){
   const p=ls.get(K_PROG,{});
-  for(const k in SUBJ) if(typeof p[k]==="number") SUBJ[k].done=Math.max(0,Math.min(SUBJ[k].total,p[k]|0));
+  for(const k in SUBJ) if(typeof p[k]==="number") SUBJ[k].done=clamp(p[k]|0,0,SUBJ[k].total);
 })();
+/* 起點快照：用來算「這套系統開始記錄之後，你實際推了幾堂」 */
+let ORIG=ls.get(K_ORIG,null);
+if(!ORIG){ ORIG={}; for(const k in SUBJ) ORIG[k]=SUBJ[k].done; ls.set(K_ORIG,ORIG); }
+
 const saveProg=()=>ls.set(K_PROG,Object.fromEntries(Object.keys(SUBJ).map(k=>[k,SUBJ[k].done])));
 const lastL=k=>SUBJ[k].done>0?SUBJ[k].list[SUBJ[k].done-1]:null;
 const nextL=k=>SUBJ[k].done<SUBJ[k].list.length?SUBJ[k].list[SUBJ[k].done]:null;
+
+function bump(field,delta){
+  const e=LOG[todayKey]||(LOG[todayKey]={c:0,l:0,s:0});
+  e[field]=Math.max(0,(e[field]||0)+delta);
+  if(!e.c&&!e.l&&!e.s) delete LOG[todayKey];
+  ls.set(K_LOG,LOG);
+}
+/* 此刻的時段是不是在推三科（VOD 或寫題）？只有這種區塊才算進「一堂要幾小時」 */
+function onSubject(){
+  const H=new Date().getHours()*60+new Date().getMinutes();
+  const b=planFor(today).b.find(x=>H>=mn(x[0])&&H<mn(x[1]));
+  return !!(b&&SUBJ[b[2]]&&(b[4]==="v"||b[4]==="p"));
+}
 
 /* ===== 今天排什麼 ===== */
 function examWeek(d){ for(const[a,b,n] of EXAMW) if(d>=pd(a)&&d<=pd(b)) return n; return ""; }
@@ -441,31 +571,39 @@ function merge(bs){
   }
   return out;
 }
-
+const planCache={};
 function planFor(d){
   const key=iso(d);
-  if(PRE[key]) return {b:merge(PRE[key]),r:""};
-  const ew=examWeek(d);
-  if(ew){
-    if(isCram(d)) return {b:merge(table(d)),r:ew+"週"};
-    const base=(HOL[key]||noClass(d))?STUDY:table(d);
-    return {b:merge(base.map(x=>{
-      const y=x.slice();
-      if(y[2]==="gs"||y[2]==="ml"||y[2]==="jg"||y[2]==="x"){ y[2]="x"; y[3]=ew+"準備"; y[4]="p"; }
-      return y;
-    })),r:ew+"週"};
+  if(planCache[key]) return planCache[key];
+  let out;
+  if(PRE[key]) out={b:merge(PRE[key]),r:""};
+  else{
+    const ew=examWeek(d);
+    if(ew){
+      if(isCram(d)) out={b:merge(table(d)),r:ew+"週"};
+      else{
+        const base=(HOL[key]||noClass(d))?STUDY:table(d);
+        out={b:merge(base.map(x=>{
+          const y=x.slice();
+          if(y[2]==="gs"||y[2]==="ml"||y[2]==="jg"||y[2]==="x"){ y[2]="x"; y[3]=ew+"準備"; y[4]="p"; }
+          return y;
+        })),r:ew+"週"};
+      }
+    }else{
+      const r=HOL[key]||noClass(d);
+      if(r){
+        if(isCram(d)) out={b:merge(table(d)),r};
+        else{
+          const b=STUDY.slice();
+          if([1,3,5].includes(d.getDay())) b.push(["21:00","22:00","l","攀岩"]);
+          out={b:merge(b),r};
+        }
+      }else out={b:merge(table(d)),r:""};
+    }
   }
-  const r=HOL[key]||noClass(d);
-  if(r){
-    if(isCram(d)) return {b:merge(table(d)),r};
-    const b=STUDY.slice();
-    if([1,3,5].includes(d.getDay())) b.push(["21:00","22:00","l","攀岩"]);
-    return {b:merge(b),r};
-  }
-  return {b:merge(table(d)),r:""};
+  return (planCache[key]=out);
 }
 
-/* 每 50 分停 10 分：算出休息時刻 */
 function breaks(a,b){
   const s=mn(a), e=mn(b), out=[];
   for(let t=s+50; t+15<=e; t+=60) out.push(hm(t));
@@ -473,25 +611,109 @@ function breaks(a,b){
 }
 const isStudy=k=>k==="gs"||k==="ml"||k==="jg"||k==="x"||k==="t";
 
+/* ===== 統計 ===== */
+function stats(){
+  const band=[];
+  for(let i=27;i>=0;i--){
+    const d=new Date(today); d.setDate(d.getDate()-i);
+    const e=LOG[iso(d)]||{};
+    band.push({d,c:e.c||0,l:e.l||0,s:e.s||0});
+  }
+  const sum=(from,to)=>band.slice(from,to).reduce((a,x)=>a+x.c,0);
+  const d7=band.slice(21).filter(x=>x.c>0).length;
+  const mon=monOf(today), sinceMon=diff(mon,today);       // 0=週一
+  const thisW=band.slice(27-sinceMon).reduce((a,x)=>a+x.c,0);
+  const lastW=band.slice(27-sinceMon-7,27-sinceMon).reduce((a,x)=>a+x.c,0);
+  let totC=0,totS=0; for(const k in LOG){ totC+=LOG[k].c||0; totS+=LOG[k].s||0; }
+  let totL=0; for(const k in SUBJ) totL+=SUBJ[k].done-(ORIG[k]||0);
+  return {band,d7,thisW,lastW,totC,totS,totL,month:sum(0,28)};
+}
+/* 實測：一堂課連看帶寫，你實際花了幾小時 */
+function measured(){
+  const s=stats();
+  if(s.totL<5||s.totS<20) return null;          // 資料太少不猜
+  return clamp((s.totS*50/60)/s.totL,1.5,8);    // 夾住離群值
+}
+
+/* ===== 這張表排不排得下 ===== */
+let BUD=null;
+function budget(){
+  if(BUD) return BUD;
+  let v=0,p=0,t=0,x=0;
+  for(let ts=today.getTime(); ts<=vodEnd.getTime(); ts+=DAY){
+    for(const b of planFor(new Date(ts)).b){
+      const h=(mn(b[1])-mn(b[0]))/60, k=b[2], m=b[4]||"";
+      if(k==="t") t+=h;
+      else if(k==="x"&&/準備$/.test(b[3])) x+=h;
+      else if(m==="v") v+=h;
+      else if(m==="p") p+=h;
+    }
+  }
+  const left=Object.keys(SUBJ).reduce((a,k)=>a+SUBJ[k].total-SUBJ[k].done,0);
+  const meas=measured(), hrs=meas||CFG.hrs;
+  const avail=v+p, need=left*hrs, days=Math.max(1,diff(today,vodEnd));
+  return (BUD={v,p,t,x,avail,left,hrs,need,days,perDay:avail/days,
+    buf:avail-need,measured:!!meas});
+}
+
+/* 最緊的一科 + 一句話結論 */
+function verdict(){
+  const wks=Math.max(1,Math.ceil(diff(today,vodEnd)/7));
+  let worst=null;
+  for(const k in SUBJ){
+    const left=SUBJ[k].total-SUBJ[k].done;
+    if(!left) continue;
+    const per=left/wks, ratio=per/QUOTA[k];
+    if(!worst||ratio>worst.ratio) worst={k,left,per,ratio};
+  }
+  const b=budget();
+  if(!worst) return {t:"三科都看完了。剩下的時間全部給考古題。",tight:false};
+  const nm=SUBJ[worst.k].name;
+  const head=nm+"最緊：剩 "+worst.left+" 堂，"+wks+" 週內每週要 "+worst.per.toFixed(1)+" 堂";
+  if(b.buf<0)
+    return {t:head+"。<b>整張表差 "+Math.round(-b.buf)+" 小時</b>，照目前速度排不下——砍重複的堂數，或把考試週挪一部分回來。",tight:true};
+  if(b.buf<40)
+    return {t:head+"（配額 "+QUOTA[worst.k]+"）。<b>緩衝只剩 "+Math.round(b.buf)+" 小時</b>，崩一天就要補回來。",tight:true};
+  return {t:head+"（配額 "+QUOTA[worst.k]+"）。緩衝 "+Math.round(b.buf)+" 小時，還在射程內。",tight:false};
+}
+
+/* 如果今天只能做一件事 */
+function oneThing(){
+  const wks=Math.max(1,Math.ceil(diff(today,vodEnd)/7));
+  let worst=null;
+  for(const k in SUBJ){
+    const left=SUBJ[k].total-SUBJ[k].done; if(!left) continue;
+    const r=(left/wks)/QUOTA[k];
+    if(!worst||r>worst.r) worst={k,r};
+  }
+  if(!worst) return "";
+  const nl=nextL(worst.k);
+  return "只做一件事的話：開"+SUBJ[worst.k].name+"第 "+nl[0]+" 堂，看 50 分鐘就好。";
+}
+
 /* ===== 畫面 ===== */
-const $=id=>document.getElementById(id);
 let plan=planFor(today);
 
 function renderHead(){
   $("date").textContent=(today.getMonth()+1)+" 月 "+today.getDate()+" 日　星期"+wd[today.getDay()];
-  const wkn=Math.floor(diff(start,today)/7)+1;
+  const wkn=Math.floor(diff(start,today)/7)+1, toExam=Math.max(0,diff(today,exam));
+  const phase = today<=vodEnd ? "看課期" : (diff(today,exam)>0?"衝刺期":"");
   $("ctx").textContent=
     (diff(today,start)>0 ? "開學前　"
      : (wkn>=1&&wkn<=16 ? "第 "+wkn+" / 16 週　"
         : (wkn===17||wkn===18 ? "彈性學習週（第 "+wkn+" 週）　" : ""))) +
-    (plan.r?plan.r+"　":"") + "考試還有 "+Math.max(0,diff(today,exam))+" 天";
+    (plan.r?plan.r+"　":"") +
+    (phase?phase+"　":"") + "考試還有 "+toExam+" 天";
 }
 
 function renderNow(H){
-  const el=$("now");
+  const el=$("now"), v=verdict();
+  const vd='<p class="vd'+(v.tight?" tight":"")+'">'+v.t+'</p>';
+  const c=(LOG[todayKey]||{}).c||0;
   if(H>=23*60||H<8*60){
     el.className="now rest";
-    el.innerHTML='<p class="lab">現在</p><p class="big">睡覺</p><p class="sub">23:00 – 08:00，九小時不動。</p>';
+    el.innerHTML='<p class="lab">現在</p><p class="big">睡覺</p>'+
+      '<p class="sub">23:00 – 08:00，九小時不動。'+(c?'今天做了 '+c+' 個區塊。':'')+'</p>'+vd;
     return;
   }
   const cur=plan.b.find(b=>H>=mn(b[0])&&H<mn(b[1]));
@@ -500,21 +722,25 @@ function renderNow(H){
     el.className="now rest";
     el.innerHTML='<p class="lab">現在</p><p class="big">空檔</p>'+
       (nx?'<p class="sub">下一個是 '+nx[0]+'　'+esc(nx[3])+'　（'+(mn(nx[0])-H)+' 分鐘後）</p>'
-         :'<p class="sub">今天到這裡。</p>');
+         :'<p class="sub">今天到這裡。</p>')+
+      (c===0?'<p class="sub">'+oneThing()+'</p>':'')+vd;
     return;
   }
   const k=cur[2], md=cur[4]||"", s=mn(cur[0]), e=mn(cur[1]);
   const nl=SUBJ[k]&&md==="v"?nextL(k):null, pv=SUBJ[k]&&md==="p"?lastL(k):null;
   const nx=plan.b.find(b=>mn(b[0])>=e);
   const pct=Math.round((H-s)/(e-s)*100);
+  const jk=nl?k+"-"+nl[0]:"", j=jk&&JAM[jk]&&!JAM[jk].solved?JAM[jk]:null;
   el.className="now"+(k==="l"?" rest":"");
   el.innerHTML='<p class="lab">現在</p><p class="big">'+esc(cur[3])+'</p>'+
     (nl?'<p class="sub">開第 '+nl[0]+' 堂　'+esc(nl[1])+'</p>':'')+
     (pv?'<p class="sub">做第 '+pv[0]+' 堂的題　'+esc(pv[1])+'</p>':'')+
+    (j?'<p class="sub" style="color:var(--gs)">這堂你已經開過 '+j.c+' 次。'+
+        (j.c>=JAM_LIMIT?'按「卡住 40 分」，時間到就跳過。':'設 40 分鐘。')+'</p>':'')+
     '<div class="pb"><i style="width:'+pct+'%"></i></div>'+
     '<p class="clock">'+cur[0]+' – '+cur[1]+'　·　剩 '+(e-H)+' 分'+
       (isStudy(k)&&breaks(cur[0],cur[1])?'　·　'+breaks(cur[0],cur[1]):'')+
-      (nx?'<br>接著 '+nx[0]+'　'+esc(nx[3]):'')+'</p>';
+      (nx?'<br>接著 '+nx[0]+'　'+esc(nx[3]):'')+'</p>'+vd;
 }
 
 function renderDay(H){
@@ -534,17 +760,42 @@ function renderDay(H){
   '<div class="row"><span class="t">23:00 – 08:00</span><span class="k l"></span><span class="n">睡覺</span></div>';
 }
 
+function renderStreak(){
+  const s=stats();
+  $("streak").innerHTML=s.band.map(x=>{
+    const lv=x.c===0?0:x.c<=2?1:x.c<=4?2:x.c<=6?3:4;
+    const t=fmt(x.d)+"　"+(x.c?x.c+" 個區塊"+(x.s?"（三科 "+x.s+"）":"")+(x.l?"、推 "+x.l+" 堂":""):"沒讀");
+    return '<i class="'+(lv?"l"+lv:"")+(iso(x.d)===todayKey?" tdy":"")+'" title="'+t+'"></i>';
+  }).join("");
+  const dd=s.thisW-s.lastW;
+  $("sline").innerHTML=
+    '<span>最近七天 <b>'+s.d7+' / 7 天</b>有讀　·　本週 <b>'+s.thisW+'</b> 個區塊'+
+    (s.lastW?'（上週 '+s.lastW+(dd>0?'，多 '+dd:dd<0?'，少 '+(-dd):'，持平')+'）':'')+'</span>'+
+    '<span>累計推進 '+s.totL+' 堂</span>';
+  const m=measured();
+  $("shint").textContent=m?("實測一堂 "+m.toFixed(1)+" 小時（"+s.totS+" 個三科區塊 ÷ "+s.totL+" 堂）")
+                          :"不記連續天數";
+}
+
 function renderTicks(){
   $("ticks").innerHTML = Object.keys(SUBJ).map(k=>{
     const s=SUBJ[k], nl=nextL(k);
-    return '<div class="tick"><span class="dot '+k+'"></span><span class="who">'+s.name+'</span>'+
-      '<span class="what">'+(nl?'第 '+nl[0]+' 堂<em>'+esc(nl[1])+'</em>':'全部看完了')+'</span>'+
-      '<button data-k="'+k+'" data-v="1" aria-label="'+s.name+' 看完一堂">看完了</button>'+
-      '<button class="mini" data-k="'+k+'" data-v="-1" aria-label="'+s.name+' 退回一堂">−</button></div>';
+    if(!nl) return '<div class="tick"><span class="dot '+k+'"></span><span class="who">'+s.name+'</span>'+
+      '<span class="what">全部看完了</span></div>';
+    const jk=k+"-"+nl[0], j=JAM[jk]&&!JAM[jk].solved?JAM[jk]:null;
+    const hot=j&&j.c>=JAM_LIMIT;
+    return '<div class="tick'+(hot?" jam":"")+'"><span class="dot '+k+'"></span><span class="who">'+s.name+'</span>'+
+      '<span class="what">第 '+nl[0]+' 堂<em>'+esc(nl[1])+'</em></span>'+
+      '<span class="acts">'+
+        '<button class="mini'+(j?" alarm":"")+'" data-jam="'+jk+'" aria-label="標記卡住">卡住'+(j?' ×'+j.c:'')+'</button>'+
+        '<button data-k="'+k+'" data-v="1" aria-label="'+s.name+' 看完一堂">看完了</button>'+
+        '<button class="mini" data-k="'+k+'" data-v="-1" aria-label="'+s.name+' 退回一堂">−</button>'+
+      '</span></div>'+
+      (hot?'<p class="jamnote"><b>第 '+j.c+' 次了。</b>'+
+        (j.c>=4?'不要再開這個檔。跳過，寫進卡點清單，週日問張老師。':'設 40 分鐘，時間到還不會就跳過。')+
+        '　<button class="mini" data-skip="'+jk+'">跳過這堂</button></p>':'');
   }).join("");
 }
-
-function monOf(d){ const m=new Date(d); m.setDate(m.getDate()-((d.getDay()===0?7:d.getDay())-1)); return m; }
 
 function renderWeekGoal(){
   const mon=monOf(today), sun=new Date(mon); sun.setDate(mon.getDate()+6);
@@ -554,7 +805,6 @@ function renderWeekGoal(){
     base={}; Object.keys(SUBJ).forEach(k=>base[k]=SUBJ[k].done);
     ls.set(key,base);
   }
-  // 清掉八週以前的週基準，不讓 localStorage 長不停
   try{
     for(let i=localStorage.length-1;i>=0;i--){
       const kk=localStorage.key(i);
@@ -575,21 +825,97 @@ function renderWeekGoal(){
 }
 
 function renderProgress(){
-  const wksLeft=Math.max(1,Math.ceil(diff(today,vodEnd)/7));
+  const wks=Math.max(1,Math.ceil(diff(today,vodEnd)/7));
   $("prog").innerHTML = Object.keys(SUBJ).map(k=>{
     const s=SUBJ[k], p=Math.round(s.done/s.total*100), left=s.total-s.done;
-    const need=left/wksLeft, behind=need>QUOTA[k]+0.01;
+    const need=left/wks, behind=need>QUOTA[k]+0.01;
     return '<div class="pline"><b style="font-weight:500">'+s.name+'</b>'+
       '<span style="color:var(--muted)">'+s.done+' / '+s.total+' 堂</span>'+
       '<span class="rr">'+p+'%</span></div>'+
       '<div class="bar"><i class="'+s.cls+'" style="width:'+p+'%"></i></div>'+
       '<p class="pace'+(behind?" behind":"")+'">'+
         (left===0?'看完了。'
-         :'剩 '+left+' 堂，離 '+fmt(vodEnd)+' 還有 '+wksLeft+' 週　→　每週要 '+need.toFixed(1)+' 堂'+
-          (behind?'（配額是 '+QUOTA[k]+'，追不上，砍掉重複或提高配額）':'（配額 '+QUOTA[k]+' 夠）'))+
+         :'剩 '+left+' 堂，離 '+fmt(vodEnd)+' 還有 '+wks+' 週　→　每週要 '+need.toFixed(1)+' 堂'+
+          (behind?'（配額 '+QUOTA[k]+'，追不上）':'（配額 '+QUOTA[k]+' 夠）'))+
       '</p>';
   }).join("") + '<p style="color:var(--faint);font-size:12.5px;margin-top:14px">'+
     '每週只看三件事：工數推到第幾堂、這週有幾天完全沒讀、標記幾個卡點解決幾個。</p>';
+}
+
+function renderBudget(){
+  const b=budget();
+  const r=(l,v)=>'<div class="brow"><span>'+l+'</span><span>'+v+'</span></div>';
+  $("bud").innerHTML='<div class="bud">'+
+    r("課表給的 VOD 看課時間", Math.round(b.v)+" 小時")+
+    r("課表給的寫題時間", Math.round(b.p)+" 小時")+
+    '<div class="brow sum"><span>到 '+fmt(vodEnd)+' 可用</span><span>'+Math.round(b.avail)+' 小時</span></div>'+
+    r("另有題庫班（去上課，不算）", Math.round(b.t)+" 小時")+
+    r("另有期中期末準備（不算）", Math.round(b.x)+" 小時")+
+    r("還沒看的課", b.left+" 堂")+
+    r((b.measured?"你實測":"預估")+"一堂連看帶寫", b.hrs.toFixed(1)+" 小時")+
+    '<div class="brow sum'+(b.buf<0?" bad":"")+'"><span>需要</span><span>'+Math.round(b.need)+' 小時'+
+      (b.buf>=0?'（緩衝 '+Math.round(b.buf)+' 小時）':'，差 '+Math.round(-b.buf))+'</span></div>'+
+    '</div>'+
+    '<div class="verdictbox'+(b.buf<40?" bad":"")+'">'+
+      (b.buf<0
+        ? '<b>排不下。</b>要嘛砍課（材力 13、14 疑似重複；結構 26–32 還沒補錄），要嘛把期中期末那 '+Math.round(b.x)+' 小時「考試準備」挪一部分回來看 VOD。'
+        : b.buf<40
+        ? '<b>零容錯。</b>緩衝 '+Math.round(b.buf)+' 小時，照課表一天 '+b.perDay.toFixed(1)+
+          ' 小時算，崩掉 '+Math.max(1,Math.round(b.buf/b.perDay))+' 天就用完。這就是為什麼十分鐘規則比追進度重要。'
+        : '<b>來得及。</b>緩衝 '+Math.round(b.buf)+' 小時 ≈ '+Math.round(b.buf/b.perDay)+
+          ' 天的份。按配額走就好，不用加時；但這個數字會隨你的實際速度變，每週回來看一次。')+
+    '</div>'+
+    '<div class="tune"><span>預估一堂 <b id="hrsv">'+CFG.hrs.toFixed(1)+'</b> 小時</span>'+
+      '<input type="range" id="hrsr" min="2" max="6" step="0.5" value="'+CFG.hrs+'" aria-label="每堂課預估時數">'+
+      '</div>'+
+      '<p class="ctx" style="margin-top:6px">'+
+        (b.measured?'目前用的是你的實測值 '+b.hrs.toFixed(1)+' 小時（只算三科 VOD 與寫題時段的區塊），拉桿只影響還沒資料時的預設。'
+                   :'推滿五堂、累積二十個三科區塊之後，這裡會自動換成你的實際速度。在那之前用拉桿估。')+'</p>';
+  $("budtag").textContent=(b.buf<0?"差 "+Math.round(-b.buf)+" 小時":"緩衝 "+Math.round(b.buf)+" 小時");
+  $("budtag").className="tag"+(b.buf<40?" hot":"");
+  $("hrsr").oninput=ev=>{
+    CFG.hrs=+ev.target.value; $("hrsv").textContent=CFG.hrs.toFixed(1);
+    ls.set(K_CFG,CFG); BUD=null; renderBudget(); renderNow(nowMin());
+  };
+}
+
+function renderJamList(){
+  const ks=Object.keys(JAM).sort((a,b)=>(JAM[b].c-JAM[a].c)||(JAM[a].first<JAM[b].first?-1:1));
+  const open=ks.filter(k=>!JAM[k].solved);
+  $("jamtag").textContent=open.length?open.length+" 個沒解決":"";
+  $("jamtag").className="tag"+(open.length?" hot":"");
+  $("jamlist").innerHTML = ks.length? ks.map(k=>{
+    const j=JAM[k], s=SUBJ[j.k], it=s.list[j.n-1]||["",""];
+    return '<div class="jl'+(j.solved?" solved":"")+'">'+
+      '<span class="n2">'+s.name+' 第 '+j.n+' 堂<em>'+esc(it[1])+(j.skipped?'　·　已跳過':'')+'</em></span>'+
+      '<span class="ct">播 '+j.c+' 次<br>'+j.first.slice(5)+' 起</span>'+
+      '<button class="mini" data-solve="'+k+'">'+(j.solved?"還沒解決":"解決了")+'</button></div>';
+  }).join("")+'<p class="ctx" style="margin-top:12px">週日回顧時看這張表。三次以上的直接問張老師，不要自己再試。</p>'
+  : '<p class="ctx" style="margin:0">還沒有卡點。卡住的時候在上面按「卡住」，這裡會記下來。</p>';
+}
+
+function wkAdvance(mon){
+  const base=ls.get(K_WKB+iso(mon),null)||{};
+  return Object.keys(SUBJ).reduce((a,k)=>{
+    const from=typeof base[k]==="number"?base[k]:SUBJ[k].done;
+    return a+Math.max(0,SUBJ[k].done-from);
+  },0);
+}
+function renderReview(){
+  const mon=monOf(today), lastMon=new Date(mon); lastMon.setDate(mon.getDate()-7);
+  const cur=RV[iso(mon)]||"", prev=RV[iso(lastMon)]||"";
+  const s=stats();
+  $("review").innerHTML=
+    (prev?'<div class="rvold"><b>上週（'+fmt(lastMon)+'）</b>'+esc(prev)+'</div>':'')+
+    '<p class="ctx" style="margin:0 0 8px">本週 '+fmt(mon)+' 起：'+s.thisW+' 個區塊、推進 '+
+      wkAdvance(mon)+' 堂、'+s.d7+' 天有讀。</p>'+
+    '<textarea id="rvbox" placeholder="三行就好：\n1. 這週最有用的一件事\n2. 卡在哪\n3. 下週只改一件事">'+esc(cur)+'</textarea>'+
+    '<div class="bkbtn"><button id="rvsave" class="go">存這週</button></div>'+
+    '<p class="msg" id="rvmsg"></p>';
+  $("rvsave").onclick=()=>{
+    RV[iso(mon)]=$("rvbox").value.trim(); ls.set(K_RV,RV);
+    $("rvmsg").textContent="存了。下週會在這裡看到。"; renderBackup();
+  };
 }
 
 function renderWeek(){
@@ -638,39 +964,74 @@ function renderTodo(){
     const cb=ev.target; if(!cb.dataset.id) return;
     cb.closest("li").classList.toggle("done",cb.checked);
     const cur=ls.get(K_TODO,{}); cur[cb.dataset.id]=cb.checked; ls.set(K_TODO,cur);
+    renderBackup();
   };
 }
 
-/* 進度更新按鈕 */
-$("ticks").addEventListener("click",ev=>{
-  const b=ev.target.closest("button[data-k]"); if(!b) return;
-  const s=SUBJ[b.dataset.k];
-  s.done=Math.max(0,Math.min(s.total,s.done + (+b.dataset.v)));
-  saveProg();
-  renderTicks(); renderWeekGoal(); renderProgress(); renderBackup();
-  const H=nowMin(); renderNow(H); renderDay(H);
-});
+function renderBackup(){
+  $("bk").value=JSON.stringify({v:2,prog:ls.get(K_PROG,{}),orig:ORIG,log:LOG,jam:JAM,review:RV,
+    todo:ls.get(K_TODO,{}),cfg:CFG});
+  $("cfgvod").value=CFG.vod||"";
+  $("cfghrs").value=CFG.hrs;
+}
 
-/* ===== 計時器（只初始化一次） ===== */
-(function(){
+/* ===== 互動 ===== */
+$("ticks").addEventListener("click",ev=>{
+  const b=ev.target.closest("button"); if(!b) return;
+  if(b.dataset.jam!==undefined&&b.dataset.jam){
+    const key=b.dataset.jam, [k,n]=key.split("-");
+    const j=JAM[key]||(JAM[key]={k,n:+n,c:0,first:todayKey,solved:false});
+    j.c++; j.solved=false; ls.set(K_JAM,JAM);
+    renderTicks(); renderJamList(); renderNow(nowMin());
+    return;
+  }
+  if(b.dataset.skip){
+    const key=b.dataset.skip, j=JAM[key];
+    if(!j) return;
+    j.skipped=true; j.solved=false; ls.set(K_JAM,JAM);
+    const s=SUBJ[j.k]; s.done=clamp(s.done+1,0,s.total); saveProg(); bump("l",1);
+    afterProgress();
+    return;
+  }
+  if(b.dataset.k){
+    const k=b.dataset.k, v=+b.dataset.v, s=SUBJ[k];
+    const before=s.done;
+    s.done=clamp(s.done+v,0,s.total);
+    if(s.done!==before){
+      bump("l",v);
+      if(v>0){ const key=k+"-"+(before+1); if(JAM[key]){ JAM[key].solved=true; ls.set(K_JAM,JAM); } }
+    }
+    saveProg(); afterProgress();
+  }
+});
+function afterProgress(){
+  BUD=null;
+  renderTicks(); renderJamList(); renderWeekGoal(); renderProgress();
+  renderBudget(); renderStreak(); renderBackup();
+  const H=nowMin(); renderNow(H); renderDay(H);
+}
+
+/* ===== 計時器 ===== */
+const Timer=(function(){
   const big=$("tbig"), lab=$("tlab"), sub=$("tsub"), cyc=$("tcyc"), box=$("timer");
   let end=0, mode="", tick=null;
-  let done=ls.get(K_CYC+todayKey,0)|0;
-  const show=()=>{ cyc.textContent = done?("今天完成 "+done+" 個 50 分區塊　約 "+(done*50/60).toFixed(1)+" 小時"):""; };
+  const show=()=>{
+    const c=(LOG[todayKey]||{}).c||0;
+    cyc.textContent = c?("今天完成 "+c+" 個 50 分區塊　約 "+(c*50/60).toFixed(1)+" 小時"):"";
+  };
   const mmss=s=>String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
-
-  function beep(){
+  function beep(n){
     try{
       const C=window.AudioContext||window.webkitAudioContext; if(!C) return;
       const a=new C();
-      [0,0.55,1.1].forEach(off=>{
-        const o=a.createOscillator(), g=a.createGain();
+      for(let i=0;i<n;i++){
+        const off=i*0.55, o=a.createOscillator(), g=a.createGain();
         o.connect(g); g.connect(a.destination); o.type="sine"; o.frequency.value=660;
         g.gain.setValueAtTime(0.0001,a.currentTime+off);
         g.gain.exponentialRampToValueAtTime(0.25,a.currentTime+off+0.04);
         g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+off+0.45);
         o.start(a.currentTime+off); o.stop(a.currentTime+off+0.5);
-      });
+      }
     }catch(e){}
     try{ if(navigator.vibrate) navigator.vibrate([200,100,200]); }catch(e){}
   }
@@ -681,14 +1042,18 @@ $("ticks").addEventListener("click",ev=>{
     document.title="今天";
   }
   function paint(){
-    const left=Math.max(0,Math.round((end-Date.now())/1000));
+    const left=Math.max(0,Math.ceil((end-Date.now())/1000));
     big.textContent=mmss(left);
-    document.title=(mode==="work"?"專注 ":"休息 ")+mmss(left)+"・今天";
+    document.title=(mode==="work"?"專注 ":mode==="jam"?"卡住 ":"休息 ")+mmss(left)+"・今天";
     if(left<=0){
-      clearInterval(tick); tick=null; ls.del(K_TMR); beep();
+      clearInterval(tick); tick=null; ls.del(K_TMR); beep(mode==="jam"?4:3);
       if(mode==="work"){
-        done++; ls.set(K_CYC+todayKey,done); show();
+        bump("c",1); if(onSubject()) bump("s",1);
+        show(); renderStreak(); renderBackup();
         lab.textContent="時間到"; sub.textContent="起來走動 10 分鐘"; box.className="timer rest";
+      }else if(mode==="jam"){
+        lab.textContent="40 分鐘到了"; sub.textContent="跳過這堂。在上面按「跳過這堂」，週日再回來。";
+        box.className="timer jam";
       }else{
         lab.textContent="休息結束"; sub.textContent="回座位，接上次沒看完的那一段"; box.className="timer work";
       }
@@ -699,59 +1064,90 @@ $("ticks").addEventListener("click",ev=>{
     clearInterval(tick);
     mode=m; end=endAt||Date.now()+mins*60000;
     ls.set(K_TMR,{end,mode});
-    box.className="timer "+(m==="work"?"work":"rest");
-    lab.textContent=m==="work"?"專注中":"休息中";
-    sub.textContent=m==="work"?"時間到就停，就算檔案播到一半":"起來走動、裝水。不要碰手機、不要躺床";
+    box.className="timer "+(m==="work"?"work":m==="jam"?"jam":"rest");
+    lab.textContent=m==="work"?"專注中":m==="jam"?"卡住計時":"休息中";
+    sub.textContent=m==="work"?"時間到就停，就算檔案播到一半"
+      :m==="jam"?"40 分鐘內解不掉就跳過，不要重播"
+      :"起來走動、裝水。不要碰手機、不要躺床";
     paint(); tick=setInterval(paint,250);
   }
   $("tstart").onclick=()=>run(50,"work");
   $("tbreak").onclick=()=>run(10,"rest");
+  $("tjam").onclick=()=>run(40,"jam");
   $("tstop").onclick=idle;
-  // 重新整理或切回分頁後接續，不會歸零
   const saved=ls.get(K_TMR,null);
   if(saved&&saved.end>Date.now()) run(0,saved.mode,saved.end); else if(saved) ls.del(K_TMR);
   document.addEventListener("visibilitychange",()=>{ if(!document.hidden&&tick) paint(); });
-  show();
+  return {show,refreshVod(){
+    let b=$("tvod");
+    if(CFG.vod){
+      if(!b){ b=document.createElement("button"); b.id="tvod"; b.className="go";
+        b.textContent="開 VOD"; $("tstart").parentNode.insertBefore(b,$("tstart")); }
+      b.onclick=()=>window.open(CFG.vod,"_blank","noopener");
+    }else if(b) b.remove();
+  }};
 })();
 
-/* ===== 備份 ===== */
-function renderBackup(){
-  $("bk").value=JSON.stringify({prog:ls.get(K_PROG,{}),todo:ls.get(K_TODO,{})});
-}
+/* ===== 卡點清單 / 設定 ===== */
+$("jamlist").addEventListener("click",ev=>{
+  const b=ev.target.closest("button[data-solve]"); if(!b) return;
+  const j=JAM[b.dataset.solve]; if(!j) return;
+  j.solved=!j.solved; ls.set(K_JAM,JAM); renderJamList(); renderTicks(); renderBackup();
+});
+$("bksave").onclick=()=>{
+  CFG.vod=$("cfgvod").value.trim();
+  CFG.hrs=clamp(+$("cfghrs").value||DEF_HRS,1,8);
+  ls.set(K_CFG,CFG); BUD=null;
+  Timer.refreshVod(); renderBudget(); renderNow(nowMin());
+  $("bkmsg").textContent="存好了。";
+};
 $("bkcopy").onclick=async()=>{
   const ta=$("bk");
-  try{ await navigator.clipboard.writeText(ta.value); }catch(e){ ta.select(); document.execCommand&&document.execCommand("copy"); }
+  try{ await navigator.clipboard.writeText(ta.value); }
+  catch(e){ ta.select(); try{document.execCommand("copy")}catch(e2){} }
   $("bkmsg").textContent="已複製。貼到備忘錄或傳給自己。";
 };
 $("bkload").onclick=()=>{
   try{
     const o=JSON.parse($("bk").value);
-    if(o&&o.prog) ls.set(K_PROG,o.prog);
-    if(o&&o.todo) ls.set(K_TODO,o.todo);
+    if(o.prog) ls.set(K_PROG,o.prog);
+    if(o.todo) ls.set(K_TODO,o.todo);
+    if(o.orig){ ORIG=o.orig; ls.set(K_ORIG,ORIG); }
+    if(o.log){ LOG=o.log; ls.set(K_LOG,LOG); }
+    if(o.jam){ JAM=o.jam; ls.set(K_JAM,JAM); }
+    if(o.review){ RV=o.review; ls.set(K_RV,RV); }
+    if(o.cfg){ CFG=Object.assign({vod:"",hrs:DEF_HRS},o.cfg); ls.set(K_CFG,CFG); }
     const p=ls.get(K_PROG,{});
-    for(const k in SUBJ) if(typeof p[k]==="number") SUBJ[k].done=Math.max(0,Math.min(SUBJ[k].total,p[k]|0));
-    renderAll(); $("bkmsg").textContent="匯入完成。";
+    for(const k in SUBJ) if(typeof p[k]==="number") SUBJ[k].done=clamp(p[k]|0,0,SUBJ[k].total);
+    BUD=null; renderAll(); $("bkmsg").textContent="匯入完成。";
   }catch(e){ $("bkmsg").textContent="格式不對，沒有動到原本的進度。"; }
 };
 
-/* ===== 啟動 + 每分鐘自己更新 ===== */
+/* ===== 啟動 ===== */
 function nowMin(){ const n=new Date(); return n.getHours()*60+n.getMinutes(); }
 function renderAll(){
   plan=planFor(today);
   const H=nowMin();
-  renderHead(); renderNow(H); renderDay(H); renderTicks();
-  renderWeekGoal(); renderProgress(); renderWeek(); renderDates(); renderTodo(); renderBackup();
+  renderHead(); renderNow(H); renderDay(H); renderStreak(); renderTicks();
+  renderWeekGoal(); renderBudget(); renderJamList(); renderProgress();
+  renderReview(); renderWeek(); renderDates(); renderTodo(); renderBackup();
+  Timer.show(); Timer.refreshVod();
+  $("foot").innerHTML='只有「今天」那一段要緊，其他都收起來了。<br>'+
+    '考試日期是暫定值，簡章公告後改檔案裡的 EXAM_DATE。進度、記錄、卡點都存在這台裝置的瀏覽器裡，'+
+    '換裝置前先到「設定與備份」複製一份。';
 }
 renderAll();
 setInterval(()=>{
   const n=new Date(), k=iso(n);
-  if(k!==todayKey){ location.reload(); return; }   // 跨日直接重來
+  if(k!==todayKey){ location.reload(); return; }
   const H=n.getHours()*60+n.getMinutes();
   renderHead(); renderNow(H); renderDay(H);
 },30000);
-document.addEventListener("visibilitychange",()=>{ if(!document.hidden){
-  if(iso(new Date())!==todayKey) location.reload(); else { const H=nowMin(); renderNow(H); renderDay(H); }
-}});
+document.addEventListener("visibilitychange",()=>{
+  if(document.hidden) return;
+  if(iso(new Date())!==todayKey) location.reload();
+  else { const H=nowMin(); renderNow(H); renderDay(H); }
+});
 </script>
 </body>
 </html>
