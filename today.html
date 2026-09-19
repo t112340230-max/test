@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#F3F4F1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="今天">
+<title>今天</title>
+<style>
+:root{
+  --bg:#F3F4F1; --ink:#23282A; --muted:#6B7370; --faint:#9AA098; --rule:#D9DCD6;
+  --paper:#FBFBF9; --track:#E4E6E1;
+  --c:#3D6B5C;  --c-bg:#E4EDE8;
+  --gs:#A8422A; --gs-bg:#F4E7E2;
+  --ml:#4A5F7A; --ml-bg:#E6EBF0;
+  --jg:#6B5B8A; --jg-bg:#EBE7F0;
+  --l:#8A8E86;  --l-bg:#EAEBE6;
+  --x:#4A5F7A;  --x-bg:#E6EBF0;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#15181A; --ink:#E7EAE5; --muted:#9AA29B; --faint:#6E756E; --rule:#2B2F31;
+    --paper:#1C2022; --track:#2B2F31;
+    --c:#7FB39D;  --c-bg:#20302A;
+    --gs:#D4886B; --gs-bg:#332621;
+    --ml:#8CA6C2; --ml-bg:#222A32;
+    --jg:#A796C4; --jg-bg:#292433;
+    --l:#787D77;  --l-bg:#232624;
+    --x:#8CA6C2;  --x-bg:#222A32;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15181A; --ink:#E7EAE5; --muted:#9AA29B; --faint:#6E756E; --rule:#2B2F31;
+  --paper:#1C2022; --track:#2B2F31;
+  --c:#7FB39D;  --c-bg:#20302A;
+  --gs:#D4886B; --gs-bg:#332621;
+  --ml:#8CA6C2; --ml-bg:#222A32;
+  --jg:#A796C4; --jg-bg:#292433;
+  --l:#787D77;  --l-bg:#232624;
+  --x:#8CA6C2;  --x-bg:#222A32;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Noto Sans TC","PingFang TC","Hiragino Sans TC","Microsoft JhengHei",system-ui,sans-serif;
+  font-size:16px;line-height:1.7}
+.wrap{max-width:620px;margin:0 auto;padding:34px 16px calc(80px + env(safe-area-inset-bottom))}
+p{margin:0}
+
+.date{color:var(--muted);font-size:14px}
+.ctx{color:var(--faint);font-size:13px;margin-top:2px}
+
+.now{background:var(--paper);border:1px solid var(--rule);border-radius:10px;padding:20px 20px 18px;margin:22px 0 0}
+.now .lab{font-size:12.5px;color:var(--faint);letter-spacing:.08em}
+.now .big{font-size:27px;font-weight:500;line-height:1.35;margin-top:6px;letter-spacing:-.01em}
+.now .sub{color:var(--muted);font-size:15px;margin-top:6px}
+.now .clock{color:var(--faint);font-size:13px;margin-top:12px;font-variant-numeric:tabular-nums}
+.now .pb{height:4px;background:var(--track);border-radius:2px;overflow:hidden;margin-top:12px}
+.now .pb i{display:block;height:100%;border-radius:2px;background:var(--muted)}
+.now.rest .big{color:var(--muted)}
+
+h2{font-size:13px;font-weight:500;color:var(--faint);letter-spacing:.08em;margin:34px 0 10px}
+
+.row{display:grid;grid-template-columns:96px 3px 1fr;gap:12px;align-items:center;padding:9px 0;border-top:1px solid var(--rule)}
+.row:first-of-type{border-top:0}
+.row .t{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+.row .k{align-self:stretch;border-radius:2px;min-height:18px}
+.row .n .s{display:block;color:var(--muted);font-size:12.5px}
+.row.done{opacity:.34}
+.row.here .t{color:var(--ink);font-weight:500}
+.row.here .n{font-weight:500}
+.k.c{background:var(--c)} .k.gs{background:var(--gs)} .k.ml{background:var(--ml)}
+.k.jg{background:var(--jg)} .k.l{background:var(--l)} .k.x{background:var(--x)}
+.k.t{background:var(--gs)}
+
+.tick{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--rule)}
+.tick:first-of-type{border-top:0}
+.tick .dot{width:9px;height:9px;border-radius:50%;flex:none}
+.dot.gs{background:var(--gs)} .dot.ml{background:var(--ml)} .dot.jg{background:var(--jg)}
+.tick .who{width:38px;font-size:14px;color:var(--muted)}
+.tick .what{flex:1;font-size:14.5px;min-width:0}
+.tick .what em{font-style:normal;color:var(--muted);font-size:13px;display:block}
+button{font:inherit;font-size:13px;padding:4px 12px;border:1px solid var(--rule);
+  background:var(--paper);color:var(--ink);border-radius:6px;cursor:pointer}
+button:hover{border-color:var(--muted)}
+button.mini{padding:3px 9px;color:var(--faint)}
+
+.wg{border-top:1px solid var(--rule);padding:11px 0;display:flex;gap:12px;align-items:baseline}
+.wg:first-child{border-top:0}
+.wg .dot2{width:9px;height:9px;border-radius:50%;flex:none;transform:translateY(2px)}
+.dot2.gs{background:var(--gs)} .dot2.ml{background:var(--ml)} .dot2.jg{background:var(--jg)}
+.wg .nm2{width:38px;font-size:14px;color:var(--muted);flex:none}
+.wg .li{flex:1;font-size:14px;min-width:0}
+.wg .li em{font-style:normal;color:var(--muted);font-size:12.5px;display:block;margin-top:2px}
+.wg .st{color:var(--faint);font-size:12.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.wg .st.ok{color:var(--c)}
+
+.timer{background:var(--paper);border:1px solid var(--rule);border-radius:10px;padding:18px 20px;margin:26px 0 0;text-align:center}
+.timer .tlab{font-size:12.5px;color:var(--faint);letter-spacing:.08em}
+.timer .tbig{font-size:52px;font-weight:500;line-height:1.1;margin:4px 0 2px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.timer.rest .tbig{color:var(--c)}
+.timer.work .tbig{color:var(--ink)}
+.timer .tsub{color:var(--muted);font-size:13.5px;min-height:20px}
+.timer .btns{display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+.timer button{padding:6px 16px;font-size:14px}
+.timer .cyc{color:var(--faint);font-size:12.5px;margin-top:10px}
+
+.rule{background:var(--gs-bg);border-left:3px solid var(--gs);border-radius:0 6px 6px 0;
+  padding:11px 14px;margin:26px 0 0;font-size:14px}
+.rule b{font-weight:500;color:var(--gs)}
+
+details{border-top:1px solid var(--rule);padding:12px 0}
+details summary{cursor:pointer;font-size:14px;color:var(--muted);list-style:none;display:flex;align-items:center;gap:8px}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:"＋";color:var(--faint);font-size:13px}
+details[open] summary::before{content:"−"}
+details .body{padding-top:12px}
+
+.bar{height:6px;background:var(--track);border-radius:3px;overflow:hidden;margin:6px 0 2px}
+.bar i{display:block;height:100%;border-radius:3px}
+.bar i.gs{background:var(--gs)} .bar i.ml{background:var(--ml)} .bar i.jg{background:var(--jg)}
+.pline{display:flex;align-items:baseline;gap:8px;font-size:13.5px;margin-top:10px}
+.pline .rr{margin-left:auto;color:var(--faint);font-size:12.5px;font-variant-numeric:tabular-nums}
+.pace{font-size:12.5px;color:var(--muted);margin-top:2px}
+.pace.behind{color:var(--gs)}
+
+.gridwrap{overflow-x:auto}
+.tt{min-width:560px;display:grid;grid-template-columns:44px repeat(7,1fr);gap:2px}
+.tt .hd{font-size:12px;color:var(--muted);text-align:center;padding:3px 0}
+.tt .hd.now2{color:var(--ink);font-weight:500;border-bottom:2px solid var(--ink)}
+.tt .hd .hh{display:block;font-size:10px;color:var(--l)}
+.tt .hr{font-size:10px;color:var(--faint);text-align:right;padding-right:5px;transform:translateY(-5px)}
+.col{display:grid;grid-auto-rows:7px}
+.col.hrs{grid-auto-rows:28px}
+.blk{border-radius:3px;font-size:10.5px;line-height:1.2;padding:1px 3px;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;text-align:center}
+.blk.c{background:var(--c-bg);color:var(--c)} .blk.gs,.blk.t{background:var(--gs-bg);color:var(--gs)}
+.blk.ml{background:var(--ml-bg);color:var(--ml)} .blk.jg{background:var(--jg-bg);color:var(--jg)}
+.blk.l{background:var(--l-bg);color:var(--l)} .blk.x{background:var(--x-bg);color:var(--x)}
+
+table.d{width:100%;border-collapse:collapse;font-size:14px}
+table.d td{padding:6px 0;border-top:1px solid var(--rule);vertical-align:baseline}
+table.d tr:first-child td{border-top:0}
+table.d .dd{width:104px;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+table.d .ww{color:var(--faint);font-size:12.5px}
+table.d .soon{color:var(--gs)}
+
+ul.todo{list-style:none;margin:0;padding:0}
+ul.todo li{border-top:1px solid var(--rule);padding:9px 0;display:flex;gap:10px;align-items:flex-start;font-size:14.5px}
+ul.todo li:first-child{border-top:0}
+ul.todo input{margin:6px 0 0;width:15px;height:15px;accent-color:var(--c);flex:none}
+ul.todo .nt{display:block;color:var(--muted);font-size:12.5px}
+ul.todo li.done{opacity:.36;text-decoration:line-through}
+label{cursor:pointer}
+textarea{width:100%;min-height:90px;font:inherit;font-size:12.5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  background:var(--bg);color:var(--ink);border:1px solid var(--rule);border-radius:6px;padding:8px;resize:vertical}
+.bkbtn{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.msg{font-size:12.5px;color:var(--c);min-height:18px;margin-top:6px}
+:focus-visible{outline:2px solid var(--ml);outline-offset:2px}
+.foot{color:var(--faint);font-size:12.5px;padding-top:28px;border-top:1px solid var(--rule);margin-top:28px}
+@media print{button,.timer .btns,details{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<p class="date" id="date">—</p>
+<p class="ctx" id="ctx"></p>
+
+<div class="now" id="now" aria-live="polite"></div>
+
+<h2>今天</h2>
+<div id="day"></div>
+
+<h2>要開哪一堂</h2>
+<div id="ticks"></div>
+
+<h2>這週的三科清單</h2>
+<div id="weekgoal"></div>
+
+<div class="timer" id="timer">
+  <p class="tlab" id="tlab">計時器</p>
+  <p class="tbig" id="tbig" aria-live="off">50:00</p>
+  <p class="tsub" id="tsub">按開始，50 分鐘後它會叫你</p>
+  <div class="btns">
+    <button id="tstart">開始 50 分</button>
+    <button id="tbreak">休息 10 分</button>
+    <button id="tstop">停</button>
+  </div>
+  <p class="cyc" id="tcyc"></p>
+</div>
+
+<div class="rule"><b>卡住 40 分鐘就跳過。</b>標記起來，週日集中處理或問張老師。不要重播第八次。</div>
+<div class="rule"><b>讀不進去就用十分鐘規則。</b>開檔案看十分鐘，進得去就繼續，進不去就收工，隔天照原時間開始，不追。這不是偷懶的藉口，是讓你不會因為一天崩掉而放棄整張表。</div>
+<div class="rule"><b>主動休息，每 50 分停 10 分。</b>離開座位前先設好計時器。不要在檔案結尾停——看到最後五分鐘就跳下一個檔播五分鐘再休息。休息時不碰手機、不躺床。</div>
+
+<h2 style="margin-bottom:0">其他</h2>
+<details>
+  <summary>這一週</summary>
+  <div class="body gridwrap"><div class="tt" id="tt"></div></div>
+</details>
+<details>
+  <summary>三科走到哪了</summary>
+  <div class="body" id="prog"></div>
+</details>
+<details>
+  <summary>接下來的關鍵日</summary>
+  <div class="body"><table class="d"><tbody id="dates"></tbody></table></div>
+</details>
+<details>
+  <summary>還沒解決的事</summary>
+  <div class="body"><ul class="todo" id="todo"></ul></div>
+</details>
+<details>
+  <summary>備份進度</summary>
+  <div class="body">
+    <p class="ctx" style="margin:0 0 8px">進度只存在這台裝置。換裝置或清瀏覽器前，把下面這段複製起來；要還原就貼回去按匯入。</p>
+    <textarea id="bk" spellcheck="false" aria-label="進度備份資料"></textarea>
+    <div class="bkbtn">
+      <button id="bkcopy">複製</button>
+      <button id="bkload">匯入貼上的內容</button>
+    </div>
+    <p class="msg" id="bkmsg"></p>
+  </div>
+</details>
+
+<p class="foot">只有「今天」那一段要緊，其他都收起來了。<br>
+考試日期是暫定值，簡章公告後改檔案裡的 EXAM_DATE。進度存在這台裝置的瀏覽器裡。</p>
+
+</div>
+
+<script>
+"use strict";
+
+/* ===== 可調參數 ===== */
+const EXAM_DATE="2027-02-01",     // 考研筆試（暫定）
+      TERM_START="2026-09-07",    // 開學日（第 1 週的週一）
+      PHASE2="2026-10-03",        // 題庫班開始，課表換第二版
+      CRAM_END="2026-12-15",      // 三科題庫班結束，之後週五六回到一般表
+      VOD_DEADLINE="2026-12-24",  // VOD 三科要看完的最後期限（期末考結束）
+      QUOTA={gs:3,ml:3,jg:3};     // 每週預計推進的堂數
+
+/* ===== 資料 ===== */
+const D=[
+  ["2026-09-12","回高雄","到 9/20"],
+  ["2026-09-15","家裡的事","不排進度"],
+  ["2026-09-16","家裡的事","不排進度"],
+  ["2026-09-18","加退選截止","課表已定案，這天之後不能再動"],
+  ["2026-09-21","回台北、恢復上課","那週目標降到一半，不追進度"],
+  ["2026-09-25","中秋假",""],
+  ["2026-09-28","教師節",""],
+  ["2026-10-03","材力、結構題庫班開始（週六）","材力 13:30–17:00、結構 18:00–21:30"],
+  ["2026-10-09","國慶日補假",""],
+  ["2026-10-09","工數題庫班開始（週五整天）","09:00–12:30、13:30–17:00、18:30–22:00"],
+  ["2026-10-10","國慶日",""],
+  ["2026-10-18","多益測驗","目標 225 以上即可"],
+  ["2026-10-20","六校簡章陸續公告","台大 成大 交大 台科 北科 中央"],
+  ["2026-10-25","光復節",""],
+  ["2026-10-26","光復節補假",""],
+  ["2026-10-26","期中考前一週","VOD 暫停，全部轉考試準備"],
+  ["2026-10-31","校慶園遊會","11/1 校慶、11/9 補假"],
+  ["2026-11-01","多益成績查詢","拿到後去註冊組登錄"],
+  ["2026-11-02","期中考開始（第 9 週）","結構(二) 認真考，等於免費模擬"],
+  ["2026-11-06","期中考結束",""],
+  ["2026-12-07","下學期選課開始","環工、水資源 + 跨域；先跑畢業資格審查"],
+  ["2026-12-14","期末考前一週","VOD 暫停，全部轉考試準備"],
+  ["2026-12-15","三科題庫班結束","之後全部轉考古題"],
+  ["2026-12-17","上課最後一天（第 16 週）",""],
+  ["2026-12-18","期末考開始、下學期選課截止",""],
+  ["2026-12-24","期末考結束","隔天起六週衝刺"],
+  ["2026-12-25","行憲紀念日",""],
+  ["2026-12-28","彈性學習週開始（第 17、18 週）","到 1/8，沒有課"],
+  ["2027-01-01","開國紀念日",""],
+  ["2027-01-09","學期住宿結束","寒宿要提前申請"],
+  ["2027-01-11","寒假開始、寒宿開始",""],
+  ["2027-02-04","春節連假開始","放到 2/10 初五"],
+  [EXAM_DATE,"考研筆試（暫定）","簡章公告後修正"]
+].sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0);
+
+const SUBJ={
+  gs:{name:"工數",cls:"gs",total:40,done:0,list:[
+    [1,"微積分要訣：二重積分"],[2,"微積分要訣：坐標變換"],[3,"三重積分"],[4,"三重積分、萊布尼茲"],
+    [5,"微分方程導論、一階 ODE"],[6,"一階 ODE 解法"],[7,"二階 ODE"],[8,"未定係數法、參數變異法"],
+    [9,"變係數 ODE"],[10,"冪級數解法"],[11,"級數解法"],[12,"方程式、拉普拉斯轉換"],
+    [13,"拉氏轉換、尺度性質"],[14,"反拉氏、初值終值定理"],[15,"拉普拉斯轉換"],[16,"行列式法、傅立葉函數"],
+    [17,"傅立葉分析"],[18,"Parseval 恆等式、傅立葉積分"],[19,"傅立葉分析、規劃"],[20,"正交函數"],
+    [21,"SL 方程式"],[22,"SL 方程式、線性 PDE"],[23,"準線性 PDE"],[24,"拋物線型 PDE"],
+    [25,"非齊次、不完美熱傳 PDE"],[26,"全無限與半無限熱傳"],[27,"二維熱傳、球座標熱傳"],[28,"一維波動、波動 PDE"],
+    [29,"直角坐標 Laplace PDE"],[30,"極座標 Laplace PDE"],[31,"球座標 Laplace、其他 PDE"],[32,"觀念複習、曲率扭率"],
+    [33,"曲率扭率、方向導數"],[34,"散度旋度、向量積分"],[35,"線積分、曲面積分"],[36,"高斯定理"],
+    [37,"Stokes 定理"],[38,"矩陣運算"],[39,"秩數、二次式"],[40,"特徵值、缺陷形矩陣"]]},
+  ml:{name:"材力",cls:"ml",total:30,done:12,list:[
+    [1,"材料與材力、應力應變"],[2,"材料機械性質"],[3,"桿件斷面性質"],[4,"斷面性質、能量簡介"],
+    [5,"能量簡介、軸力桿件"],[6,"軸力桿件"],[7,"軸力桿件"],[8,"軸力桿件、扭力桿件"],
+    [9,"扭力桿件"],[10,"扭力桿件、剪力彎矩圖"],[11,"剪力圖與彎矩圖"],[12,"梁內正向應力"],
+    [13,"梁內正向應力"],[14,"梁內正向應力（疑與 13 重複）"],[15,"梁內剪應力"],[16,"梁內剪應力、應力轉換"],
+    [17,"應力轉換"],[18,"應力轉換、應變轉換"],[19,"應力轉換"],[20,"壓力容器與破壞準則"],
+    [21,"破壞準則、梁變形分析"],[22,"梁變形分析"],[23,"梁變形分析"],[24,"梁變形分析"],
+    [25,"能量法"],[26,"能量法"],[27,"能量法、穩定性分析"],[28,"穩定性分析"],
+    [29,"穩定性分析"],[30,"穩定性分析（完）"]]},
+  jg:{name:"結構",cls:"jg",total:32,done:4,list:[
+    [1,"緒論"],[2,"穩定結構、桁架靜定"],[3,"樑鋼架靜定分析公式"],[4,"剪力彎矩圖"],
+    [5,"剪力彎矩圖、靜定樑分析"],[6,"靜定結構分析"],[7,"靜定剛架、非正交剛架"],[8,"零桿件、節點法"],
+    [9,"靜定桁架分析"],[10,"靜定桁架分析"],[11,"共軛梁法"],[12,"共軛梁原理"],
+    [13,"共軛梁法"],[14,"位移、最小功法"],[15,"最小功法"],[16,"靜定變位、單位虛載重法"],
+    [17,"靜定結構變位分析"],[18,"樑的單位力法"],[19,"剛架單位力法、樑氏溫度"],[20,"影響線"],
+    [21,"影響線"],[22,"影響線"],[23,"影響線的應用"],[24,"諧合變形"],
+    [25,"諧合變形法"],[26,"（等補錄）"],[27,"（等補錄）"],[28,"（等補錄）"],
+    [29,"（等補錄）"],[30,"（等補錄）"],[31,"（等補錄）"],[32,"（等補錄）"]]}
+};
+
+const HOL={"2026-09-25":"中秋","2026-09-28":"教師節","2026-10-09":"補假","2026-10-10":"國慶",
+  "2026-10-25":"光復","2026-10-26":"補假","2026-10-31":"校慶","2026-11-01":"校慶","2026-11-09":"補假",
+  "2026-12-25":"行憲","2027-01-01":"元旦"};
+const EXAMW=[["2026-10-26","2026-11-06","期中考"],["2026-12-14","2026-12-24","期末考"]];
+const NOCLASS=[["2026-09-13","2026-09-19","高雄・前鎮圖書館"],["2026-12-18","2026-12-24","期末考週"],
+  ["2026-12-25","2027-01-10","彈性學習週"],["2027-01-11","2027-02-03","寒假"],
+  ["2027-02-04","2027-02-10","春節"],["2027-02-11","2027-06-30","寒假"]];
+
+/* 一般週（開學～題庫班前）：一～日 */
+const SCH=[
+ [["09:00","11:00","c","結構學(二)"],["11:00","12:00","l","走動、吃東西"],["12:00","13:00","l","午餐"],
+  ["13:00","16:00","c","測量實習(一)"],["16:00","17:00","l","休息"],["17:00","20:15","c","設計思考實務"],
+  ["20:15","21:00","l","晚餐"],["21:00","22:00","l","攀岩"]],
+ [["09:00","10:00","gs","工數 VOD","v"],["10:00","12:00","l","班週會"],["12:00","13:00","l","午餐"],
+  ["13:00","15:00","c","建築環控"],["15:00","16:00","l","休息"],["16:00","18:00","c","水文學"],
+  ["18:00","19:00","l","晚餐"],["19:00","21:00","ml","材力 VOD","v"],["21:00","22:00","ml","材力 寫題","p"]],
+ [["09:00","12:00","gs","工數 VOD","v"],["12:00","13:00","l","午餐"],["13:00","16:00","gs","工數 寫題","p"],
+  ["16:00","18:00","ml","材力 VOD","v"],["18:00","19:00","l","晚餐"],["19:00","21:00","jg","結構 VOD","v"],
+  ["21:00","22:00","l","攀岩"]],
+ [["09:00","12:00","gs","工數 VOD","v"],["12:00","13:00","l","午餐"],["13:00","14:00","c","結構學(二)"],
+  ["14:00","16:30","ml","材力 VOD","v"],["16:30","18:00","ml","材力 寫題","p"],["18:00","19:00","l","晚餐"],
+  ["19:00","21:00","jg","結構 VOD","v"],["21:00","22:00","jg","結構 寫題","p"]],
+ [["09:00","11:00","gs","工數 VOD","v"],["11:00","12:00","gs","工數 寫題","p"],["12:00","13:00","l","午餐"],
+  ["13:00","16:00","ml","材力 VOD","v"],["16:00","18:00","jg","結構 VOD","v"],["18:00","19:00","l","晚餐"],
+  ["19:00","21:00","x","補弱科 寫題","p"],["21:00","22:00","l","攀岩"]],
+ [["09:00","12:00","gs","工數 VOD","v"],["12:00","13:00","l","午餐"],["13:00","15:00","ml","材力 寫題","p"],
+  ["15:00","16:00","jg","結構 寫題","p"],["16:00","17:00","l","運動"],["17:00","18:00","gs","工數 寫題","p"],
+  ["18:00","19:00","l","晚餐"],["19:00","22:00","x","整份考卷限時演練","p"]],
+ [["09:00","11:00","jg","結構 VOD","v"],["11:00","12:00","jg","結構 寫題","p"],
+  ["12:00","13:00","x","本週回顧（三行就好）","p"],["13:00","14:00","l","午餐"],
+  ["14:00","19:00","l","留白"],["19:00","22:00","l","留白"]]
+];
+
+/* 題庫班週（10/03 起）：一～日 */
+const SCH2=[
+ [["09:00","11:00","c","結構學(二)"],["11:00","12:00","l","走動、吃東西"],["12:00","13:00","l","午餐"],
+  ["13:00","16:00","c","測量實習(一)"],["16:00","17:00","l","休息"],["17:00","20:15","c","設計思考實務"],
+  ["20:15","21:00","l","晚餐"],["21:00","22:00","l","攀岩"]],
+ [["09:00","10:00","gs","工數 訂正題庫班","p"],["10:00","12:00","l","班週會"],["12:00","13:00","l","午餐"],
+  ["13:00","15:00","c","建築環控"],["15:00","16:00","l","休息"],["16:00","18:00","c","水文學"],
+  ["18:00","19:00","l","晚餐"],["19:00","21:00","ml","材力 VOD","v"],["21:00","22:00","ml","材力 寫題","p"]],
+ [["09:00","12:00","gs","工數 VOD 補漏","v"],["12:00","13:00","l","午餐"],["13:00","16:00","gs","工數 寫題","p"],
+  ["16:00","18:00","ml","材力 VOD","v"],["18:00","19:00","l","晚餐"],["19:00","21:00","jg","結構 VOD","v"],
+  ["21:00","22:00","l","攀岩"]],
+ [["09:00","12:00","gs","工數 寫題","p"],["12:00","13:00","l","午餐"],["13:00","14:00","c","結構學(二)"],
+  ["14:00","16:30","ml","材力 VOD","v"],["16:30","18:00","ml","材力 寫題","p"],["18:00","19:00","l","晚餐"],
+  ["19:00","21:00","jg","結構 VOD","v"],["21:00","22:00","jg","結構 寫題","p"]],
+ [["09:00","12:30","t","工數題庫班"],["12:30","13:30","l","午餐"],["13:30","17:00","t","工數題庫班"],
+  ["17:00","18:30","l","晚餐、休息"],["18:30","22:00","t","工數題庫班"]],
+ [["09:00","12:00","jg","結構 VOD","v"],["12:00","13:30","l","午餐"],["13:30","17:00","ml","材力題庫班"],
+  ["17:00","18:00","l","晚餐"],["18:00","21:30","jg","結構題庫班"]],
+ [["09:00","11:00","gs","工數 訂正題庫班","p"],["11:00","13:00","x","材力・結構 訂正題庫班","p"],
+  ["13:00","14:00","l","午餐"],["14:00","19:00","l","留白"],["19:00","22:00","l","留白"]]
+];
+
+/* 沒課的日子（假日、寒假、不在台北） */
+const STUDY=[["09:00","12:00","gs","工數 VOD","v"],["12:00","13:00","l","午餐"],["13:00","15:00","ml","材力 VOD","v"],
+  ["15:00","16:00","ml","材力 寫題","p"],["16:00","18:00","gs","工數 寫題","p"],["18:00","19:00","l","晚餐"],
+  ["19:00","21:00","jg","結構 VOD","v"]];
+
+/* 單日覆蓋 */
+const PRE={
+ "2026-09-12":[["09:00","13:00","l","回高雄"],["14:00","17:00","ml","材力 VOD","v"],["18:00","19:00","l","晚餐"],["19:00","21:00","l","陪家人"]],
+ "2026-09-15":[["09:00","21:00","l","家裡的事　今天不排進度"]],
+ "2026-09-16":[["09:00","21:00","l","家裡的事　今天不排進度"]],
+ "2026-09-20":[["09:00","12:00","jg","結構 VOD","v"],["12:00","13:00","x","兩週回顧","p"],["13:00","14:00","l","午餐"],["14:00","18:00","l","收拾、北上"],["18:00","21:00","l","留白"]]
+};
+
+const TODO=[
+  ["leave","五門課請假報備","結構學(二)、測量實習、水文學、建築環控、設計思考。回來日期 9/21。"],
+  ["toeic","10/18 多益測驗","已報名。目標 225 以上即可，四下再修一門銜接課程。"],
+  ["room","問換宿的可能","室友打呼影響睡眠是常見的換房事由。回台北後問生輔組。"],
+  ["house","看房","唯一硬指標是安靜。雅房或騎車十五分鐘內都可以，不必七千五。"],
+  ["audit","跑一次畢業資格審查","確認缺 23 還是 25，以及跨域那格缺幾學分。11 月做。"],
+  ["chang","找張老師問結構 03/05 卡點","03-1 播七次、05-1 播六次，不要再重播。"],
+  ["dup","確認材力 13 與 14 是否重複","各看五分鐘。重複可省 5.5 小時。"],
+  ["dorm","申請寒假住宿","1/9 到 1/11 有空窗。12 月前。"],
+  ["apply","查六校簡章","台大 成大 交大 台科 北科 中央。10–11 月。"],
+  ["pick2","選四下的課","環工、水資源 + 跨域；外系額度有限。12/7–12/18。"]
+];
+
+/* ===== 工具 ===== */
+const DAY=864e5, wd=["日","一","二","三","四","五","六"];
+const pd=s=>{const[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
+const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const fmt=d=>(d.getMonth()+1)+"/"+d.getDate();
+const diff=(a,b)=>Math.round((b-a)/DAY);
+const mn=t=>+t.slice(0,2)*60 + +t.slice(3,5);            // "13:30" -> 810
+const hm=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ls={
+  get(k,f){try{const v=localStorage.getItem(k);return v===null?f:JSON.parse(v)}catch(e){return f}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},
+  del(k){try{localStorage.removeItem(k)}catch(e){}}
+};
+
+const start=pd(TERM_START), exam=pd(EXAM_DATE), vodEnd=pd(VOD_DEADLINE);
+let today=new Date(); today=new Date(today.getFullYear(),today.getMonth(),today.getDate());
+let todayKey=iso(today);
+
+/* ===== 進度 ===== */
+const K_PROG="plan-prog", K_TODO="plan-todo", K_WKB="plan-wkbase-", K_CYC="plan-cyc-", K_TMR="plan-timer";
+(function loadProg(){
+  const p=ls.get(K_PROG,{});
+  for(const k in SUBJ) if(typeof p[k]==="number") SUBJ[k].done=Math.max(0,Math.min(SUBJ[k].total,p[k]|0));
+})();
+const saveProg=()=>ls.set(K_PROG,Object.fromEntries(Object.keys(SUBJ).map(k=>[k,SUBJ[k].done])));
+const lastL=k=>SUBJ[k].done>0?SUBJ[k].list[SUBJ[k].done-1]:null;
+const nextL=k=>SUBJ[k].done<SUBJ[k].list.length?SUBJ[k].list[SUBJ[k].done]:null;
+
+/* ===== 今天排什麼 ===== */
+function examWeek(d){ for(const[a,b,n] of EXAMW) if(d>=pd(a)&&d<=pd(b)) return n; return ""; }
+function noClass(d){ for(const[a,b,n] of NOCLASS) if(d>=pd(a)&&d<=pd(b)) return n; return ""; }
+function table(d){
+  const i=(d.getDay()===0?7:d.getDay())-1;
+  if(d>pd(CRAM_END)&&(i===4||i===5)) return SCH[i];   // 題庫班結束後，週五六回到一般表
+  return (d>=pd(PHASE2)?SCH2:SCH)[i];
+}
+// 週五、六的題庫班蓋過假日；只在 10/03 – 12/15 之間有效
+function isCram(d){ return d>=pd(PHASE2)&&d<=pd(CRAM_END)&&(d.getDay()===5||d.getDay()===6); }
+// 相鄰且同一件事的區塊併成一段，休息時刻才算得對
+function merge(bs){
+  const out=[];
+  for(const b of bs){
+    const p=out[out.length-1];
+    if(p&&p[1]===b[0]&&p[2]===b[2]&&p[3]===b[3]&&(p[4]||"")===(b[4]||"")) p[1]=b[1];
+    else out.push(b.slice());
+  }
+  return out;
+}
+
+function planFor(d){
+  const key=iso(d);
+  if(PRE[key]) return {b:merge(PRE[key]),r:""};
+  const ew=examWeek(d);
+  if(ew){
+    if(isCram(d)) return {b:merge(table(d)),r:ew+"週"};
+    const base=(HOL[key]||noClass(d))?STUDY:table(d);
+    return {b:merge(base.map(x=>{
+      const y=x.slice();
+      if(y[2]==="gs"||y[2]==="ml"||y[2]==="jg"||y[2]==="x"){ y[2]="x"; y[3]=ew+"準備"; y[4]="p"; }
+      return y;
+    })),r:ew+"週"};
+  }
+  const r=HOL[key]||noClass(d);
+  if(r){
+    if(isCram(d)) return {b:merge(table(d)),r};
+    const b=STUDY.slice();
+    if([1,3,5].includes(d.getDay())) b.push(["21:00","22:00","l","攀岩"]);
+    return {b:merge(b),r};
+  }
+  return {b:merge(table(d)),r:""};
+}
+
+/* 每 50 分停 10 分：算出休息時刻 */
+function breaks(a,b){
+  const s=mn(a), e=mn(b), out=[];
+  for(let t=s+50; t+15<=e; t+=60) out.push(hm(t));
+  return out.length?"休息 "+out.join("、")+"　每 50 分停 10 分":"";
+}
+const isStudy=k=>k==="gs"||k==="ml"||k==="jg"||k==="x"||k==="t";
+
+/* ===== 畫面 ===== */
+const $=id=>document.getElementById(id);
+let plan=planFor(today);
+
+function renderHead(){
+  $("date").textContent=(today.getMonth()+1)+" 月 "+today.getDate()+" 日　星期"+wd[today.getDay()];
+  const wkn=Math.floor(diff(start,today)/7)+1;
+  $("ctx").textContent=
+    (diff(today,start)>0 ? "開學前　"
+     : (wkn>=1&&wkn<=16 ? "第 "+wkn+" / 16 週　"
+        : (wkn===17||wkn===18 ? "彈性學習週（第 "+wkn+" 週）　" : ""))) +
+    (plan.r?plan.r+"　":"") + "考試還有 "+Math.max(0,diff(today,exam))+" 天";
+}
+
+function renderNow(H){
+  const el=$("now");
+  if(H>=23*60||H<8*60){
+    el.className="now rest";
+    el.innerHTML='<p class="lab">現在</p><p class="big">睡覺</p><p class="sub">23:00 – 08:00，九小時不動。</p>';
+    return;
+  }
+  const cur=plan.b.find(b=>H>=mn(b[0])&&H<mn(b[1]));
+  if(!cur){
+    const nx=plan.b.find(b=>mn(b[0])>H);
+    el.className="now rest";
+    el.innerHTML='<p class="lab">現在</p><p class="big">空檔</p>'+
+      (nx?'<p class="sub">下一個是 '+nx[0]+'　'+esc(nx[3])+'　（'+(mn(nx[0])-H)+' 分鐘後）</p>'
+         :'<p class="sub">今天到這裡。</p>');
+    return;
+  }
+  const k=cur[2], md=cur[4]||"", s=mn(cur[0]), e=mn(cur[1]);
+  const nl=SUBJ[k]&&md==="v"?nextL(k):null, pv=SUBJ[k]&&md==="p"?lastL(k):null;
+  const nx=plan.b.find(b=>mn(b[0])>=e);
+  const pct=Math.round((H-s)/(e-s)*100);
+  el.className="now"+(k==="l"?" rest":"");
+  el.innerHTML='<p class="lab">現在</p><p class="big">'+esc(cur[3])+'</p>'+
+    (nl?'<p class="sub">開第 '+nl[0]+' 堂　'+esc(nl[1])+'</p>':'')+
+    (pv?'<p class="sub">做第 '+pv[0]+' 堂的題　'+esc(pv[1])+'</p>':'')+
+    '<div class="pb"><i style="width:'+pct+'%"></i></div>'+
+    '<p class="clock">'+cur[0]+' – '+cur[1]+'　·　剩 '+(e-H)+' 分'+
+      (isStudy(k)&&breaks(cur[0],cur[1])?'　·　'+breaks(cur[0],cur[1]):'')+
+      (nx?'<br>接著 '+nx[0]+'　'+esc(nx[3]):'')+'</p>';
+}
+
+function renderDay(H){
+  $("day").innerHTML = plan.b.map(function(blk){
+    const a=blk[0],b=blk[1],k=blk[2],t=blk[3],mode=blk[4]||"";
+    const s=mn(a), e=mn(b), gone=H>=e, here=H>=s&&H<e;
+    const nl=SUBJ[k]&&mode==="v"?nextL(k):null;
+    const pv=SUBJ[k]&&mode==="p"?lastL(k):null;
+    const long=isStudy(k)?breaks(a,b):"";
+    return '<div class="row'+(gone?" done":"")+(here?" here":"")+'">'+
+      '<span class="t">'+a+' – '+b+'</span><span class="k '+k+'"></span>'+
+      '<span class="n">'+esc(t)+
+      (nl?'<span class="s">開第 '+nl[0]+' 堂　'+esc(nl[1])+'</span>':'')+
+      (pv?'<span class="s">做第 '+pv[0]+' 堂的題　'+esc(pv[1])+'</span>':'')+
+      (long?'<span class="s">'+long+'</span>':'')+'</span></div>';
+  }).join("") +
+  '<div class="row"><span class="t">23:00 – 08:00</span><span class="k l"></span><span class="n">睡覺</span></div>';
+}
+
+function renderTicks(){
+  $("ticks").innerHTML = Object.keys(SUBJ).map(k=>{
+    const s=SUBJ[k], nl=nextL(k);
+    return '<div class="tick"><span class="dot '+k+'"></span><span class="who">'+s.name+'</span>'+
+      '<span class="what">'+(nl?'第 '+nl[0]+' 堂<em>'+esc(nl[1])+'</em>':'全部看完了')+'</span>'+
+      '<button data-k="'+k+'" data-v="1" aria-label="'+s.name+' 看完一堂">看完了</button>'+
+      '<button class="mini" data-k="'+k+'" data-v="-1" aria-label="'+s.name+' 退回一堂">−</button></div>';
+  }).join("");
+}
+
+function monOf(d){ const m=new Date(d); m.setDate(m.getDate()-((d.getDay()===0?7:d.getDay())-1)); return m; }
+
+function renderWeekGoal(){
+  const mon=monOf(today), sun=new Date(mon); sun.setDate(mon.getDate()+6);
+  const key=K_WKB+iso(mon);
+  let base=ls.get(key,null);
+  if(!base||typeof base!=="object"){
+    base={}; Object.keys(SUBJ).forEach(k=>base[k]=SUBJ[k].done);
+    ls.set(key,base);
+  }
+  // 清掉八週以前的週基準，不讓 localStorage 長不停
+  try{
+    for(let i=localStorage.length-1;i>=0;i--){
+      const kk=localStorage.key(i);
+      if(kk&&kk.startsWith(K_WKB)&&diff(pd(kk.slice(K_WKB.length)),mon)>56) localStorage.removeItem(kk);
+    }
+  }catch(e){}
+  $("weekgoal").innerHTML =
+    '<p class="ctx" style="margin:-4px 0 10px">'+fmt(mon)+' – '+fmt(sun)+'</p>' +
+    Object.keys(SUBJ).map(k=>{
+      const s=SUBJ[k], from=Math.min(base[k]|0,s.total), to=Math.min(s.total,from+QUOTA[k]);
+      const seg=s.list.slice(from,to);
+      const doneN=Math.max(0,Math.min(s.done,to)-from), goal=to-from;
+      return '<div class="wg"><span class="dot2 '+k+'"></span><span class="nm2">'+s.name+'</span>'+
+        '<span class="li">'+(goal?'第 '+seg.map(x=>x[0]).join('、')+' 堂':'已看完')+
+        (goal?'<em>'+seg.map(x=>esc(x[1])).join('　·　')+'</em>':'')+'</span>'+
+        '<span class="st'+(goal&&doneN>=goal?' ok':'')+'">'+doneN+' / '+goal+'</span></div>';
+    }).join("");
+}
+
+function renderProgress(){
+  const wksLeft=Math.max(1,Math.ceil(diff(today,vodEnd)/7));
+  $("prog").innerHTML = Object.keys(SUBJ).map(k=>{
+    const s=SUBJ[k], p=Math.round(s.done/s.total*100), left=s.total-s.done;
+    const need=left/wksLeft, behind=need>QUOTA[k]+0.01;
+    return '<div class="pline"><b style="font-weight:500">'+s.name+'</b>'+
+      '<span style="color:var(--muted)">'+s.done+' / '+s.total+' 堂</span>'+
+      '<span class="rr">'+p+'%</span></div>'+
+      '<div class="bar"><i class="'+s.cls+'" style="width:'+p+'%"></i></div>'+
+      '<p class="pace'+(behind?" behind":"")+'">'+
+        (left===0?'看完了。'
+         :'剩 '+left+' 堂，離 '+fmt(vodEnd)+' 還有 '+wksLeft+' 週　→　每週要 '+need.toFixed(1)+' 堂'+
+          (behind?'（配額是 '+QUOTA[k]+'，追不上，砍掉重複或提高配額）':'（配額 '+QUOTA[k]+' 夠）'))+
+      '</p>';
+  }).join("") + '<p style="color:var(--faint);font-size:12.5px;margin-top:14px">'+
+    '每週只看三件事：工數推到第幾堂、這週有幾天完全沒讀、標記幾個卡點解決幾個。</p>';
+}
+
+function renderWeek(){
+  const H0=8*60,H1=23*60, unit=15;
+  const mon=monOf(today), dow=today.getDay()===0?7:today.getDay();
+  let h='<div></div>';
+  for(let i=0;i<7;i++){
+    const d=new Date(mon); d.setDate(mon.getDate()+i);
+    h+='<div class="hd'+(i+1===dow?" now2":"")+'">'+wd[(i+1)%7]+
+       (HOL[iso(d)]?'<span class="hh">'+HOL[iso(d)]+'</span>':'')+'</div>';
+  }
+  h+='<div class="col hrs">';
+  for(let x=8;x<=23;x++) h+='<div class="hr">'+String(x).padStart(2,"0")+'</div>';
+  h+='</div>';
+  for(let i=0;i<7;i++){
+    const d=new Date(mon); d.setDate(mon.getDate()+i);
+    h+='<div class="col">'; let cur=H0;
+    for(const[a,b,k,t] of planFor(d).b){
+      const s=Math.max(H0,mn(a)), e=Math.min(H1,mn(b));
+      if(e<=s) continue;
+      if(s>cur) h+='<div style="grid-row:span '+((s-cur)/unit)+'"></div>';
+      h+='<div class="blk '+k+'" style="grid-row:span '+((e-s)/unit)+'">'+esc(t)+'</div>';
+      cur=e;
+    }
+    h+='</div>';
+  }
+  $("tt").innerHTML=h;
+}
+
+function renderDates(){
+  $("dates").innerHTML = D.filter(e=>pd(e[0])>=today).slice(0,8).map(e=>{
+    const d=pd(e[0]), n=diff(today,d);
+    return '<tr><td class="dd">'+fmt(d)+'（'+wd[d.getDay()]+'）'+
+      '<br><span class="ww'+(n<=7?' soon':'')+'">'+(n===0?"今天":n===1?"明天":n+" 天後")+'</span></td>'+
+      '<td>'+esc(e[1])+(e[2]?'<br><span class="ww">'+esc(e[2])+'</span>':'')+'</td></tr>';
+  }).join("") || '<tr><td>結束了。</td></tr>';
+}
+
+function renderTodo(){
+  const sv=ls.get(K_TODO,{});
+  const el=$("todo");
+  el.innerHTML=TODO.map(([id,t,n])=>
+    '<li'+(sv[id]?' class="done"':'')+'><input type="checkbox" id="td-'+id+'" data-id="'+id+'"'+(sv[id]?" checked":"")+'>'+
+    '<label for="td-'+id+'">'+esc(t)+(n?'<span class="nt">'+esc(n)+'</span>':'')+'</label></li>').join("");
+  el.onchange=ev=>{
+    const cb=ev.target; if(!cb.dataset.id) return;
+    cb.closest("li").classList.toggle("done",cb.checked);
+    const cur=ls.get(K_TODO,{}); cur[cb.dataset.id]=cb.checked; ls.set(K_TODO,cur);
+  };
+}
+
+/* 進度更新按鈕 */
+$("ticks").addEventListener("click",ev=>{
+  const b=ev.target.closest("button[data-k]"); if(!b) return;
+  const s=SUBJ[b.dataset.k];
+  s.done=Math.max(0,Math.min(s.total,s.done + (+b.dataset.v)));
+  saveProg();
+  renderTicks(); renderWeekGoal(); renderProgress(); renderBackup();
+  const H=nowMin(); renderNow(H); renderDay(H);
+});
+
+/* ===== 計時器（只初始化一次） ===== */
+(function(){
+  const big=$("tbig"), lab=$("tlab"), sub=$("tsub"), cyc=$("tcyc"), box=$("timer");
+  let end=0, mode="", tick=null;
+  let done=ls.get(K_CYC+todayKey,0)|0;
+  const show=()=>{ cyc.textContent = done?("今天完成 "+done+" 個 50 分區塊　約 "+(done*50/60).toFixed(1)+" 小時"):""; };
+  const mmss=s=>String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
+
+  function beep(){
+    try{
+      const C=window.AudioContext||window.webkitAudioContext; if(!C) return;
+      const a=new C();
+      [0,0.55,1.1].forEach(off=>{
+        const o=a.createOscillator(), g=a.createGain();
+        o.connect(g); g.connect(a.destination); o.type="sine"; o.frequency.value=660;
+        g.gain.setValueAtTime(0.0001,a.currentTime+off);
+        g.gain.exponentialRampToValueAtTime(0.25,a.currentTime+off+0.04);
+        g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+off+0.45);
+        o.start(a.currentTime+off); o.stop(a.currentTime+off+0.5);
+      });
+    }catch(e){}
+    try{ if(navigator.vibrate) navigator.vibrate([200,100,200]); }catch(e){}
+  }
+  function idle(){
+    clearInterval(tick); tick=null; mode=""; end=0; ls.del(K_TMR);
+    box.className="timer"; big.textContent="50:00";
+    lab.textContent="計時器"; sub.textContent="按開始，50 分鐘後它會叫你";
+    document.title="今天";
+  }
+  function paint(){
+    const left=Math.max(0,Math.round((end-Date.now())/1000));
+    big.textContent=mmss(left);
+    document.title=(mode==="work"?"專注 ":"休息 ")+mmss(left)+"・今天";
+    if(left<=0){
+      clearInterval(tick); tick=null; ls.del(K_TMR); beep();
+      if(mode==="work"){
+        done++; ls.set(K_CYC+todayKey,done); show();
+        lab.textContent="時間到"; sub.textContent="起來走動 10 分鐘"; box.className="timer rest";
+      }else{
+        lab.textContent="休息結束"; sub.textContent="回座位，接上次沒看完的那一段"; box.className="timer work";
+      }
+      mode=""; document.title="今天";
+    }
+  }
+  function run(mins,m,endAt){
+    clearInterval(tick);
+    mode=m; end=endAt||Date.now()+mins*60000;
+    ls.set(K_TMR,{end,mode});
+    box.className="timer "+(m==="work"?"work":"rest");
+    lab.textContent=m==="work"?"專注中":"休息中";
+    sub.textContent=m==="work"?"時間到就停，就算檔案播到一半":"起來走動、裝水。不要碰手機、不要躺床";
+    paint(); tick=setInterval(paint,250);
+  }
+  $("tstart").onclick=()=>run(50,"work");
+  $("tbreak").onclick=()=>run(10,"rest");
+  $("tstop").onclick=idle;
+  // 重新整理或切回分頁後接續，不會歸零
+  const saved=ls.get(K_TMR,null);
+  if(saved&&saved.end>Date.now()) run(0,saved.mode,saved.end); else if(saved) ls.del(K_TMR);
+  document.addEventListener("visibilitychange",()=>{ if(!document.hidden&&tick) paint(); });
+  show();
+})();
+
+/* ===== 備份 ===== */
+function renderBackup(){
+  $("bk").value=JSON.stringify({prog:ls.get(K_PROG,{}),todo:ls.get(K_TODO,{})});
+}
+$("bkcopy").onclick=async()=>{
+  const ta=$("bk");
+  try{ await navigator.clipboard.writeText(ta.value); }catch(e){ ta.select(); document.execCommand&&document.execCommand("copy"); }
+  $("bkmsg").textContent="已複製。貼到備忘錄或傳給自己。";
+};
+$("bkload").onclick=()=>{
+  try{
+    const o=JSON.parse($("bk").value);
+    if(o&&o.prog) ls.set(K_PROG,o.prog);
+    if(o&&o.todo) ls.set(K_TODO,o.todo);
+    const p=ls.get(K_PROG,{});
+    for(const k in SUBJ) if(typeof p[k]==="number") SUBJ[k].done=Math.max(0,Math.min(SUBJ[k].total,p[k]|0));
+    renderAll(); $("bkmsg").textContent="匯入完成。";
+  }catch(e){ $("bkmsg").textContent="格式不對，沒有動到原本的進度。"; }
+};
+
+/* ===== 啟動 + 每分鐘自己更新 ===== */
+function nowMin(){ const n=new Date(); return n.getHours()*60+n.getMinutes(); }
+function renderAll(){
+  plan=planFor(today);
+  const H=nowMin();
+  renderHead(); renderNow(H); renderDay(H); renderTicks();
+  renderWeekGoal(); renderProgress(); renderWeek(); renderDates(); renderTodo(); renderBackup();
+}
+renderAll();
+setInterval(()=>{
+  const n=new Date(), k=iso(n);
+  if(k!==todayKey){ location.reload(); return; }   // 跨日直接重來
+  const H=n.getHours()*60+n.getMinutes();
+  renderHead(); renderNow(H); renderDay(H);
+},30000);
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden){
+  if(iso(new Date())!==todayKey) location.reload(); else { const H=nowMin(); renderNow(H); renderDay(H); }
+}});
+</script>
+</body>
+</html>
