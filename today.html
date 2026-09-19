@@ -205,6 +205,26 @@ label{cursor:pointer}
 .jl.solved{opacity:.4}
 .jl.solved .ct{color:var(--faint)}
 
+/* 考卷與錯題 */
+.pf{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.pf select,.pf input{font:inherit;font-size:13.5px;background:var(--bg);color:var(--ink);
+  border:1px solid var(--rule);border-radius:6px;padding:6px 8px}
+.pf select{flex:0 0 auto}
+.pf input.yr{width:62px} .pf input.sc{width:66px} .pf input.wr{flex:1 1 150px;min-width:120px}
+.wk{display:flex;align-items:baseline;gap:10px;padding:8px 0;border-top:1px solid var(--rule);font-size:14px}
+.wk:first-child{border-top:0}
+.wk .d3{width:9px;height:9px;border-radius:50%;flex:none;transform:translateY(1px)}
+.d3.gs{background:var(--gs)} .d3.ml{background:var(--ml)} .d3.jg{background:var(--jg)}
+.wk .t3{flex:1;min-width:0}
+.wk .t3 em{font-style:normal;display:block;font-size:12.5px;color:var(--muted)}
+.wk .c3{color:var(--gs);font-size:12.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.pr{display:flex;align-items:baseline;gap:10px;padding:7px 0;border-top:1px solid var(--rule);font-size:13.5px}
+.pr .sc2{font-variant-numeric:tabular-nums;font-weight:500}
+.pr .sc2.low{color:var(--gs)} .pr .sc2.high{color:var(--c)}
+.pr .meta{color:var(--muted);flex:1;min-width:0}
+.avg{display:flex;gap:16px;flex-wrap:wrap;font-size:13.5px;margin-bottom:12px}
+.avg span b{font-weight:500;font-variant-numeric:tabular-nums}
+
 /* 週回顧 */
 .rvold{background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:11px 13px;
   font-size:13.5px;color:var(--muted);margin-bottom:12px;white-space:pre-wrap}
@@ -255,6 +275,7 @@ textarea.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:
     <button id="tstop">停</button>
   </div>
   <p class="cyc" id="tcyc"></p>
+  <p class="cyc" id="tnoti"></p>
 </div>
 
 <div class="rule"><b>卡住 40 分鐘就跳過。</b>標記起來，週日集中處理或問張老師。不要重播第八次。</div>
@@ -277,6 +298,10 @@ textarea.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:
 <details>
   <summary>三科走到哪了</summary>
   <div class="body" id="prog"></div>
+</details>
+<details id="dpap">
+  <summary>考卷與錯題<span class="tag" id="ptag"></span></summary>
+  <div class="body" id="papers"></div>
 </details>
 <details>
   <summary>週回顧</summary>
@@ -325,6 +350,8 @@ const EXAM_DATE="2027-02-01",     // 考研筆試（暫定）
       PHASE2="2026-10-03",        // 題庫班開始，課表換第二版
       CRAM_END="2026-12-15",      // 三科題庫班結束，之後週五六回到一般表
       VOD_DEADLINE="2026-12-24",  // VOD 三科要看完的最後期限（期末考結束）
+      SPRINT_START="2026-12-25",  // VOD 收工，全部轉考古題
+      TAPER_DAYS=3,               // 考前幾天降載：不寫新考卷，只看錯題本
       QUOTA={gs:3,ml:3,jg:3},     // 每週預計推進的堂數
       DEF_HRS=4,                  // 一堂課連看帶寫的預設時數（函授一堂約 3 小時 + 寫題）
       JAM_LIMIT=2;                // 同一堂重播幾次就該跳過
@@ -359,10 +386,12 @@ const D=[
   ["2026-12-18","期末考開始、下學期選課截止",""],
   ["2026-12-24","期末考結束","隔天起六週衝刺"],
   ["2026-12-25","行憲紀念日",""],
+  ["2026-12-25","六週衝刺開始","VOD 收工，一天一份考卷"],
   ["2026-12-28","彈性學習週開始（第 17、18 週）","到 1/8，沒有課"],
   ["2027-01-01","開國紀念日",""],
   ["2027-01-09","學期住宿結束","寒宿要提前申請"],
   ["2027-01-11","寒假開始、寒宿開始",""],
+  ["2027-01-29","考前三天降載","不寫新考卷，只看錯題本，睡飽"],
   ["2027-02-04","春節連假開始","放到 2/10 初五"],
   [EXAM_DATE,"考研筆試（暫定）","簡章公告後修正"]
 ].sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0);
@@ -459,6 +488,19 @@ const STUDY=[["09:00","12:00","gs","工數 VOD","v"],["12:00","13:00","l","午�
   ["15:00","16:00","ml","材力 寫題","p"],["16:00","18:00","gs","工數 寫題","p"],["18:00","19:00","l","晚餐"],
   ["19:00","21:00","jg","結構 VOD","v"]];
 
+/* 12/25 起的六週衝刺：一天一份考卷 + 訂正 */
+const SPRINT=[["09:00","12:00","x","限時演練　整份考卷","e"],["12:00","13:00","l","午餐"],
+  ["13:00","15:30","x","訂正、回查卡住的章節","e"],["15:30","16:30","l","運動、走動"],
+  ["16:30","18:00","x","弱章重看","e"],["18:00","19:00","l","晚餐"],
+  ["19:00","21:30","x","第二科考卷或錯題重做","e"],["21:30","22:00","x","記錄今天錯在哪","e"]];
+
+/* 考前三天：不寫新的，只把會的確認一遍，睡飽 */
+const TAPER=[["09:00","11:00","x","錯題本重看，不寫新的","e"],["11:00","12:00","x","公式默寫","e"],
+  ["12:00","13:00","l","午餐"],["13:00","15:00","x","看自己的訂正筆記","e"],
+  ["15:00","16:00","l","走動、曬太陽"],["16:00","18:00","x","輕度複習，只看會的","e"],
+  ["18:00","19:00","l","晚餐"],["19:00","21:00","l","確認考場、文具、准考證、交通"],
+  ["21:00","22:00","l","洗澡、早睡"]];
+
 /* 單日覆蓋 */
 const PRE={
  "2026-09-12":[["09:00","13:00","l","回高雄"],["14:00","17:00","ml","材力 VOD","v"],["18:00","19:00","l","晚餐"],["19:00","21:00","l","陪家人"]],
@@ -505,9 +547,10 @@ const monOf=d=>{const m=new Date(d);m.setDate(m.getDate()-((d.getDay()===0?7:d.g
 /* ===== 儲存 ===== */
 const K_PROG="plan-prog", K_ORIG="plan-origin", K_LOG="plan-log", K_JAM="plan-jam",
       K_RV="plan-review", K_CFG="plan-cfg", K_TODO="plan-todo", K_TMR="plan-timer",
-      K_WKB="plan-wkbase-", K_CYC="plan-cyc-";
+      K_WKB="plan-wkbase-", K_CYC="plan-cyc-", K_PAP="plan-papers";
+const SCHOOLS=["台大","成大","交大","台科","北科","中央","其他"];
 
-let LOG=ls.get(K_LOG,null), JAM=ls.get(K_JAM,{}), RV=ls.get(K_RV,{}),
+let LOG=ls.get(K_LOG,null), JAM=ls.get(K_JAM,{}), RV=ls.get(K_RV,{}), PAP=ls.get("plan-papers",[]),
     CFG=Object.assign({vod:"",hrs:DEF_HRS}, ls.get(K_CFG,{}));
 
 /* 舊版把每天的區塊數存成 plan-cyc-日期，搬進 plan-log 再清掉 */
@@ -577,6 +620,12 @@ function planFor(d){
   if(planCache[key]) return planCache[key];
   let out;
   if(PRE[key]) out={b:merge(PRE[key]),r:""};
+  else if(key===EXAM_DATE) out={b:[["08:00","17:00","c","考試"]],r:"考試日"};
+  else if(d>pd(EXAM_DATE)) out={b:[["09:00","22:00","l","考完了"]],r:""};
+  else if(d>=pd(SPRINT_START)){
+    const to=diff(d,exam);
+    out= to<=TAPER_DAYS ? {b:merge(TAPER),r:"考前降載"} : {b:merge(SPRINT),r:"衝刺期"};
+  }
   else{
     const ew=examWeek(d);
     if(ew){
@@ -667,14 +716,69 @@ function verdict(){
     if(!worst||ratio>worst.ratio) worst={k,left,per,ratio};
   }
   const b=budget();
+  if(today>vodEnd){                       // 衝刺期改看考卷，不看堂數
+    if(!PAP.length) return {t:"衝刺期。<b>還沒有任何考卷記錄</b>——今天寫第一份，寫完把錯的堂號記進來，之後「弱章重看」會自己告訴你看哪幾堂。",tight:true};
+    const per=Object.keys(SUBJ).map(k=>({k,a:avgScore(k)}));
+    const none=per.filter(x=>!x.a), has=per.filter(x=>x.a);
+    let t="寫了 "+PAP.length+" 份　"+has.map(x=>SUBJ[x.k].name+" "+x.a.a.toFixed(0)+" 分"+
+      (x.a.n>=4?"（近三份 "+x.a.last.toFixed(0)+"）":"")).join("　·　");
+    if(none.length) return {t:t+"<br><b>"+none.map(x=>SUBJ[x.k].name).join("、")+"還沒寫過任何一份。</b>今天就補。",tight:true};
+    const w=weak()[0];
+    if(w) t+="<br>最常錯："+SUBJ[w.k].name+" 第 "+w.n+" 堂 "+esc(w.title)+"（"+w.c+" 次）。";
+    return {t,tight:false};
+  }
   if(!worst) return {t:"三科都看完了。剩下的時間全部給考古題。",tight:false};
   const nm=SUBJ[worst.k].name;
   const head=nm+"最緊：剩 "+worst.left+" 堂，"+wks+" 週內每週要 "+worst.per.toFixed(1)+" 堂";
-  if(b.buf<0)
-    return {t:head+"。<b>整張表差 "+Math.round(-b.buf)+" 小時</b>，照目前速度排不下——砍重複的堂數，或把考試週挪一部分回來。",tight:true};
-  if(b.buf<40)
-    return {t:head+"（配額 "+QUOTA[worst.k]+"）。<b>緩衝只剩 "+Math.round(b.buf)+" 小時</b>，崩一天就要補回來。",tight:true};
-  return {t:head+"（配額 "+QUOTA[worst.k]+"）。緩衝 "+Math.round(b.buf)+" 小時，還在射程內。",tight:false};
+  let t, tight=false;
+  if(b.buf<0){ t=head+"。<b>整張表差 "+Math.round(-b.buf)+" 小時</b>，照目前速度排不下——砍重複的堂數，或把考試週挪一部分回來。"; tight=true; }
+  else if(b.buf<40){ t=head+"（配額 "+QUOTA[worst.k]+"）。<b>緩衝只剩 "+Math.round(b.buf)+" 小時</b>，崩一天就要補回來。"; tight=true; }
+  else t=head+"（配額 "+QUOTA[worst.k]+"）。緩衝 "+Math.round(b.buf)+" 小時，還在射程內。";
+  const f=forecast();
+  if(f){
+    t+='<br>最近兩週每週推 '+f.perWeek.toFixed(1)+' 堂。照這個速度，'+fmt(vodEnd)+
+       (f.gap>0.5?' 會<b>剩 '+Math.ceil(f.gap)+' 堂沒看完</b>。':' 剛好看得完。');
+    if(f.gap>0.5) tight=true;
+  }
+  return {t,tight};
+}
+
+/* 這週該推幾堂：剩餘堂數 ÷ 剩餘週數，上限放寬到課表配額 +2 */
+function dynQuota(){
+  const wks=Math.max(1,Math.ceil(diff(today,vodEnd)/7)), q={};
+  for(const k in SUBJ){
+    const left=SUBJ[k].total-SUBJ[k].done;
+    q[k]=left?clamp(Math.ceil(left/wks),1,QUOTA[k]+2):0;
+  }
+  return q;
+}
+/* 照最近兩週的實際速度，到期限會剩幾堂 */
+function forecast(){
+  const s=stats(), last14=s.band.slice(14).reduce((a,x)=>a+x.l,0);
+  if(last14<2) return null;
+  const perWeek=last14/2, wks=Math.max(0,diff(today,vodEnd)/7);
+  const left=Object.keys(SUBJ).reduce((a,k)=>a+SUBJ[k].total-SUBJ[k].done,0);
+  return {perWeek,left,wks,gap:left-perWeek*wks};
+}
+
+/* 錯題章節排行：哪幾堂重複在扣你分 */
+function weak(only){
+  const cnt={};
+  PAP.forEach(p=>{
+    if(only&&p.k!==only) return;
+    (p.w||[]).forEach(n=>{ const id=p.k+"-"+n; cnt[id]=(cnt[id]||0)+1; });
+  });
+  return Object.keys(cnt).map(id=>{
+    const i=id.lastIndexOf("-"), k=id.slice(0,i), n=+id.slice(i+1);
+    const it=SUBJ[k]&&SUBJ[k].list[n-1];
+    return {k,n,c:cnt[id],title:it?it[1]:""};
+  }).sort((a,b)=>b.c-a.c||a.n-b.n);
+}
+function avgScore(k){
+  const xs=PAP.filter(p=>p.k===k&&typeof p.sc==="number");
+  if(!xs.length) return null;
+  return {n:xs.length, a:xs.reduce((s,p)=>s+p.sc,0)/xs.length,
+          last:xs.slice(-3).reduce((s,p)=>s+p.sc,0)/Math.min(3,xs.length)};
 }
 
 /* 如果今天只能做一件事 */
@@ -696,14 +800,13 @@ let plan=planFor(today);
 
 function renderHead(){
   $("date").textContent=(today.getMonth()+1)+" 月 "+today.getDate()+" 日　星期"+wd[today.getDay()];
-  const wkn=Math.floor(diff(start,today)/7)+1, toExam=Math.max(0,diff(today,exam));
-  const phase = today<=vodEnd ? "看課期" : (diff(today,exam)>0?"衝刺期":"");
-  $("ctx").textContent=
-    (diff(today,start)>0 ? "開學前　"
+  const wkn=Math.floor(diff(start,today)/7)+1, toExam=diff(today,exam);
+  const tail = toExam===0 ? "就是今天" : toExam<0 ? "考完了" : "考試還有 "+toExam+" 天";
+  const term = diff(today,start)>0 ? "開學前　"
+     : today>vodEnd ? ""
      : (wkn>=1&&wkn<=16 ? "第 "+wkn+" / 16 週　"
-        : (wkn===17||wkn===18 ? "彈性學習週（第 "+wkn+" 週）　" : ""))) +
-    (plan.r?plan.r+"　":"") +
-    (phase?phase+"　":"") + "考試還有 "+toExam+" 天";
+        : (wkn===17||wkn===18 ? "彈性學習週（第 "+wkn+" 週）　" : ""));
+  $("ctx").textContent = term + (plan.r?plan.r+"　":"") + tail;
 }
 
 function renderNow(H){
@@ -728,6 +831,7 @@ function renderNow(H){
   }
   const k=cur[2], md=cur[4]||"", s=mn(cur[0]), e=mn(cur[1]);
   const nl=SUBJ[k]&&md==="v"?nextL(k):null, pv=SUBJ[k]&&md==="p"?lastL(k):null;
+  const wk=/弱章|錯題/.test(cur[3])?weak().slice(0,3):[];
   const nx=plan.b.find(b=>mn(b[0])>=e);
   const pct=Math.round((H-s)/(e-s)*100);
   const jk=nl?k+"-"+nl[0]:"", j=jk&&JAM[jk]&&!JAM[jk].solved?JAM[jk]:null;
@@ -735,6 +839,7 @@ function renderNow(H){
   el.innerHTML='<p class="lab">現在</p><p class="big">'+esc(cur[3])+'</p>'+
     (nl?'<p class="sub">開第 '+nl[0]+' 堂　'+esc(nl[1])+'</p>':'')+
     (pv?'<p class="sub">做第 '+pv[0]+' 堂的題　'+esc(pv[1])+'</p>':'')+
+    (wk.length?'<p class="sub">'+wk.map(x=>SUBJ[x.k].name+' 第 '+x.n+' 堂（錯 '+x.c+' 次）').join('　·　')+'</p>':'')+
     (j?'<p class="sub" style="color:var(--gs)">這堂你已經開過 '+j.c+' 次。'+
         (j.c>=JAM_LIMIT?'按「卡住 40 分」，時間到就跳過。':'設 40 分鐘。')+'</p>':'')+
     '<div class="pb"><i style="width:'+pct+'%"></i></div>'+
@@ -750,11 +855,13 @@ function renderDay(H){
     const nl=SUBJ[k]&&mode==="v"?nextL(k):null;
     const pv=SUBJ[k]&&mode==="p"?lastL(k):null;
     const long=isStudy(k)?breaks(a,b):"";
+    const wk=/弱章|錯題/.test(t)?weak().slice(0,3):[];
     return '<div class="row'+(gone?" done":"")+(here?" here":"")+'">'+
       '<span class="t">'+a+' – '+b+'</span><span class="k '+k+'"></span>'+
       '<span class="n">'+esc(t)+
       (nl?'<span class="s">開第 '+nl[0]+' 堂　'+esc(nl[1])+'</span>':'')+
       (pv?'<span class="s">做第 '+pv[0]+' 堂的題　'+esc(pv[1])+'</span>':'')+
+      (wk.length?'<span class="s">'+wk.map(x=>SUBJ[x.k].name+' 第 '+x.n+' 堂（錯 '+x.c+' 次）').join('　·　')+'</span>':'')+
       (long?'<span class="s">'+long+'</span>':'')+'</span></div>';
   }).join("") +
   '<div class="row"><span class="t">23:00 – 08:00</span><span class="k l"></span><span class="n">睡覺</span></div>';
@@ -803,8 +910,8 @@ function renderWeekGoal(){
   let base=ls.get(key,null);
   if(!base||typeof base!=="object"){
     base={}; Object.keys(SUBJ).forEach(k=>base[k]=SUBJ[k].done);
-    ls.set(key,base);
-  }
+    base.q=dynQuota(); ls.set(key,base);
+  }else if(!base.q){ base.q=dynQuota(); ls.set(key,base); }   // 舊格式補上本週配額
   try{
     for(let i=localStorage.length-1;i>=0;i--){
       const kk=localStorage.key(i);
@@ -812,15 +919,19 @@ function renderWeekGoal(){
     }
   }catch(e){}
   $("weekgoal").innerHTML =
-    '<p class="ctx" style="margin:-4px 0 10px">'+fmt(mon)+' – '+fmt(sun)+'</p>' +
+    '<p class="ctx" style="margin:-4px 0 10px">'+fmt(mon)+' – '+fmt(sun)+
+      '　本週配額由剩餘堂數與剩餘週數算出，週一定案</p>' +
     Object.keys(SUBJ).map(k=>{
-      const s=SUBJ[k], from=Math.min(base[k]|0,s.total), to=Math.min(s.total,from+QUOTA[k]);
+      const s=SUBJ[k], from=Math.min(base[k]|0,s.total);
+      const qn=(base.q&&typeof base.q[k]==="number")?base.q[k]:QUOTA[k];
+      const to=Math.min(s.total,from+qn);
       const seg=s.list.slice(from,to);
       const doneN=Math.max(0,Math.min(s.done,to)-from), goal=to-from;
       return '<div class="wg"><span class="dot2 '+k+'"></span><span class="nm2">'+s.name+'</span>'+
         '<span class="li">'+(goal?'第 '+seg.map(x=>x[0]).join('、')+' 堂':'已看完')+
         (goal?'<em>'+seg.map(x=>esc(x[1])).join('　·　')+'</em>':'')+'</span>'+
-        '<span class="st'+(goal&&doneN>=goal?' ok':'')+'">'+doneN+' / '+goal+'</span></div>';
+        '<span class="st'+(goal&&doneN>=goal?' ok':'')+'">'+doneN+' / '+goal+
+          (goal>QUOTA[k]?'<br>超出配額':'')+'</span></div>';
     }).join("");
 }
 
@@ -865,6 +976,11 @@ function renderBudget(){
         : '<b>來得及。</b>緩衝 '+Math.round(b.buf)+' 小時 ≈ '+Math.round(b.buf/b.perDay)+
           ' 天的份。按配額走就好，不用加時；但這個數字會隨你的實際速度變，每週回來看一次。')+
     '</div>'+
+    (function(){const f=forecast();return f?
+      '<p class="pace'+(f.gap>0.5?" behind":"")+'" style="margin-top:10px">最近兩週每週推 '+
+      f.perWeek.toFixed(1)+' 堂，還要 '+f.left+' 堂、剩 '+f.wks.toFixed(1)+' 週　→　'+
+      (f.gap>0.5?'會剩 '+Math.ceil(f.gap)+' 堂沒看完，每週得提到 '+(f.left/Math.max(1,f.wks)).toFixed(1)+' 堂'
+               :'來得及')+'</p>':'';})()+
     '<div class="tune"><span>預估一堂 <b id="hrsv">'+CFG.hrs.toFixed(1)+'</b> 小時</span>'+
       '<input type="range" id="hrsr" min="2" max="6" step="0.5" value="'+CFG.hrs+'" aria-label="每堂課預估時數">'+
       '</div>'+
@@ -901,6 +1017,59 @@ function wkAdvance(mon){
     return a+Math.max(0,SUBJ[k].done-from);
   },0);
 }
+function renderPapers(){
+  const w=weak().slice(0,8);
+  const avgs=Object.keys(SUBJ).map(k=>{const a=avgScore(k);
+    return a?'<span>'+SUBJ[k].name+' <b>'+a.a.toFixed(0)+'</b> 分　'+a.n+' 份'+
+      (a.n>=4?'（近三份 '+a.last.toFixed(0)+'）':'')+'</span>':'';}).filter(Boolean).join("");
+  $("ptag").textContent=PAP.length?PAP.length+" 份":"";
+  $("papers").innerHTML=
+    (avgs?'<div class="avg">'+avgs+'</div>':'')+
+    (w.length?'<p class="ctx" style="margin:0 0 6px">最常錯的章節——衝刺期的「弱章重看」就看這幾堂</p>'+
+      w.map(x=>'<div class="wk"><span class="d3 '+x.k+'"></span>'+
+        '<span class="t3">'+SUBJ[x.k].name+' 第 '+x.n+' 堂<em>'+esc(x.title)+'</em></span>'+
+        '<span class="c3">錯 '+x.c+' 次</span></div>').join("")
+     :'<p class="ctx" style="margin:0 0 12px">還沒有記錄。寫完一份就加進來，這裡會告訴你哪幾堂重複在扣你分。</p>')+
+    '<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--rule)">'+
+    '<div class="pf">'+
+      '<select id="pk" aria-label="科目">'+Object.keys(SUBJ).map(k=>'<option value="'+k+'">'+SUBJ[k].name+'</option>').join("")+'</select>'+
+      '<select id="ps" aria-label="學校">'+SCHOOLS.map(x=>'<option>'+x+'</option>').join("")+'</select>'+
+      '<input class="yr" id="py" placeholder="年份" inputmode="numeric" aria-label="年份">'+
+      '<input class="sc" id="pc" placeholder="分數" inputmode="decimal" aria-label="分數">'+
+    '</div>'+
+    '<div class="pf">'+
+      '<input class="wr" id="pw" placeholder="錯在哪幾堂，例如 13,15,22" aria-label="錯的堂號">'+
+      '<button id="padd" class="go">加進來</button>'+
+    '</div>'+
+    '<p class="msg" id="pmsg"></p></div>'+
+    (PAP.length?'<div style="margin-top:12px">'+PAP.slice(-8).reverse().map((p,i)=>{
+      const idx=PAP.length-1-i;
+      return '<div class="pr"><span class="sc2'+(p.sc>=60?" high":p.sc<50?" low":"")+'">'+
+        (typeof p.sc==="number"?p.sc:"—")+'</span>'+
+        '<span class="meta">'+SUBJ[p.k].name+'　'+esc(p.src||"")+' '+esc(p.yr||"")+
+        (p.w&&p.w.length?'　錯 '+p.w.join("、")+' 堂':'')+'<br>'+p.d.slice(5)+'</span>'+
+        '<button class="mini" data-del="'+idx+'">刪</button></div>';
+    }).join("")+'</div>':'');
+  const add=$("padd"); if(!add) return;
+  add.onclick=()=>{
+    const k=$("pk").value, src=$("ps").value, yr=$("py").value.trim();
+    const sc=$("pc").value.trim()===""?null:clamp(parseFloat($("pc").value),0,100);
+    const w=$("pw").value.split(/[^0-9]+/).filter(Boolean).map(Number)
+             .filter(n=>n>=1&&n<=SUBJ[k].total);
+    if(sc===null&&!w.length){ $("pmsg").textContent="至少填分數或錯的堂號。"; return; }
+    PAP.push({d:todayKey,k,src,yr,sc:sc===null?null:sc,w});
+    ls.set(K_PAP,PAP);
+    renderPapers(); renderBackup();
+    const H=nowMin(); renderNow(H); renderDay(H);
+    $("pmsg").textContent="記下了。";
+  };
+  $("papers").onclick=ev=>{
+    const b=ev.target.closest("button[data-del]"); if(!b) return;
+    PAP.splice(+b.dataset.del,1); ls.set(K_PAP,PAP);
+    renderPapers(); renderBackup();
+  };
+}
+
 function renderReview(){
   const mon=monOf(today), lastMon=new Date(mon); lastMon.setDate(mon.getDate()-7);
   const cur=RV[iso(mon)]||"", prev=RV[iso(lastMon)]||"";
@@ -969,8 +1138,8 @@ function renderTodo(){
 }
 
 function renderBackup(){
-  $("bk").value=JSON.stringify({v:2,prog:ls.get(K_PROG,{}),orig:ORIG,log:LOG,jam:JAM,review:RV,
-    todo:ls.get(K_TODO,{}),cfg:CFG});
+  $("bk").value=JSON.stringify({v:3,prog:ls.get(K_PROG,{}),orig:ORIG,log:LOG,jam:JAM,review:RV,
+    papers:PAP,todo:ls.get(K_TODO,{}),cfg:CFG});
   $("cfgvod").value=CFG.vod||"";
   $("cfghrs").value=CFG.hrs;
 }
@@ -1020,6 +1189,20 @@ const Timer=(function(){
     cyc.textContent = c?("今天完成 "+c+" 個 50 分區塊　約 "+(c*50/60).toFixed(1)+" 小時"):"";
   };
   const mmss=s=>String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
+  function notify(title,body){
+    try{
+      if(!("Notification" in window)||Notification.permission!=="granted") return;
+      new Notification(title,{body,tag:"plan-timer",silent:false});
+    }catch(e){}
+  }
+  function notiUI(){
+    const el=$("tnoti"); if(!el) return;
+    if(!("Notification" in window)){ el.textContent=""; return; }
+    if(Notification.permission==="granted"){ el.textContent="時間到會跳通知，切到別的分頁也收得到"; return; }
+    if(Notification.permission==="denied"){ el.textContent="瀏覽器擋掉了通知，只會有聲音"; return; }
+    el.innerHTML='<button class="mini" id="tnotibtn">開啟時間到的通知</button>';
+    $("tnotibtn").onclick=()=>{ try{ Notification.requestPermission().then(notiUI); }catch(e){} };
+  }
   function beep(n){
     try{
       const C=window.AudioContext||window.webkitAudioContext; if(!C) return;
@@ -1051,11 +1234,14 @@ const Timer=(function(){
         bump("c",1); if(onSubject()) bump("s",1);
         show(); renderStreak(); renderBackup();
         lab.textContent="時間到"; sub.textContent="起來走動 10 分鐘"; box.className="timer rest";
+        notify("50 分鐘到了","起來走動 10 分鐘。不要碰手機、不要躺床。");
       }else if(mode==="jam"){
         lab.textContent="40 分鐘到了"; sub.textContent="跳過這堂。在上面按「跳過這堂」，週日再回來。";
         box.className="timer jam";
+        notify("卡住 40 分鐘了","跳過這堂，標記起來，週日再回來。不要重播。");
       }else{
         lab.textContent="休息結束"; sub.textContent="回座位，接上次沒看完的那一段"; box.className="timer work";
+        notify("休息結束","回座位，接上次沒看完的那一段。");
       }
       mode=""; document.title="今天";
     }
@@ -1075,6 +1261,7 @@ const Timer=(function(){
   $("tbreak").onclick=()=>run(10,"rest");
   $("tjam").onclick=()=>run(40,"jam");
   $("tstop").onclick=idle;
+  notiUI();
   const saved=ls.get(K_TMR,null);
   if(saved&&saved.end>Date.now()) run(0,saved.mode,saved.end); else if(saved) ls.del(K_TMR);
   document.addEventListener("visibilitychange",()=>{ if(!document.hidden&&tick) paint(); });
@@ -1116,6 +1303,7 @@ $("bkload").onclick=()=>{
     if(o.log){ LOG=o.log; ls.set(K_LOG,LOG); }
     if(o.jam){ JAM=o.jam; ls.set(K_JAM,JAM); }
     if(o.review){ RV=o.review; ls.set(K_RV,RV); }
+    if(o.papers){ PAP=o.papers; ls.set(K_PAP,PAP); }
     if(o.cfg){ CFG=Object.assign({vod:"",hrs:DEF_HRS},o.cfg); ls.set(K_CFG,CFG); }
     const p=ls.get(K_PROG,{});
     for(const k in SUBJ) if(typeof p[k]==="number") SUBJ[k].done=clamp(p[k]|0,0,SUBJ[k].total);
@@ -1130,11 +1318,11 @@ function renderAll(){
   const H=nowMin();
   renderHead(); renderNow(H); renderDay(H); renderStreak(); renderTicks();
   renderWeekGoal(); renderBudget(); renderJamList(); renderProgress();
-  renderReview(); renderWeek(); renderDates(); renderTodo(); renderBackup();
+  renderPapers(); renderReview(); renderWeek(); renderDates(); renderTodo(); renderBackup();
   Timer.show(); Timer.refreshVod();
   $("foot").innerHTML='只有「今天」那一段要緊，其他都收起來了。<br>'+
-    '考試日期是暫定值，簡章公告後改檔案裡的 EXAM_DATE。進度、記錄、卡點都存在這台裝置的瀏覽器裡，'+
-    '換裝置前先到「設定與備份」複製一份。';
+    '考試日期是暫定值，簡章公告後改檔案裡的 EXAM_DATE，衝刺期與考前降載會自己跟著移動。<br>'+
+    '進度、記錄、卡點、考卷都存在這台裝置的瀏覽器裡，換裝置前先到「設定與備份」複製一份。';
 }
 renderAll();
 setInterval(()=>{
