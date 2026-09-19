@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<meta name="description" content="楓蝕夜行 — 純 Canvas 手繪、零外部素材的像素風橫向卷軸動作遊戲。">
-<meta name="theme-color" content="#1A1020">
+<meta name="description" content="楓蝕夜行 — 純 Canvas 手繪、零外部素材的二頭身像素風橫向卷軸動作遊戲。">
+<meta name="theme-color" content="#5FC0F5">
 <style>html,body{margin:0;height:100%}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>楓蝕夜行</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -300,7 +300,7 @@ body.touch #uibar{height:92px}
   <canvas id="game"></canvas>
 
   <div id="hud">
-    <div id="mapchip" class="bevel"><span class="w">WORLD</span><b>腐化楓林 · 核心</b></div>
+    <div id="mapchip" class="bevel"><span class="w">WORLD</span><b>楓葉平原 · 深處</b></div>
 
     <div id="runinfo">
       <div class="rbox bevel"><span class="rl">DEATH<br>COUNT</span><b id="deathN">00</b></div>
@@ -325,7 +325,7 @@ body.touch #uibar{height:92px}
     </div>
 
     <div id="bossbar" class="bevel">
-      <div class="bt"><span class="bn" id="bossname">菌王</span><span class="bl" id="bossphase">PHASE I</span></div>
+      <div class="bt"><span class="bn" id="bossname">菇菇王</span><span class="bl" id="bossphase">PHASE I</span></div>
       <div class="bhp-track">
         <i class="bhp-ghost" id="bossghost"></i>
         <i class="bhp-fill" id="bossfill"></i>
@@ -342,7 +342,7 @@ body.touch #uibar{height:92px}
     <div id="bosscard">
       <div class="bc-line"></div>
       <div class="bc-sub">BOSS APPEARED</div>
-      <div class="bc-name" id="bcName">菌王</div>
+      <div class="bc-name" id="bcName">菇菇王</div>
       <div class="bc-line"></div>
     </div>
 
@@ -400,7 +400,7 @@ body.touch #uibar{height:92px}
       <div class="sub">Maple Blight</div>
       <div class="logo">楓 蝕 夜 行</div>
       <div class="rule"></div>
-      <p class="hint" style="margin:0 0 26px">楓林入夜後被孢子侵蝕。往東走，斬斷菌王。</p>
+      <p class="hint" style="margin:0 0 26px">楓林入夜後被孢子侵蝕。往東走，斬斷菇菇王。</p>
       <div class="keys">
         <div class="krow"><kbd>← →</kbd><span>移動</span></div>
         <div class="krow"><kbd>SPACE</kbd><span>跳躍 / 二段跳</span></div>
@@ -442,7 +442,7 @@ body.touch #uibar{height:92px}
       <div class="logo">菌 王 伏 誅</div>
       <div class="stats" id="winstats"></div>
       <button class="btn" id="againbtn">深入下一層</button>
-      <p class="hint">下一層的菌王更強，你的等級與楓幣會保留</p>
+      <p class="hint">下一層的菇菇王更強，你的等級與楓幣會保留</p>
     </div>
   </div>
 </div>
@@ -558,9 +558,9 @@ function resize(){
   _grads.clear();          // 漸層是綁在尺寸上的，換解析度要重建
   buildSky();
   vignetteG=mainCtx.createRadialGradient(view.w*.5,view.h*.46,view.h*.24,view.w*.5,view.h*.5,view.h*.95);
-  vignetteG.addColorStop(0,'rgba(12,4,16,0)');
-  vignetteG.addColorStop(.55,'rgba(12,4,16,.16)');
-  vignetteG.addColorStop(1,'rgba(8,2,12,.72)');
+  vignetteG.addColorStop(0,'rgba(20,40,60,0)');
+  vignetteG.addColorStop(.7,'rgba(20,40,60,0)');
+  vignetteG.addColorStop(1,'rgba(14,30,50,.26)');
 }
 function buildSky(){
   const c=skyCtx, W=BW(), H=BH();
@@ -569,68 +569,35 @@ function buildSky(){
   c.imageSmoothingEnabled=false;
   c.clearRect(0,0,W,H);
 
-  // 黃昏：頂端紫、中段洋紅、地平線鎏金
+  // 清澈的天青藍 → 淺藍
   const g=c.createLinearGradient(0,0,0,H);
-  g.addColorStop(0,'#3A1B55');
-  g.addColorStop(.22,'#6E2A66');
-  g.addColorStop(.44,'#B2405C');
-  g.addColorStop(.64,'#E4703F');
-  g.addColorStop(.82,'#F9A64E');
-  g.addColorStop(1,'#FFD89A');
+  g.addColorStop(0,'#2E93E8');
+  g.addColorStop(.38,'#5FC0F5');
+  g.addColorStop(.72,'#A6E3FF');
+  g.addColorStop(1,'#E2F7FF');
   c.fillStyle=g;c.fillRect(0,0,W,H);
 
-  // 低空的落日
-  const sx=W*.52, sy=H*.74;
-  c.save();
-  c.globalCompositeOperation='lighter';
-  const sg=c.createRadialGradient(sx,sy,8,sx,sy,H*.72);
-  sg.addColorStop(0,'rgba(255,248,214,.85)');
-  sg.addColorStop(.1,'rgba(255,214,130,.4)');
-  sg.addColorStop(.35,'rgba(255,140,70,.16)');
-  sg.addColorStop(1,'rgba(255,110,60,0)');
-  c.fillStyle=sg;c.fillRect(0,0,W,H);
-  c.restore();
+  const rnd=seeded(4242);
 
-  // 夕照雲帶：深色剪影 + 被夕陽打亮的下緣
-  let n=7717;
-  const rnd=()=>{n=(n*1103515245+12345)&0x7fffffff;return n/0x7fffffff;};
-  for(let i=0;i<16;i++){
-    const cy=H*(.08+rnd()*.6);
-    const cx=rnd()*W;
-    const cw=W*(.14+rnd()*.3), ch=H*(.016+rnd()*.03);
-    const warm=1-Math.abs(cy/H-.74);
-    c.save();
-    c.globalAlpha=.42+rnd()*.32;
-    c.fillStyle='#2E1636';
-    c.beginPath();
-    c.ellipse(cx,cy,cw,ch,0,0,TAU);
-    c.ellipse(cx-cw*.5,cy+ch*.5,cw*.6,ch*.75,0,0,TAU);
-    c.ellipse(cx+cw*.55,cy+ch*.4,cw*.55,ch*.8,0,0,TAU);
-    c.fill();
-    c.globalCompositeOperation='lighter';
-    c.globalAlpha=.18*warm;
-    c.fillStyle='#FFB066';
-    c.beginPath();
-    c.ellipse(cx,cy+ch*.7,cw*.9,ch*.4,0,0,TAU);
-    c.fill();
-    c.restore();
-  }
+  // 太陽
+  const sx=Math.round(W*.80), sy=Math.round(H*.15);
+  pxDisc(c,sx,sy,H*.11,'rgba(255,248,190,.16)');
+  pxDisc(c,sx,sy,H*.075,'rgba(255,246,170,.3)');
+  pxDisc(c,sx,sy,H*.045,'#FFF8D0');
+  pxDisc(c,sx,sy,H*.033,'#FFFFFF');
 
-  // 斜射的夕陽光束
-  c.save();
-  c.globalCompositeOperation='lighter';
-  c.translate(sx,sy);
-  c.rotate(-2.0);
-  for(let i=0;i<6;i++){
-    const w=(30+((i*31)%60))/PIXEL, off=(-220+i*110)/PIXEL;
-    c.globalAlpha=.026+((i*7)%3)*.009;
-    c.fillStyle='#FFD8A0';
-    c.beginPath();
-    c.moveTo(off,0);c.lineTo(off+w,0);
-    c.lineTo(off+w*2.4+300/PIXEL,2200);c.lineTo(off+300/PIXEL,2200);
-    c.closePath();c.fill();
+  // 蓬鬆的像素雲
+  for(let i=0;i<14;i++){
+    const cx=rnd()*W, cy=H*(.06+rnd()*.52);
+    const u=Math.max(2,Math.round(H*(.012+rnd()*.016)));
+    const puffs=[[0,0,5,2],[-3,1,4,2],[3,1,4,2],[-1,-1,3,2],[2,-1,3,2]];
+    c.fillStyle='#FFFFFF';
+    for(const [ox,oy,pw,ph] of puffs)
+      c.fillRect(Math.round(cx+ox*u),Math.round(cy+oy*u),pw*u,ph*u);
+    c.fillStyle='#CFE9FA';
+    for(const [ox,oy,pw] of [[-3,2,4],[0,2,5],[3,2,4]])
+      c.fillRect(Math.round(cx+ox*u),Math.round(cy+oy*u),pw*u,u);
   }
-  c.restore();
 }
 function zoomNow(){return view.zoom*(typeof G!=='undefined'&&G?G.zoomK:1);}
 function viewW(){return view.w/zoomNow();}
@@ -896,16 +863,16 @@ const BOSS_GATE=3560;
 
 /* 怪物圖鑑 */
 const MOBS={
-  slime:  {name:'蝕影黏體',hp:220,  atk:26, exp:16,  meso:[8,22],   w:46,h:38, spd:32,
-           color:'#2E2258',color2:'#0E0A22',glow:'139,107,240',fly:false,bounce:true,range:250,wind:0.42},
-  mush:   {name:'腐化菇菇',hp:620,  atk:48, exp:42,  meso:[20,46],  w:52,h:52, spd:44,
-           color:'#5E1E3E',color2:'#20081A',glow:'255,90,120',fly:false,range:400,wind:0.58},
-  bat:    {name:'夜梟',    hp:900,  atk:65, exp:70,  meso:[32,70],  w:48,h:34, spd:78,
-           color:'#241C48',color2:'#0A0820',glow:'255,60,90',fly:true,range:330,wind:0.38},
-  golem:  {name:'石衛兵',  hp:2600, atk:95, exp:180, meso:[80,160], w:74,h:86, spd:30,
-           color:'#283154',color2:'#101638',glow:'79,240,220',fly:false,range:210,wind:0.68},
-  king:   {name:'菌王',    hp:42000,atk:140,exp:4200,meso:[1200,1800],w:196,h:210,spd:46,
-           color:'#6E1A38',color2:'#220714',glow:'255,70,110',fly:false,boss:true},
+  slime:  {name:'綠水靈',  hp:220,  atk:26, exp:16,  meso:[8,22],   w:46,h:38, spd:32,
+           color:'#5FD44A',color2:'#2F8A3A',glow:'150,240,120',fly:false,bounce:true,range:250,wind:0.42},
+  mush:   {name:'菇菇寶貝',hp:620,  atk:48, exp:42,  meso:[20,46],  w:52,h:52, spd:44,
+           color:'#FF7A3C',color2:'#C2451A',glow:'255,190,130',fly:false,range:400,wind:0.58},
+  bat:    {name:'紫蝙蝠',  hp:900,  atk:65, exp:70,  meso:[32,70],  w:48,h:34, spd:78,
+           color:'#9A6BE0',color2:'#5A2DA8',glow:'200,150,255',fly:true,range:330,wind:0.38},
+  golem:  {name:'石頭人',  hp:2600, atk:95, exp:180, meso:[80,160], w:74,h:86, spd:30,
+           color:'#9AA8B8',color2:'#5A6678',glow:'170,210,255',fly:false,range:210,wind:0.68},
+  king:   {name:'菇菇王',  hp:42000,atk:140,exp:4200,meso:[1200,1800],w:196,h:210,spd:46,
+           color:'#E8402A',color2:'#8E1A10',glow:'255,160,110',fly:false,boss:true},
 };
 /* 怪物生成點：x/y 為出生處，x1/x2 為巡邏範圍 */
 const SPAWNS=[
@@ -969,10 +936,10 @@ function newGame(keep){
     timeLeft:20*60, deaths:keep?keep.deaths:0, buffs:{},
     inv:{hp:keep?keep.invHp:3, mp:keep?keep.invMp:3},
     quests:[
-      {id:'slime',type:'slime',text:'肅清蝕影黏體',need:12,got:0},
-      {id:'mush', type:'mush', text:'清除腐化菇菇',need:6, got:0},
+      {id:'slime',type:'slime',text:'討伐綠水靈',need:12,got:0},
+      {id:'mush', type:'mush', text:'討伐菇菇寶貝',need:6, got:0},
       {id:'reach',type:null,   text:'抵達東側核心',need:1, got:0},
-      {id:'boss', type:'king', text:'擊倒菌王',    need:1, got:0},
+      {id:'boss', type:'king', text:'擊倒菇菇王',    need:1, got:0},
     ],
     spawnCd:SPAWNS.map(()=>0),
     boss:null,bossSpawned:false,bossPhase:1,bossShownHp:1,
@@ -994,8 +961,8 @@ function newLeaf(spread){
     vy:ember?-rand(16,42):rand(20,52),
     vx:rand(-18,18),r:rand(0,TAU),vr:rand(-1.8,1.8),
     s:ember?rand(1.6,3.4):rand(6,11),
-    c:ember?pick(['#E8B04B','#FF7A3C','#FF4E5B'])
-           :pick(['#7A1F24','#9E2A22','#5E1A2E','#B04A2A']),
+    c:ember?pick(['#FFF0A0','#FFD24D','#FFFFFF'])
+           :pick(['#FF9AC8','#FFD24D','#8AE86A','#7AC8FF']),
   };
 }
 
@@ -1793,7 +1760,7 @@ function spawnBoss(){
   G.shake=18;
   SFX.roar();
   BGM.tempo=0.115;
-  const nm=G.tier>1?`菌王 · 第 ${G.tier} 層`:'菌王';
+  const nm=G.tier>1?`菇菇王 · 第 ${G.tier} 層`:'菇菇王';
   document.getElementById('bossbar').classList.add('on');
   document.getElementById('bossname').textContent=nm;
   document.getElementById('bcName').textContent=nm;
@@ -1820,8 +1787,8 @@ function bossAI(b,dt){
   if(ph!==G.bossPhase){
     G.bossPhase=ph;
     document.getElementById('bossphase').textContent='PHASE '+['I','II','III'][ph-1];
-    sysmsg(`菌王進入第 ${ph} 階段`,'warn');
-    toast(`菌王 · 第 ${ph} 階段`,ph===2?'開始召喚孢子眷屬':'暴怒 — 全力衝撞');
+    sysmsg(`菇菇王進入第 ${ph} 階段`,'warn');
+    toast(`菇菇王 · 第 ${ph} 階段`,ph===2?'開始召喚孢子眷屬':'暴怒 — 全力衝撞');
     SFX.roar(); G.shake=16;
     addRing(b.x,b.y-b.h/2,{max:460,life:.6,t:.6,c:'#FF5A6E',lw:12});
     b.actCd=0.7;
@@ -2101,128 +2068,128 @@ function drawBG(){
   const c=ctx;
   c.drawImage(skyCv,0,0,BW(),BH());
 
-  // 飄浮的破碎殘骸
-  bgLayer(.2,.12,c=>{
-    const vw=viewW();
-    for(const il of BG.islands){
-      if(il.x-G.cam.x*.2<-260||il.x-G.cam.x*.2>vw+260)continue;
-      const y=il.y+Math.sin(G.t*.35+il.x*.01)*8;
-      const w=il.w;
-      c.save();
-      c.translate(il.x,y);
-      c.rotate(Math.sin(G.t*.22+il.x)*0.06);
-      c.fillStyle='#2A1740';
-      c.beginPath();
-      c.moveTo(-w*.5,0);c.lineTo(-w*.2,-w*.22);c.lineTo(w*.34,-w*.16);
-      c.lineTo(w*.5,w*.06);c.lineTo(w*.1,w*.26);c.lineTo(-w*.3,w*.16);
-      c.closePath();c.fill();
-      c.strokeStyle='rgba(255,170,110,.3)';c.lineWidth=1.5;c.stroke();
-      c.restore();
+  // 飄過的雲（近一點、會捲動）
+  (function clouds(){
+    const z=zoomNow(), span=WORLD.w*1.3, vw=viewW();
+    c.save();c.scale(z,z);
+    for(const cl of BG.clouds){
+      let x=(cl.x-G.cam.x*.14)%span;
+      if(x<0)x+=span;
+      if(x>vw+320)continue;
+      const y=cl.y-G.cam.y*.06, u=Math.max(3,Math.round(9*cl.s));
+      c.fillStyle='#FFFFFF';
+      for(const [ox,oy,pw,ph] of [[0,0,5,2],[-3,1,4,2],[3,1,4,2],[-1,-1,3,2]])
+        c.fillRect(Math.round(x+ox*u),Math.round(y+oy*u),pw*u,ph*u);
+      c.fillStyle='#CFE9FA';
+      for(const [ox,pw] of [[-3,4],[0,5],[3,4]])
+        c.fillRect(Math.round(x+ox*u),Math.round(y+2*u),pw*u,u);
     }
-  });
+    c.restore();
+  })();
 
-  // 遠方尖塔廢墟
-  bgLayer(.3,.2,c=>{
-    const base=WORLD.groundY-20, vw=viewW();
+  // 遠山（淡藍綠）
+  bgLayer(.24,.16,c=>{
+    const base=WORLD.groundY-30, vw=viewW();
     for(const h of BG.hills){
-      if(h.x-G.cam.x*.3<-h.w||h.x-G.cam.x*.3>vw+h.w)continue;
-      const w=h.w*.34, hh=h.h*1.25;
-      c.fillStyle='#22132E';
+      if(h.x-G.cam.x*.24<-h.w||h.x-G.cam.x*.24>vw+h.w)continue;
+      const w=h.w*.9, hh=h.h*.8;
+      c.fillStyle='#7FC8D8';
       c.beginPath();
-      c.moveTo(h.x-w*.5,base);
-      c.lineTo(h.x-w*.34,base-hh*.86);
-      c.lineTo(h.x-w*.1,base-hh);
-      c.lineTo(h.x+w*.2,base-hh*.72);
-      c.lineTo(h.x+w*.42,base-hh*.9);
-      c.lineTo(h.x+w*.5,base);
+      c.moveTo(h.x-w/2,base);
+      c.lineTo(h.x-w*.18,base-hh);
+      c.lineTo(h.x+w*.1,base-hh*.78);
+      c.lineTo(h.x+w*.3,base-hh*.95);
+      c.lineTo(h.x+w/2,base);
       c.closePath();c.fill();
-      // 夕陽在邊緣鑲一道金邊
-      c.strokeStyle='rgba(255,180,110,.32)';c.lineWidth=2;
+      c.fillStyle='#BFEAF2';
       c.beginPath();
-      c.moveTo(h.x+w*.2,base-hh*.72);
-      c.lineTo(h.x+w*.42,base-hh*.9);
-      c.lineTo(h.x+w*.5,base);
-      c.stroke();
-      // 窗口殘光
-      c.fillStyle='rgba(255,150,80,.2)';
-      for(let k=0;k<4;k++){
-        const wy=base-hh*(.2+k*.16);
-        c.fillRect(h.x-w*.2,wy,w*.14,hh*.05);
-      }
+      c.moveTo(h.x-w*.18,base-hh);
+      c.lineTo(h.x+w*.1,base-hh*.78);
+      c.lineTo(h.x+w*.02,base-hh*.72);
+      c.closePath();c.fill();
     }
   });
 
-  // 巨大的斷裂環樑 —— 這是戰場最有辨識度的剪影
-  bgLayer(.46,.34,c=>{
+  // 高空的雲帶（原本的環樑改成柔和雲弧）
+  bgLayer(.4,.28,c=>{
     const vw=viewW();
+    c.globalAlpha=.30;
     for(const b of BG.beams){
-      if(b.x-G.cam.x*.46<-b.r*1.4||b.x-G.cam.x*.46>vw+b.r*1.4)continue;
+      if(b.x-G.cam.x*.4<-b.r*1.4||b.x-G.cam.x*.4>vw+b.r*1.4)continue;
       c.save();
       c.translate(b.x,b.y);
       c.rotate(b.rot);
-      c.strokeStyle='#1A0F26';
-      c.lineWidth=b.w;
+      c.strokeStyle='#FFFFFF';
+      c.lineWidth=b.w*.7;
       c.beginPath();
       c.arc(0,0,b.r,b.a0,b.a1);
       c.stroke();
-      c.strokeStyle='rgba(255,170,100,.22)';
-      c.lineWidth=2.5;
-      c.beginPath();
-      c.arc(0,0,b.r-b.w*.5+1.5,b.a0,b.a1);
-      c.stroke();
-      // 斷面
-      c.fillStyle='#120A1C';
-      const ex=Math.cos(b.a1)*b.r, ey=Math.sin(b.a1)*b.r;
-      c.save();c.translate(ex,ey);c.rotate(b.a1);
-      c.fillRect(-b.w*.6,-b.w*.55,b.w*1.2,b.w*1.1);
-      c.restore();
       c.restore();
     }
+    c.globalAlpha=1;
   });
 
-  // 近景的機械殘骸
-  bgLayer(.62,.5,c=>{
-    const base=WORLD.groundY+20, vw=viewW();
-    for(const t of BG.trees){
-      if(t.x-G.cam.x*.62<-220||t.x-G.cam.x*.62>vw+220)continue;
-      const w=46*t.s, hh=t.h*1.1;
-      c.fillStyle='#150C20';
+  // 浮空草島
+  bgLayer(.34,.24,c=>{
+    const vw=viewW();
+    for(const il of BG.islands){
+      if(il.x-G.cam.x*.34<-260||il.x-G.cam.x*.34>vw+260)continue;
+      const y=Math.round(il.y+Math.sin(G.t*.4+il.x*.01)*6);
+      const w=il.w, h=w*.3;
+      c.fillStyle='#8A5A32';
       c.beginPath();
-      c.moveTo(t.x-w*.6,base);
-      c.lineTo(t.x-w*.44,base-hh*.9);
-      c.lineTo(t.x+w*.16,base-hh);
-      c.lineTo(t.x+w*.5,base-hh*.6);
-      c.lineTo(t.x+w*.62,base);
+      c.moveTo(il.x-w*.46,y);
+      c.lineTo(il.x+w*.46,y);
+      c.lineTo(il.x+w*.1,y+h*1.5);
       c.closePath();c.fill();
-      c.strokeStyle='rgba(255,160,90,.2)';c.lineWidth=2;
-      c.beginPath();
-      c.moveTo(t.x+w*.16,base-hh);c.lineTo(t.x+w*.5,base-hh*.6);c.stroke();
-      if(t.c<.45){   // 發光的能量核
-        c.save();
-        c.globalCompositeOperation='lighter';
-        c.globalAlpha=.4+Math.sin(G.t*2+t.x)*.18;
-        c.fillStyle='rgba(180,90,255,.7)';
-        ell(c,t.x,base-hh*.55,11*t.s,11*t.s);c.fill();
-        c.globalAlpha=.16;
-        ell(c,t.x,base-hh*.55,34*t.s,34*t.s);c.fill();
-        c.restore();
+      c.fillStyle='#6FD44A';
+      c.fillRect(il.x-w*.5,y-h*.34,w,h*.42);
+      c.fillStyle='#A8F06A';
+      c.fillRect(il.x-w*.5,y-h*.34,w,h*.14);
+      if(il.c<.5){
+        c.fillStyle='#7A4A22';
+        c.fillRect(il.x-2,y-h*.3-16,4,16);
+        c.fillStyle='#4FB33A';
+        c.fillRect(il.x-12,y-h*.3-30,24,16);
+        c.fillStyle='#6FD44A';
+        c.fillRect(il.x-12,y-h*.3-30,24,6);
       }
     }
   });
 
-  // 地面熱霧
+  // 近景樹林
+  bgLayer(.55,.44,c=>{
+    const base=WORLD.groundY+24, vw=viewW();
+    for(const t of BG.trees){
+      if(t.x-G.cam.x*.55<-200||t.x-G.cam.x*.55>vw+200)continue;
+      const w=Math.round(30*t.s), hh=t.h*.85;
+      c.fillStyle='#7A4A22';
+      c.fillRect(t.x-w*.18,base-hh*.55,w*.36,hh*.55);
+      const cy=base-hh;
+      c.fillStyle='#2F8A3A';
+      c.fillRect(t.x-w,cy,w*2,hh*.5);
+      c.fillRect(t.x-w*.7,cy-hh*.16,w*1.4,hh*.2);
+      c.fillStyle='#4FB33A';
+      c.fillRect(t.x-w,cy,w*2,hh*.16);
+      c.fillRect(t.x-w*.7,cy-hh*.16,w*1.4,hh*.1);
+      c.fillStyle='#78D45A';
+      c.fillRect(t.x-w*.7,cy-hh*.16,w*.8,hh*.06);
+    }
+  });
+
+  // 陽光地霧
   (function haze(){
     const z=zoomNow(), vw=viewW();
     c.save();c.scale(z,z);
     c.globalCompositeOperation='lighter';
-    for(let i=0;i<3;i++){
-      const f=.34+i*.2;
-      const y=WORLD.groundY-56-i*140-G.cam.y*f*.55;
+    for(let i=0;i<2;i++){
+      const f=.34+i*.22;
+      const y=WORLD.groundY-60-i*150-G.cam.y*f*.55;
       const off=((G.cam.x*f)%520+520)%520;
-      c.globalAlpha=.06-i*.014;
-      c.fillStyle=i?'#FF8A4E':'#FFB877';
+      c.globalAlpha=.07-i*.02;
+      c.fillStyle='#FFF6C0';
       for(let x=-520;x<vw+520;x+=520){
-        ell(c,x-off+260,y,340,30+i*10);c.fill();
+        c.fillRect(x-off,y-18,520,36);
       }
     }
     c.restore();
@@ -2240,7 +2207,7 @@ function drawForeground(){
     const k=Math.abs(i*7)%3;
     const sc=(1+k*0.26)/PIXEL;
     c.globalAlpha=.9;
-    c.fillStyle='#160A1C';
+    c.fillStyle=k===1?'#2F8A3A':'#236E2E';
     c.beginPath();
     c.moveTo(x-22*sc,y);
     c.quadraticCurveTo(x-10*sc,y-46*sc,x-1*sc,y-74*sc);
@@ -2256,341 +2223,292 @@ function drawPlatforms(){
   const vx0=G.cam.x-60, vx1=G.cam.x+viewW()+60;
   for(const p of PLATS){
     if(p.x+p.w<vx0||p.x>vx1)continue;
-    const h=p.solid?WORLD.h-p.y+80:24;
+    const h=p.solid?WORLD.h-p.y+80:28;
     const dx0=p.solid?Math.max(p.x,vx0):p.x;
     const dx1=p.solid?Math.min(p.x+p.w,vx1):p.x+p.w;
     const dw=dx1-dx0;
-    const g=linGrad(c,'rock'+p.y+h,0,p.y,0,p.y+h,
-      [[0,'#33203F'],[.16,'#22142A'],[.5,'#140C1A'],[1,'#08040B']]);
-    if(p.solid){
-      c.fillStyle=g;c.fillRect(dx0,p.y,dw,h);
-      // 岩層
-      c.fillStyle='rgba(255,170,110,.06)';
-      c.fillRect(dx0,p.y+86,dw,3);
-      c.fillRect(dx0,p.y+178,dw,4);
-      c.fillStyle='rgba(0,0,0,.35)';
-      c.fillRect(dx0,p.y+89,dw,9);
-      c.fillRect(dx0,p.y+182,dw,13);
-      // 礦脈：地底唯一的光，避免下半畫面變成死黑
-      c.save();
-      c.globalCompositeOperation='lighter';
-      const vs=Math.floor(dx0/210)*210;
-      for(let vx=vs;vx<dx1+210;vx+=210){
-        const k=Math.abs(Math.sin(vx*0.013))*1;
-        const vy=p.y+40+((vx*7)%150);
-        c.globalAlpha=(.1+k*.1)*(0.6+Math.sin(G.t*1.2+vx)*0.25);
-        c.strokeStyle=k<.5?'rgba(255,140,70,.85)':'rgba(190,80,220,.8)';
-        c.lineWidth=2;
-        c.beginPath();
-        c.moveTo(vx,vy);
-        c.lineTo(vx+26,vy+34);
-        c.lineTo(vx+8,vy+62);
-        c.stroke();
-      }
-      c.restore();
-    }else{
-      rr(c,p.x,p.y,p.w,h,2);c.fillStyle=g;c.fill();
-      c.strokeStyle='#05070F';c.lineWidth=2;c.stroke();
-    }
-    // 岩紋
-    c.fillStyle='rgba(255,180,120,.055)';
-    const i0=Math.max(0,Math.floor((dx0-p.x)/38)*38);
+
+    // 土壤（平塗分層，不用漸層才像像素）
+    c.fillStyle='#9A6438'; c.fillRect(dx0,p.y,dw,h);
+    c.fillStyle='#7C4E28'; c.fillRect(dx0,p.y+16,dw,Math.max(0,h-16));
+    c.fillStyle='#633D1E'; c.fillRect(dx0,p.y+48,dw,Math.max(0,h-48));
+    // 土塊斑點
+    c.fillStyle='rgba(255,220,170,.18)';
+    const i0=Math.max(0,Math.floor((dx0-p.x)/40)*40);
     const i1=Math.min(p.w,dx1-p.x);
-    for(let i=i0;i<i1;i+=38){
-      const yy=p.y+9+((i*7)%(p.solid?70:9));
-      c.fillRect(p.x+i+((i*13)%19),yy,9,2);
+    for(let i=i0;i<i1;i+=40){
+      const yy=p.y+20+((i*7)%(p.solid?96:6));
+      c.fillRect(p.x+i+((i*13)%21),yy,8,4);
     }
-    // 頂面石板
-    c.fillStyle='#46294F';
-    c.fillRect(dx0,p.y-7,dw,8);
-    c.fillStyle='rgba(0,0,0,.35)';
-    for(let i=i0;i<i1;i+=46)c.fillRect(p.x+i,p.y-7,1.4,8);
-    // 發光苔蘚：這條線是平台唯一的光源，也讓落點一眼可辨
-    const mg=linGrad(c,'moss'+p.y,0,p.y-8,0,p.y+12,
-      [[0,'rgba(255,168,92,.5)'],[.35,'rgba(255,130,70,.12)'],[1,'rgba(255,110,60,0)']]);
-    c.fillStyle=mg;c.fillRect(dx0,p.y-8,dw,20);
-    c.fillStyle='rgba(255,214,160,.92)';
-    c.fillRect(dx0,p.y-8,dw,1.6);
-    // 苔蘚垂落
-    c.fillStyle='rgba(255,160,90,.25)';
-    const j0=Math.max(0,Math.floor((dx0-p.x)/29)*29);
-    for(let j=j0;j<i1;j+=29){
-      const hh=3+((j*31)%9);
-      c.fillRect(p.x+j,p.y-7,2,hh);
+    c.fillStyle='rgba(60,32,12,.3)';
+    for(let i=i0;i<i1;i+=56){
+      const yy=p.y+34+((i*11)%(p.solid?120:4));
+      c.fillRect(p.x+i+((i*17)%29),yy,10,4);
     }
-    // 懸空平台的枯藤
+
+    // 草皮
+    c.fillStyle='#2F8A3A'; c.fillRect(dx0,p.y-4,dw,14);
+    c.fillStyle='#4FB33A'; c.fillRect(dx0,p.y-6,dw,7);
+    c.fillStyle='#78D45A'; c.fillRect(dx0,p.y-8,dw,4);
+    c.fillStyle='#A8F06A'; c.fillRect(dx0,p.y-8,dw,2);
+    // 草尖
+    c.fillStyle='#78D45A';
+    const j0=Math.max(0,Math.floor((dx0-p.x)/12)*12);
+    for(let j=j0;j<i1;j+=12){
+      const hh=4+((j*31)%3)*2;
+      c.fillRect(p.x+j,p.y-8-hh,4,hh);
+    }
+    // 深色描邊
+    c.fillStyle='#2A1C10';
+    c.fillRect(dx0,p.y+h-3,dw,3);
     if(!p.solid){
-      c.strokeStyle='#150A1C';c.lineWidth=2.5;c.lineCap='round';
+      c.fillRect(p.x,p.y-8,2,h+8);
+      c.fillRect(p.x+p.w-2,p.y-8,2,h+8);
+      // 垂下的藤蔓
+      c.fillStyle='#2F8A3A';
       for(let i=0;i<3;i++){
-        const vx=p.x+22+i*(p.w-44)/2;
-        const len=20+((i*37)%26);
-        c.beginPath();
-        c.moveTo(vx,p.y+20);
-        c.quadraticCurveTo(vx+6,p.y+20+len*.6,vx-4,p.y+20+len);
-        c.stroke();
+        const vx=Math.round(p.x+20+i*(p.w-40)/2);
+        const len=12+((i*37)%16);
+        c.fillRect(vx,p.y+h,3,len);
+        c.fillStyle='#4FB33A';
+        c.fillRect(vx-2,p.y+h+len,6,4);
+        c.fillStyle='#2F8A3A';
       }
-      c.lineCap='butt';
     }
   }
 }
-/* 地面裝飾：枯草、碎岩，以及會發光的菌菇 —— 夜晚場景需要散落的點光源 */
+/* 地面裝飾：草叢、花、蘑菇 —— 明亮童話感 */
 function drawDecor(){
   const c=ctx, y=WORLD.groundY;
   const vx0=G.cam.x-90, vx1=G.cam.x+viewW()+90;
   for(const b of BG.bushes){
     if(b.x<vx0||b.x>vx1)continue;
-    const s=b.s;
-    if(b.c<0.4){            // 枯草
-      c.strokeStyle='#150A1C';c.lineWidth=2*s;c.lineCap='round';
-      for(let i=-2;i<=2;i++){
-        c.beginPath();
-        c.moveTo(b.x+i*4*s,y);
-        c.quadraticCurveTo(b.x+i*6*s,y-11*s,b.x+i*9*s-2,y-19*s);
-        c.stroke();
-      }
-      c.lineCap='butt';
-    }else if(b.c<0.72){     // 碎岩
-      c.fillStyle='#241534';
-      c.beginPath();
-      c.moveTo(b.x-13*s,y);c.lineTo(b.x-8*s,y-13*s);c.lineTo(b.x+4*s,y-16*s);
-      c.lineTo(b.x+12*s,y-6*s);c.lineTo(b.x+14*s,y);
-      c.closePath();c.fill();
-      c.strokeStyle='rgba(255,170,110,.16)';c.lineWidth=1.2;c.stroke();
-    }else{                  // 發光菌菇
-      const glow=0.6+Math.sin(G.t*1.6+b.x*0.05)*0.25;
-      const col=b.c<0.87?'255,150,70':'200,80,230';
-      c.save();
-      c.globalCompositeOperation='lighter';
-      c.globalAlpha=glow*.5;
-      c.fillStyle=`rgba(${col},.5)`;
-      ell(c,b.x,y-14*s,26*s,20*s);c.fill();
-      c.restore();
-      c.fillStyle='#1C0F26';
-      c.fillRect(b.x-1.6*s,y-13*s,3.2*s,13*s);
-      c.fillStyle=`rgba(${col},.95)`;
-      c.beginPath();
-      c.moveTo(b.x-8*s,y-13*s);
-      c.quadraticCurveTo(b.x,y-24*s,b.x+8*s,y-13*s);
-      c.closePath();c.fill();
+    const s=Math.max(1,Math.round(b.s*4));
+    const x=Math.round(b.x);
+    if(b.c<0.4){            // 草叢
+      c.fillStyle='#2F8A3A';
+      c.fillRect(x-s*3,y-s*2,s*6,s*2);
+      c.fillRect(x-s*2,y-s*3,s*4,s);
+      c.fillStyle='#4FB33A';
+      c.fillRect(x-s*2,y-s*3,s*4,s);
+      c.fillStyle='#78D45A';
+      c.fillRect(x-s,y-s*4,s*2,s);
+    }else if(b.c<0.62){     // 石頭
+      c.fillStyle='#9AA8B8';
+      c.fillRect(x-s*2,y-s*2,s*4,s*2);
+      c.fillRect(x-s,y-s*3,s*2,s);
+      c.fillStyle='#C8D4E0';
+      c.fillRect(x-s,y-s*3,s*2,s);
+      c.fillStyle='#6A7888';
+      c.fillRect(x-s*2,y-s,s*4,s);
+    }else if(b.c<0.84){     // 小花
+      c.fillStyle='#2F8A3A';
+      c.fillRect(x-1,y-s*3,2,s*3);
+      const col=b.c<0.73?'#FF7AB0':'#FFE04A';
+      c.fillStyle=col;
+      c.fillRect(x-s,y-s*4,s*2,s*2);
+      c.fillRect(x-s*2,y-s*3,s,s);
+      c.fillRect(x+s,y-s*3,s,s);
+      c.fillStyle='#FFFFFF';
+      c.fillRect(x-s/2,y-s*3.5,s,s);
+    }else{                  // 蘑菇
+      c.fillStyle='#FFF0D2';
+      c.fillRect(x-s,y-s*2,s*2,s*2);
+      c.fillStyle='#E8402A';
+      c.fillRect(x-s*2,y-s*3,s*4,s);
+      c.fillRect(x-s*1.5,y-s*4,s*3,s);
+      c.fillStyle='#FFFFFF';
+      c.fillRect(x-s,y-s*3,s,s);
+      c.fillRect(x+s*0.5,y-s*4,s,s);
     }
   }
 }
+
 function drawRopes(){
   const c=ctx;
   const vx0=G.cam.x-40, vx1=G.cam.x+viewW()+40;
   for(const r of ROPES){
     if(r.x<vx0||r.x>vx1)continue;
-    c.strokeStyle='#150A1C';c.lineWidth=6;
-    c.beginPath();c.moveTo(r.x,r.t);c.lineTo(r.x,r.b);c.stroke();
-    c.strokeStyle='rgba(255,170,110,.3)';c.lineWidth=2;
-    for(let y=r.t+6;y<r.b;y+=14){
-      c.beginPath();c.moveTo(r.x-5,y);c.lineTo(r.x+5,y+7);c.stroke();
-    }
-    c.fillStyle='#3A2144';
-    c.fillRect(r.x-7,r.t-3,14,5);
+    c.fillStyle='#8A5A2A';
+    c.fillRect(r.x-3,r.t,6,r.b-r.t);
+    c.fillStyle='#C08A4A';
+    for(let y=r.t+2;y<r.b;y+=10)c.fillRect(r.x-3,y,6,4);
+    c.fillStyle='#5A3618';
+    c.fillRect(r.x-6,r.t-4,12,6);
   }
 }
 
 /* ============================================================
    角色繪製
    ============================================================ */
-const SKIN='#B6A392', SKIN_D='#6E6152';
-const CLOAK='#141B36', CLOAK_D='#090D1C', HOOD='#0D1428';
-const ARMOR='#1F2950', ARMOR_D='#141B38';
-const EDGE='#4FF0DC', RIM='rgba(160,200,255,.55)';
+/* ============================================================
+   主角：二頭身 Q 版像素小人
+   ------------------------------------------------------------
+   全部以「美術像素」為單位繪製，AU = 2 世界單位 = 1 個美術像素。
+   身高共 29 美術像素 = 58 世界單位，與原本的 PH 完全相同，
+   頭部 14 px、身體＋腿 15 px，接近 1:1 的二頭身比例。
+   → 碰撞箱 (PW=34, PH=58) 一格未動，物理與操作手感完全不受影響。
+   ============================================================ */
+const AU=2;
+const C_SKIN='#FFD9A8', C_SKIN_SH='#E0A277', C_BLUSH='#FF9BA8';
+const C_HAT='#2BB8C4',  C_HAT_LT='#7DEDEE',  C_HAT_DK='#166E82';
+const C_HAIR='#FFE07A', C_HAIR_DK='#D8A93C';
+const C_ARM='#4A8CE8',  C_ARM_LT='#96C9FF',  C_ARM_DK='#27509E';
+const C_PANT='#2E4E86', C_BOOT='#9A5E2A',    C_BOOT_LT='#C98A48';
+const C_CAPE='#EE5540', C_CAPE_DK='#A62A18';
+const C_LINE='#241B3A';
+const C_BLADE='#EAF6FF',C_BLADE_SH='#A6DCF2',C_HILT='#FFC83C', C_GRIP='#7A4A28';
+const C_EYE='#2A2238';
+
+/* 以美術像素填一個方塊 */
+function B(c,x,y,w,h,col){
+  c.fillStyle=col;
+  c.fillRect(x*AU,y*AU,w*AU,h*AU);
+}
 
 function drawPlayer(){
   const c=ctx, p=P;
   if(p.inv>0&&Math.floor(p.inv*22)%2===0&&p.hurtT<=0)return;
 
-  const fl=p.hurtT>0?p.hurtT/0.4*0.8:0;
+  const fl=p.hurtT>0?p.hurtT/0.4*0.85:0;
+  const F=col=>flashify(col,fl);
   const moving=Math.abs(p.vx)>20&&p.onGround;
   const air=!p.onGround&&!p.climb;
   const t=G.t;
-  const bob=p.climb?0:moving?Math.abs(Math.sin(p.walkPhase*2))*2.2:Math.sin(t*2.2)*1.4;
 
-  // 角色自帶的冷光暈，夜裡才看得見輪廓
-  c.save();
-  c.globalCompositeOperation='lighter';
-  c.globalAlpha=.26+Math.sin(t*2)*.04;
-  c.fillStyle='rgba(79,240,220,.55)';
-  ell(c,p.x,p.y-30,58,64);c.fill();
-  c.restore();
+  /* 呼吸／走路浮動：刻意量化成整數美術像素，才像真正的像素動畫 */
+  let bob=0;
+  if(!air&&!p.climb){
+    bob = moving
+      ? -Math.round(Math.abs(Math.sin(p.walkPhase*2))*1.5)
+      : -Math.round((Math.sin(t*2.4)*0.5+0.5)*1.3);
+  }
+  const step = moving ? Math.round(Math.sin(p.walkPhase*2)*1.7) : 0;
 
+  /* 影子（貼在真正的落點上） */
   c.save();
   c.translate(p.x,p.y);
   if(!p.climb){
     const fy=findFloorY(p.x,p.y-2)-p.y;
-    const fade=clamp(1-Math.abs(fy)/320,0.12,1);
-    c.save();
-    c.globalAlpha=.42*fade;
-    ell(c,0,fy,19*fade+6,5*fade+2);fill(c,'#03040A');
-    c.restore();
+    const fade=clamp(1-Math.abs(fy)/320,0.15,1);
+    c.globalAlpha=.3*fade;
+    c.fillStyle='#2A1A38';
+    const sw=Math.round(9*fade);
+    c.fillRect(-sw*AU,fy-AU,sw*2*AU,2*AU);
+    c.globalAlpha=1;
   }
   c.scale(p.face,1);
+  c.translate(0,bob*AU);
 
-  const legSwing=moving?Math.sin(p.walkPhase*2):0;
-  const climbSw=p.climb?Math.sin(p.walkPhase*3):0;
+  /* ---- 披風（在身體後面） ---- */
+  const sway=Math.round((air?2:0)+Math.sin(t*3)*0.9-p.vx*0.004);
+  B(c,-9-sway,-17,2,12,F(C_CAPE_DK));
+  B(c,-7-sway,-18,3,13,F(C_CAPE));
+  B(c,-7-sway,-18,3,3,F('#FF8A70'));
 
-  /* 斗篷 */
-  (function cloak(){
-    const sway=Math.sin(t*2.8)*4+(-p.vx*0.032)+(air?12:0);
-    c.beginPath();
-    c.moveTo(-2,-46);
-    c.quadraticCurveTo(-15-sway,-30,-14-sway*1.6,-2);
-    c.quadraticCurveTo(-7-sway*.6,-8,3,-12);
-    c.lineTo(5,-44);
-    c.closePath();
-    c.fillStyle=flashify(CLOAK_D,fl);c.fill();
-    c.strokeStyle=`rgba(79,240,220,.35)`;c.lineWidth=1.3;c.stroke();
-  })();
-
-  /* 後腿 */
-  c.fillStyle=flashify(ARMOR_D,fl);
-  rr(c,-8+legSwing*4,-21,7,21,2);c.fill();
-
-  /* 前腿 */
-  c.fillStyle=flashify(ARMOR,fl);
+  /* ---- 腿 ---- */
   if(air){
-    rr(c,-7,-21,7,15,2);c.fill();
-    rr(c,1,-24,7,15,2);c.fill();
+    B(c,-4,-7,3,5,F(C_PANT));
+    B(c, 1,-8,3,5,F(C_PANT));
+    B(c,-5,-3,4,2,F(C_BOOT));
+    B(c, 1,-4,4,2,F(C_BOOT));
   }else{
-    rr(c,0-legSwing*4,-21,7,21,2);c.fill();
+    B(c,-4+step,-7,3,6,F(C_PANT));
+    B(c, 1-step,-7,3,6,F(C_PANT));
+    B(c,-5+step,-2,4,2,F(C_BOOT));
+    B(c, 1-step,-2,4,2,F(C_BOOT));
+    B(c,-5+step,-2,4,1,F(C_BOOT_LT));
+    B(c, 1-step,-2,4,1,F(C_BOOT_LT));
   }
-  c.fillStyle=flashify('#0A0E1E',fl);
-  rr(c,-9+legSwing*4,-4,10,4,1);c.fill();
-  rr(c,-1-legSwing*4,-4,10,4,1);c.fill();
 
-  /* 軀幹 */
-  const ty=-45+bob*.3;
-  c.fillStyle=flashify(CLOAK,fl);
-  c.beginPath();
-  c.moveTo(-9,ty);c.lineTo(9,ty);c.lineTo(8,ty+27);c.lineTo(-8,ty+27);
-  c.closePath();c.fill();
-  // 胸甲
-  c.fillStyle=flashify(ARMOR,fl);
-  c.beginPath();
-  c.moveTo(-8,ty+2);c.lineTo(8,ty+2);c.lineTo(6,ty+15);c.lineTo(-6,ty+15);
-  c.closePath();c.fill();
-  // 月光邊光：暗色畫面裡靠這條線把輪廓拉出來
-  c.strokeStyle=RIM;c.lineWidth=1.2;
-  c.beginPath();
-  c.moveTo(-9,ty+1);c.lineTo(9,ty+1);
-  c.moveTo(9,ty+1);c.lineTo(8,ty+18);
-  c.stroke();
-  // 冷光核心
-  c.save();
-  c.globalCompositeOperation='lighter';
-  c.fillStyle=EDGE;
-  c.globalAlpha=.75+Math.sin(t*3)*.2;
-  c.beginPath();
-  c.moveTo(0,ty+5);c.lineTo(3,ty+9);c.lineTo(0,ty+13);c.lineTo(-3,ty+9);
-  c.closePath();c.fill();
-  c.restore();
-  // 腰帶
-  c.fillStyle=flashify('#0A0E1E',fl);
-  c.fillRect(-8,ty+19,16,4);
-  // 肩甲
-  c.fillStyle=flashify(ARMOR_D,fl);
-  c.beginPath();
-  c.moveTo(-10,ty+1);c.lineTo(-2,ty-1);c.lineTo(-3,ty+9);c.lineTo(-11,ty+7);
-  c.closePath();c.fill();
+  /* ---- 後手 ---- */
+  B(c,-7,-15,2,6,F(C_ARM_DK));
+  B(c,-7,-10,2,2,F(C_SKIN_SH));
 
-  /* 持刀手臂 */
+  /* ---- 身體（短小） ---- */
+  B(c,-6,-17,12,11,F(C_LINE));      // 外框
+  B(c,-5,-16,10,9,F(C_ARM));
+  B(c,-5,-16,10,2,F(C_ARM_LT));     // 肩線亮部
+  B(c,-5,-9,10,2,F(C_ARM_DK));      // 腰帶
+  B(c,-1,-15,2,5,F('#FFE9A8'));     // 胸前徽記
+  B(c,-1,-15,2,2,F('#FFFFFF'));
+
+  /* ---- 大頭 ---- */
+  const hy=-31;                     // 頭頂
+  // 臉：用三段堆疊做出圓潤的方頭
+  B(c,-6,hy+1,12,2,F(C_LINE));
+  B(c,-8,hy+3,16,11,F(C_LINE));
+  B(c,-6,hy+14,12,2,F(C_LINE));
+  B(c,-5,hy+2,10,2,F(C_SKIN));
+  B(c,-7,hy+4,14,10,F(C_SKIN));
+  B(c,-5,hy+14,10,1,F(C_SKIN));
+  B(c,-7,hy+12,14,2,F(C_SKIN_SH));  // 下巴陰影
+
+  // 帽子
+  B(c,-7,hy,14,2,F(C_HAT_DK));
+  B(c,-6,hy+1,12,4,F(C_HAT));
+  B(c,-6,hy+1,12,1,F(C_HAT_LT));
+  B(c,-10,hy+5,20,2,F(C_HAT_DK));   // 帽簷
+  B(c,-10,hy+5,20,1,F(C_HAT));
+  B(c,3,hy-2,3,3,F('#FFE07A'));     // 帽上羽飾
+  B(c,4,hy-3,2,2,F('#FFF3C0'));
+
+  // 瀏海
+  B(c,-8,hy+7,2,4,F(C_HAIR));
+  B(c, 6,hy+7,2,4,F(C_HAIR));
+  B(c,-8,hy+10,2,1,F(C_HAIR_DK));
+  B(c, 6,hy+10,2,1,F(C_HAIR_DK));
+
+  // 眼睛（像素點眼）
+  const blinking=p.blink<0;
+  if(blinking){
+    B(c,-5,hy+10,4,1,F(C_EYE));
+    B(c, 1,hy+10,4,1,F(C_EYE));
+  }else{
+    B(c,-5,hy+8,4,4,F(C_EYE));
+    B(c, 1,hy+8,4,4,F(C_EYE));
+    B(c,-5,hy+8,2,2,F('#FFFFFF'));
+    B(c, 1,hy+8,2,2,F('#FFFFFF'));
+    if(p.hurtT>0){                   // 受傷瞇眼
+      B(c,-5,hy+8,4,2,F(C_SKIN));
+      B(c, 1,hy+8,4,2,F(C_SKIN));
+    }
+  }
+  // 腮紅與嘴
+  B(c,-7,hy+12,2,1,F(C_BLUSH));
+  B(c, 5,hy+12,2,1,F(C_BLUSH));
+  if(p.atkT>0)      B(c,-1,hy+12,3,2,F('#B8564E'));   // 出招張嘴
+  else if(p.hurtT>0)B(c,-1,hy+12,3,1,F('#B8564E'));
+  else              B(c, 0,hy+12,2,1,F('#C4665A'));
+
+  /* ---- 前手 + 誇張的大劍 ---- */
   let armA;
   if(p.atkT>0&&(p.atkKind==='slash'||p.atkKind==='cast')){
     const a=1-p.atkT/p.atkDur;
     const e=a<.32?(a/.32)*(a/.32):1-Math.pow(1-(a-.32)/.68,2);
-    armA=p.atkKind==='slash'?lerp(-2.6,0.85,e):lerp(-0.5,-1.6,e);
+    armA=p.atkKind==='slash'?lerp(-2.5,0.9,e):lerp(-0.4,-1.5,e);
   }else if(p.whirlT>0)armA=(0.70-p.whirlT)*26;
-  else if(p.climb)armA=-1.5+climbSw*.4;
-  else if(air)armA=-1.15;
-  else armA=-0.34+Math.sin(t*2.2)*.07+legSwing*.16;
-
-  {
-    const lx=6+Math.cos(armA)*72, ly=(ty+9)+Math.sin(armA)*72;
-    if(p.atkT>0&&p.atkKind==='slash'){
-      p.trail.push({x:p.x+lx*p.face,y:p.y+ly});
-      if(p.trail.length>11)p.trail.shift();
-    }else if(p.trail.length)p.trail.shift();
-  }
+  else if(p.climb)armA=-1.5;
+  else if(air)armA=-1.0;
+  else armA=-0.30+Math.sin(t*2.4)*.06+step*.05;
 
   c.save();
-  c.translate(6,ty+9);
+  c.translate(4*AU,-13*AU);
   c.rotate(armA);
-  c.fillStyle=flashify(ARMOR,fl);
-  rr(c,-4,-3,15,6,2);c.fill();
-  c.save();
-  c.translate(12,0);
-  // 刀柄
-  c.fillStyle='#0A0E1E';
-  rr(c,-6,-2.4,14,5,1);c.fill();
-  c.fillStyle=flashify('#2A3560',fl);
-  c.fillRect(7,-5,3,10);
-  // 刀身
-  c.beginPath();
-  c.moveTo(10,-3.4);c.lineTo(52,-2.6);c.lineTo(62,0);c.lineTo(52,2.6);c.lineTo(10,3.4);
-  c.closePath();
-  c.fillStyle=flashify('#28325A',fl);c.fill();
-  c.strokeStyle='rgba(170,205,255,.45)';c.lineWidth=.9;c.stroke();
-  // 刃口冷光
-  c.save();
-  c.globalCompositeOperation='lighter';
-  c.globalAlpha=.7+Math.sin(t*5)*.15;
-  c.beginPath();
-  c.moveTo(11,-1.1);c.lineTo(53,-.7);c.lineTo(60,0);c.lineTo(53,.7);c.lineTo(11,1.1);
-  c.closePath();
-  c.fillStyle=EDGE;c.fill();
-  c.restore();
-  c.restore();
+  B(c,-1,-2,4,4,F(C_ARM));          // 肩
+  B(c, 2,-1,3,3,F(C_SKIN));         // 手
+  B(c, 4,-1,4,2,F(C_GRIP));         // 握把
+  B(c, 8,-4,2,8,F(C_HILT));         // 護手
+  B(c,10,-3,18,6,F(C_LINE));        // 劍身外框
+  B(c,11,-2,17,4,F(C_BLADE_SH));    // 劍身
+  B(c,11,-2,17,2,F(C_BLADE));       // 劍脊反光
+  B(c,28,-2,3,4,F(C_LINE));
+  B(c,28,-1,3,2,F(C_BLADE));        // 劍尖
   c.restore();
 
-  /* 頭 + 兜帽 */
-  const hy=ty-13+bob*.5;
-  c.save();
-  c.translate(0,hy);
-  c.rotate(clamp(p.vx*0.00016,-.09,.09));
-  // 臉（幾乎全在陰影裡）
-  c.fillStyle=flashify(SKIN_D,fl);
-  rr(c,-7,-9,14,15,4);c.fill();
-  // 兜帽
-  c.fillStyle=flashify(HOOD,fl);
-  c.beginPath();
-  c.moveTo(-10,4);
-  c.quadraticCurveTo(-12,-13,0,-15);
-  c.quadraticCurveTo(12,-13,10,4);
-  c.lineTo(7,2);
-  c.quadraticCurveTo(0,-4,-7,2);
-  c.closePath();c.fill();
-  // 兜帽後緣
-  c.beginPath();
-  c.moveTo(-10,3);c.quadraticCurveTo(-17,6,-13,13);
-  c.quadraticCurveTo(-8,8,-6,3);
-  c.closePath();c.fill();
-  // 兜帽邊緣的月光冷邊
-  c.strokeStyle=RIM;c.lineWidth=1.1;
-  c.beginPath();
-  c.moveTo(-9,0);c.quadraticCurveTo(-11,-12,0,-14);
-  c.quadraticCurveTo(10,-12,9,0);
-  c.stroke();
-  // 發光眼縫
-  const blinking=p.blink<0;
-  if(!blinking){
-    c.save();
-    c.globalCompositeOperation='lighter';
-    c.globalAlpha=.95;
-    c.fillStyle=p.hurtT>0?'#FF5A6E':EDGE;
-    rr(c,-6,-1.5,5,2.2,1);c.fill();
-    rr(c,1.5,-1.5,5,2.2,1);c.fill();
-    c.globalAlpha=.3;
-    ell(c,-3.5,-.4,7,5);c.fill();
-    ell(c,4,-.4,7,5);c.fill();
-    c.restore();
-  }
-  c.restore();
   c.restore();
 
-  // 旋風斬
+  /* ---- 旋風斬 ---- */
   if(p.whirlT>0){
     c.save();
     c.translate(p.x,p.y-PH/2);
@@ -2598,16 +2516,15 @@ function drawPlayer(){
     const a=(0.70-p.whirlT)*22;
     for(let i=0;i<3;i++){
       c.save();c.rotate(a+i*TAU/3);
-      c.globalAlpha=.6;
-      c.beginPath();
-      c.arc(0,0,114,-0.5,0.5);
-      c.strokeStyle=i%2?'#DFFBFF':EDGE;
-      c.lineWidth=12;c.lineCap='round';c.stroke();
+      c.globalAlpha=.7;
+      c.fillStyle=i%2?'#FFFFFF':'#7DEDEE';
+      for(let r=44;r<118;r+=AU*2)c.fillRect(r,-3*AU,AU*2,6*AU);
       c.restore();
     }
     c.restore();
   }
 }
+
 
 /* ---------- 怪物 ---------- */
 function drawMob(m){
@@ -2658,292 +2575,184 @@ function drawMob(m){
   }
 }
 
-/* 蝕影黏體：外層近黑，體內有一顆跳動的紫核 */
+/* ============================================================
+   怪物：圓潤的 Q 版像素怪
+   全部用方塊堆疊（不用漸層），邊緣自然就是硬的
+   ============================================================ */
+const MU=2;
+function mb(c,x,y,w,h,col){
+  c.fillStyle=col;
+  c.fillRect(Math.round(x/MU)*MU,Math.round(y/MU)*MU,
+             Math.max(MU,Math.round(w/MU)*MU),Math.max(MU,Math.round(h/MU)*MU));
+}
+/* 眼睛：黑點 + 左上白高光，最能決定「可不可愛」 */
+function cuteEyes(c,W,H,ey,ew,eh,F){
+  mb(c,-W*0.27,ey,ew,eh,'#242C1E');
+  mb(c, W*0.27-ew,ey,ew,eh,'#242C1E');
+  mb(c,-W*0.27,ey,ew*0.45,eh*0.4,'#FFFFFF');
+  mb(c, W*0.27-ew,ey,ew*0.45,eh*0.4,'#FFFFFF');
+}
+
+/* 綠水靈：會擠壓變形的果凍方塊 */
 function drawSlime(c,m,f){
-  const sq=clamp(m.vy/700,-.3,.3);
-  const w=m.w*(1-sq*.5), h=m.h*(1+sq*.7);
-  c.save();
-  c.globalCompositeOperation='lighter';
-  c.globalAlpha=.26+Math.sin(G.t*3+m.t)*.09;
-  c.fillStyle=`rgba(${m.d.glow},.5)`;
-  ell(c,0,-h*.55,w*.85,h*.8);c.fill();
-  c.restore();
-
-  c.beginPath();
-  c.moveTo(-w/2,0);
-  c.quadraticCurveTo(-w/2,-h*1.25,0,-h*1.1);
-  c.quadraticCurveTo(w/2,-h*1.25,w/2,0);
-  c.closePath();
-  c.fillStyle=f>0.01?flashify('#3A2C6E',f)
-    :linGrad(c,'slimeBody',0,-h,0,0,[[0,'#3A2C6E'],[.55,'#1E1642'],[1,'#0A0720']]);
-  c.fill();
-  c.strokeStyle=`rgba(${m.d.glow},.35)`;c.lineWidth=1.4;c.stroke();
-
-  c.save();
-  c.globalCompositeOperation='lighter';
-  const pulse=.7+Math.sin(G.t*4+m.t*2)*.3;
-  c.globalAlpha=pulse;
-  c.fillStyle=`rgba(${m.d.glow},.9)`;
-  ell(c,0,-h*.5,w*.15,h*.19);c.fill();
-  c.globalAlpha=pulse*.28;
-  ell(c,0,-h*.5,w*.4,h*.45);c.fill();
-  c.globalAlpha=1;
-  c.fillStyle=`rgba(${m.d.glow},1)`;
-  rr(c,-9,-h*.66,6,1.8,.9);c.fill();
-  rr(c,3,-h*.66,6,1.8,.9);c.fill();
-  c.restore();
+  const F=col=>flashify(col,f);
+  const sq=clamp(m.vy/700,-.26,.26);
+  const W=m.w*(1-sq*.45), H=m.h*(1+sq*.65);
+  // 外框（三段堆疊做出圓角）
+  mb(c,-W*0.34-2,-H-2,W*0.68+4,H*0.24+2,F('#1E5A26'));
+  mb(c,-W*0.5-2,-H*0.78-2,W+4,H*0.68+4,F('#1E5A26'));
+  mb(c,-W*0.44-2,-H*0.14,W*0.88+4,H*0.14+2,F('#1E5A26'));
+  // 本體
+  mb(c,-W*0.34,-H,W*0.68,H*0.24,F('#8AE86A'));
+  mb(c,-W*0.5,-H*0.78,W,H*0.66,F('#5FD44A'));
+  mb(c,-W*0.44,-H*0.14,W*0.88,H*0.14,F('#3FA832'));
+  mb(c,-W*0.5,-H*0.78,W,H*0.16,F('#8AE86A'));
+  // 高光
+  mb(c,-W*0.3,-H*0.72,W*0.14,H*0.14,F('#DFFFC8'));
+  // 臉
+  cuteEyes(c,W,H,-H*0.56,W*0.15,H*0.22,F);
+  mb(c,-W*0.09,-H*0.3,W*0.18,H*0.06,'#242C1E');
+  mb(c,-W*0.14,-H*0.36,W*0.05,H*0.06,'#242C1E');
+  mb(c, W*0.09,-H*0.36,W*0.05,H*0.06,'#242C1E');
 }
 
-/* 腐化菇菇：菌傘裂開，裂縫透出孢子光 */
+/* 菇菇寶貝：橘傘白點 + 奶油色身體 */
 function drawMush(c,m,f){
-  const bob=Math.sin(m.anim*6)*2*(Math.abs(m.vx)>6?1:0.25);
-  const H=m.h;
-  c.fillStyle=flashify('#151A32',f);
-  rr(c,-13,-10+bob*.4,11,10,2);c.fill();
-  rr(c,3,-10-bob*.4,11,10,2);c.fill();
-  c.fillStyle=flashify('#232A4A',f);
-  c.beginPath();
-  c.moveTo(-14,-H*.6+bob);c.lineTo(14,-H*.6+bob);
-  c.lineTo(11,-H*.06+bob);c.lineTo(-11,-H*.06+bob);
-  c.closePath();c.fill();
-  c.fillStyle=flashify('#161C36',f);
-  c.fillRect(-14,-H*.34+bob,28,3);
-  c.save();
-  c.globalCompositeOperation='lighter';
-  c.fillStyle=`rgba(${m.d.glow},.95)`;
-  ell(c,-6,-H*.44+bob,2.6,3.4);c.fill();
-  ell(c,6,-H*.44+bob,2.6,3.4);c.fill();
-  c.globalAlpha=.28;
-  ell(c,-6,-H*.44+bob,8,9);c.fill();
-  ell(c,6,-H*.44+bob,8,9);c.fill();
-  c.restore();
-  const cy=-H*.58+bob;
-  c.beginPath();
-  c.moveTo(-m.w*.64,cy);
-  c.quadraticCurveTo(-m.w*.6,cy-H*.6,0,cy-H*.58);
-  c.quadraticCurveTo(m.w*.6,cy-H*.6,m.w*.64,cy);
-  c.closePath();
-  c.fillStyle=f>0.01?flashify('#7A2450',f)
-    :linGrad(c,'mushCap',0,cy-H*.6,0,cy,[[0,'#7A2450'],[.5,'#4A1434'],[1,'#1C0616']]);
-  c.fill();
-  c.strokeStyle='#14040E';c.lineWidth=2;c.stroke();
-  c.save();
-  c.globalCompositeOperation='lighter';
-  c.strokeStyle=`rgba(${m.d.glow},.85)`;c.lineWidth=1.8;
-  c.globalAlpha=.55+Math.sin(G.t*2.4+m.t)*.22;
-  c.beginPath();
-  c.moveTo(-m.w*.34,cy-H*.06);c.lineTo(-m.w*.18,cy-H*.3);c.lineTo(-m.w*.26,cy-H*.42);
-  c.moveTo(m.w*.12,cy-H*.44);c.lineTo(m.w*.24,cy-H*.24);c.lineTo(m.w*.18,cy-H*.08);
-  c.moveTo(-m.w*.02,cy-H*.5);c.lineTo(m.w*.02,cy-H*.3);
-  c.stroke();
-  c.restore();
+  const F=col=>flashify(col,f);
+  const W=m.w, H=m.h;
+  const bob=Math.round(Math.sin(m.anim*6)*(Math.abs(m.vx)>6?2:0.6)/MU)*MU;
+  // 腳
+  mb(c,-W*0.3,-8+bob*0.4,W*0.24,8,F('#E8C79A'));
+  mb(c, W*0.06,-8-bob*0.4,W*0.24,8,F('#E8C79A'));
+  mb(c,-W*0.3,-3+bob*0.4,W*0.24,3,F('#C9A472'));
+  mb(c, W*0.06,-3-bob*0.4,W*0.24,3,F('#C9A472'));
+  // 身體
+  mb(c,-W*0.32-2,-H*0.58+bob-2,W*0.64+4,H*0.5+4,F('#8A5A32'));
+  mb(c,-W*0.32,-H*0.58+bob,W*0.64,H*0.5,F('#FFF0D2'));
+  mb(c,-W*0.32,-H*0.58+bob,W*0.64,H*0.12,F('#FFFFFF'));
+  // 臉
+  cuteEyes(c,W*0.64,H,-H*0.42+bob,W*0.11,H*0.16,F);
+  mb(c,-W*0.07,-H*0.22+bob,W*0.14,H*0.05,'#8A4520');
+  mb(c,-W*0.24,-H*0.26+bob,W*0.08,H*0.05,'#FFBFC8');
+  mb(c, W*0.16,-H*0.26+bob,W*0.08,H*0.05,'#FFBFC8');
+  // 菌傘
+  const cy=-H*0.56+bob;
+  mb(c,-W*0.34-2,cy-H*0.5-2,W*0.68+4,H*0.16+2,F('#A8320E'));
+  mb(c,-W*0.56-2,cy-H*0.34-2,W*1.12+4,H*0.36+4,F('#A8320E'));
+  mb(c,-W*0.34,cy-H*0.5,W*0.68,H*0.16,F('#FF9A4E'));
+  mb(c,-W*0.56,cy-H*0.34,W*1.12,H*0.34,F('#FF7A3C'));
+  mb(c,-W*0.56,cy-H*0.34,W*1.12,H*0.1,F('#FF9A4E'));
+  mb(c,-W*0.56,cy-H*0.06,W*1.12,H*0.06,F('#D2501C'));
+  // 白斑點
+  mb(c,-W*0.36,cy-H*0.26,W*0.16,H*0.1,F('#FFF3DC'));
+  mb(c, W*0.2,cy-H*0.3,W*0.18,H*0.12,F('#FFF3DC'));
+  mb(c,-W*0.06,cy-H*0.44,W*0.14,H*0.09,F('#FFF3DC'));
 }
 
-/* 夜梟：銳角雙翼，猩紅複眼 */
+/* 紫蝙蝠 */
 function drawBat(c,m,f){
-  const flap=Math.sin(m.anim*13);
-  const H=m.h;
-  c.fillStyle=flashify(m.d.color,f);
+  const F=col=>flashify(col,f);
+  const W=m.w, H=m.h;
+  const flap=Math.round(Math.sin(m.anim*12)*3/MU)*MU;
+  // 翅膀
   for(const sgn of[-1,1]){
     c.save();c.scale(sgn,1);
-    c.beginPath();
-    c.moveTo(m.w*.24,-H*.62);
-    c.lineTo(m.w*.95,-H*(.95+flap*.35));
-    c.lineTo(m.w*.78,-H*.5);
-    c.lineTo(m.w*1.05,-H*(.22+flap*.16));
-    c.lineTo(m.w*.62,-H*.42);
-    c.lineTo(m.w*.72,-H*.12);
-    c.closePath();c.fill();
+    mb(c,W*0.22,-H*0.78+flap,W*0.3,H*0.3,F('#7A4AC8'));
+    mb(c,W*0.48,-H*0.62+flap,W*0.26,H*0.26,F('#9A6BE0'));
+    mb(c,W*0.22,-H*0.48+flap,W*0.42,H*0.14,F('#5A2DA8'));
     c.restore();
   }
-  c.fillStyle=flashify(m.d.color2,f);
-  c.beginPath();
-  c.moveTo(0,-H*1.05);c.lineTo(m.w*.28,-H*.6);c.lineTo(0,-H*.12);c.lineTo(-m.w*.28,-H*.6);
-  c.closePath();c.fill();
-  for(const sgn of[-1,1]){
-    c.beginPath();
-    c.moveTo(sgn*5,-H*.92);c.lineTo(sgn*10,-H*1.42);c.lineTo(sgn*13,-H*.82);
-    c.closePath();c.fill();
-  }
-  c.save();
-  c.globalCompositeOperation='lighter';
-  c.fillStyle=`rgba(${m.d.glow},1)`;
-  c.beginPath();c.moveTo(-9,-H*.74);c.lineTo(-2.5,-H*.66);c.lineTo(-8,-H*.58);c.closePath();c.fill();
-  c.beginPath();c.moveTo(9,-H*.74);c.lineTo(2.5,-H*.66);c.lineTo(8,-H*.58);c.closePath();c.fill();
-  c.globalAlpha=.32;
-  ell(c,-5,-H*.66,10,7);c.fill();
-  ell(c,5,-H*.66,10,7);c.fill();
-  c.restore();
+  // 身體
+  mb(c,-W*0.26-2,-H*0.86-2,W*0.52+4,H*0.62+4,F('#4A2088'));
+  mb(c,-W*0.26,-H*0.86,W*0.52,H*0.62,F('#9A6BE0'));
+  mb(c,-W*0.26,-H*0.86,W*0.52,H*0.16,F('#B98BF5'));
+  // 耳朵
+  mb(c,-W*0.22,-H*1.1,W*0.14,H*0.26,F('#9A6BE0'));
+  mb(c, W*0.08,-H*1.1,W*0.14,H*0.26,F('#9A6BE0'));
+  // 臉
+  cuteEyes(c,W*0.52,H,-H*0.68,W*0.12,H*0.18,F);
+  mb(c,-W*0.06,-H*0.44,W*0.12,H*0.06,'#3A1A5A');
+  mb(c,-W*0.1,-H*0.5,W*0.05,H*0.07,'#FFFFFF');
+  mb(c, W*0.05,-H*0.5,W*0.05,H*0.07,'#FFFFFF');
 }
 
-/* 石衛兵：稜角分明，胸口有核 */
+/* 石頭人：方正但眼神友善 */
 function drawGolem(c,m,f){
-  const bob=Math.sin(m.anim*4.4)*2.4*(Math.abs(m.vx)>6?1:.3);
-  const W=m.w,H=m.h;
-  c.fillStyle=flashify(m.d.color2,f);
-  c.beginPath();
-  c.moveTo(-W*.62,-H*.76+bob);c.lineTo(-W*.34,-H*.8+bob);
-  c.lineTo(-W*.3,-H*.26+bob);c.lineTo(-W*.58,-H*.22+bob);
-  c.closePath();c.fill();
-  c.beginPath();
-  c.moveTo(W*.34,-H*.8-bob);c.lineTo(W*.62,-H*.76-bob);
-  c.lineTo(W*.58,-H*.22-bob);c.lineTo(W*.3,-H*.26-bob);
-  c.closePath();c.fill();
-  c.fillStyle=flashify('#0E1430',f);
-  c.fillRect(-W*.3,-H*.26,W*.25,H*.26);
-  c.fillRect(W*.05,-H*.26,W*.25,H*.26);
-  c.beginPath();
-  c.moveTo(-W*.44,-H*.9+bob);c.lineTo(W*.44,-H*.9+bob);
-  c.lineTo(W*.38,-H*.24+bob);c.lineTo(-W*.38,-H*.24+bob);
-  c.closePath();
-  c.fillStyle=f>0.01?flashify('#39457A',f)
-    :linGrad(c,'golemBody',0,-H,0,0,[[0,'#39457A'],[.5,'#212A50'],[1,'#0D1230']]);
-  c.fill();
-  c.strokeStyle='#070A18';c.lineWidth=2.4;c.stroke();
-  c.strokeStyle='rgba(150,185,255,.18)';c.lineWidth=1.2;
-  c.beginPath();c.moveTo(-W*.44,-H*.9+bob);c.lineTo(W*.44,-H*.9+bob);c.stroke();
-  c.strokeStyle='rgba(6,8,20,.85)';c.lineWidth=2;
-  c.beginPath();
-  c.moveTo(-W*.2,-H*.88+bob);c.lineTo(-W*.06,-H*.62+bob);c.lineTo(-W*.22,-H*.44+bob);
-  c.moveTo(W*.18,-H*.84+bob);c.lineTo(W*.3,-H*.56+bob);
-  c.stroke();
-  c.save();
-  c.globalCompositeOperation='lighter';
-  const pulse=.7+Math.sin(G.t*2.6+m.t)*.3;
-  c.globalAlpha=pulse;
-  c.fillStyle=`rgba(${m.d.glow},.95)`;
-  c.beginPath();
-  c.moveTo(0,-H*.72+bob);c.lineTo(W*.1,-H*.6+bob);c.lineTo(0,-H*.48+bob);c.lineTo(-W*.1,-H*.6+bob);
-  c.closePath();c.fill();
-  c.globalAlpha=pulse*.26;
-  ell(c,0,-H*.6+bob,W*.34,H*.3);c.fill();
-  c.globalAlpha=.9;
-  c.fillRect(-W*.22,-H*.86+bob,W*.14,2.4);
-  c.fillRect(W*.08,-H*.86+bob,W*.14,2.4);
-  c.restore();
+  const F=col=>flashify(col,f);
+  const W=m.w, H=m.h;
+  const bob=Math.round(Math.sin(m.anim*4)*2*(Math.abs(m.vx)>6?1:0.3)/MU)*MU;
+  // 手臂
+  mb(c,-W*0.62,-H*0.72+bob,W*0.22,H*0.46,F('#6A7888'));
+  mb(c, W*0.4,-H*0.72-bob,W*0.22,H*0.46,F('#6A7888'));
+  // 腿
+  mb(c,-W*0.3,-H*0.26,W*0.26,H*0.26,F('#5A6678'));
+  mb(c, W*0.04,-H*0.26,W*0.26,H*0.26,F('#5A6678'));
+  // 身體
+  mb(c,-W*0.44-2,-H*0.9-2,W*0.88+4,H*0.68+4,F('#3A4454'));
+  mb(c,-W*0.44,-H*0.9,W*0.88,H*0.68,F('#9AA8B8'));
+  mb(c,-W*0.44,-H*0.9,W*0.88,H*0.16,F('#C8D4E0'));
+  mb(c,-W*0.44,-H*0.32,W*0.88,H*0.1,F('#6A7888'));
+  // 裂縫
+  mb(c,-W*0.16,-H*0.82,W*0.05,H*0.2,F('#6A7888'));
+  mb(c, W*0.2,-H*0.7,W*0.05,H*0.22,F('#6A7888'));
+  // 臉
+  cuteEyes(c,W*0.88,H,-H*0.74,W*0.16,H*0.14,F);
+  mb(c,-W*0.14,-H*0.5,W*0.28,H*0.07,'#3A4454');
 }
 
-/* 菌王：巨大、裂開、戴著骨冠 */
+/* 菇菇王：保留巨大感，邊緣硬、特徵誇張 */
 function drawKing(c,m,f){
-  const H=m.h,W=m.w;
-  const bob=Math.sin(m.anim*3.2)*4;
+  const F=col=>flashify(col,f);
+  const W=m.w, H=m.h;
+  const bob=Math.round(Math.sin(m.anim*3)*3/MU)*MU;
   const rage=G.bossPhase>=3;
-  c.save();
-  c.globalCompositeOperation='lighter';
-  c.globalAlpha=(rage?.28:.15)+Math.sin(G.t*3)*.05;
-  c.fillStyle=`rgba(${m.d.glow},.5)`;
-  ell(c,0,-H*.5,W*.85,H*.72);c.fill();
-  c.restore();
-  c.strokeStyle=flashify('#2A0C1E',f);c.lineWidth=7;c.lineCap='round';
-  for(let i=-2;i<=2;i++){
-    if(!i)continue;
-    const sw=Math.sin(G.t*1.6+i)*16;
-    c.beginPath();
-    c.moveTo(i*W*.22,-H*.16);
-    c.quadraticCurveTo(i*W*.3+sw,-H*.08,i*W*.34+sw*1.4,-2);
-    c.stroke();
+  // 腳
+  mb(c,-W*0.28,-H*0.1,W*0.22,H*0.1,F('#C9A472'));
+  mb(c, W*0.06,-H*0.1,W*0.22,H*0.1,F('#C9A472'));
+  // 手臂
+  mb(c,-W*0.52,-H*0.5+bob,W*0.18,H*0.3,F('#E8C79A'));
+  mb(c, W*0.34,-H*0.5-bob,W*0.18,H*0.3,F('#E8C79A'));
+  // 身體
+  mb(c,-W*0.3-3,-H*0.56+bob-3,W*0.6+6,H*0.48+6,F('#8A5A32'));
+  mb(c,-W*0.3,-H*0.56+bob,W*0.6,H*0.48,F('#FFF0D2'));
+  mb(c,-W*0.3,-H*0.56+bob,W*0.6,H*0.1,F('#FFFFFF'));
+  // 臉
+  const ey=-H*0.42+bob;
+  mb(c,-W*0.21,ey,W*0.15,H*0.1,'#242C1E');
+  mb(c, W*0.06,ey,W*0.15,H*0.1,'#242C1E');
+  if(rage){
+    mb(c,-W*0.23,ey-H*0.05,W*0.19,H*0.04,F('#E8402A'));
+    mb(c, W*0.04,ey-H*0.05,W*0.19,H*0.04,F('#E8402A'));
+  }else{
+    mb(c,-W*0.21,ey,W*0.06,H*0.04,'#FFFFFF');
+    mb(c, W*0.06,ey,W*0.06,H*0.04,'#FFFFFF');
   }
-  c.lineCap='butt';
-  // 手臂（要和軀幹咬合，不能浮在旁邊）
-  c.fillStyle=flashify('#3A1C34',f);
-  c.beginPath();
-  c.moveTo(-W*.52,-H*.54+bob);c.lineTo(-W*.26,-H*.58+bob);
-  c.lineTo(-W*.24,-H*.2+bob);c.lineTo(-W*.46,-H*.14+bob);
-  c.closePath();c.fill();
-  c.beginPath();
-  c.moveTo(W*.52,-H*.54-bob);c.lineTo(W*.26,-H*.58-bob);
-  c.lineTo(W*.24,-H*.2-bob);c.lineTo(W*.46,-H*.14-bob);
-  c.closePath();c.fill();
-  // 軀幹：有機的菌柄，不是方塊
-  c.beginPath();
-  c.moveTo(-W*.3,-H*.6+bob);
-  c.quadraticCurveTo(-W*.34,-H*.34+bob,-W*.27,-H*.08+bob);
-  c.lineTo(W*.27,-H*.08+bob);
-  c.quadraticCurveTo(W*.34,-H*.34+bob,W*.3,-H*.6+bob);
-  c.closePath();
-  c.fillStyle=f>0.01?flashify('#4A2440',f)
-    :linGrad(c,'kingBody',0,-H*.6,0,0,[[0,'#50283F'],[.55,'#331830'],[1,'#180A18']]);
-  c.fill();
-  c.strokeStyle='#150612';c.lineWidth=3;c.stroke();
-  // 胸口的菌紋
-  c.save();
-  c.globalCompositeOperation='lighter';
-  c.globalAlpha=.3+Math.sin(G.t*2.2)*.12;
-  c.strokeStyle=`rgba(${m.d.glow},.7)`;c.lineWidth=2;
-  for(let i=-1;i<=1;i++){
-    c.beginPath();
-    c.moveTo(i*W*.13,-H*.55+bob);
-    c.quadraticCurveTo(i*W*.2,-H*.36+bob,i*W*.1,-H*.12+bob);
-    c.stroke();
-  }
-  c.restore();
-  // 邊緣受夕照
-  c.strokeStyle='rgba(255,170,110,.22)';c.lineWidth=2;
-  c.beginPath();
-  c.moveTo(W*.3,-H*.6+bob);
-  c.quadraticCurveTo(W*.34,-H*.34+bob,W*.27,-H*.08+bob);
-  c.stroke();
-  const ey=-H*.44+bob;
-  c.save();
-  c.globalCompositeOperation='lighter';
-  c.fillStyle=rage?'rgba(255,70,60,1)':`rgba(${m.d.glow},1)`;
-  c.save();c.translate(-W*.14,ey);c.rotate(rage?-.36:-.16);
-  rr(c,-8,-2.4,16,4.4,2);c.fill();c.restore();
-  c.save();c.translate(W*.14,ey);c.rotate(rage?.36:.16);
-  rr(c,-8,-2.4,16,4.4,2);c.fill();c.restore();
-  c.globalAlpha=.28;
-  ell(c,-W*.14,ey,26,16);c.fill();
-  ell(c,W*.14,ey,26,16);c.fill();
-  c.restore();
-  c.fillStyle='#08020C';
-  c.beginPath();
-  c.moveTo(-W*.16,-H*.26+bob);c.lineTo(W*.16,-H*.26+bob);
-  c.lineTo(W*.1,-H*.14+bob);c.lineTo(-W*.1,-H*.14+bob);
-  c.closePath();c.fill();
-  c.fillStyle='#C9BFA8';
-  for(let i=-2;i<=2;i++){
-    c.beginPath();
-    c.moveTo(i*W*.06-3,-H*.26+bob);
-    c.lineTo(i*W*.06,-H*.185+bob);
-    c.lineTo(i*W*.06+3,-H*.26+bob);
-    c.closePath();c.fill();
-  }
-  const cy=-H*.58+bob;
-  c.beginPath();
-  c.moveTo(-W*.66,cy);
-  c.quadraticCurveTo(-W*.62,cy-H*.44,0,cy-H*.42);
-  c.quadraticCurveTo(W*.62,cy-H*.44,W*.66,cy);
-  c.closePath();
-  c.fillStyle=f>0.01?flashify('#8E2246',f)
-    :linGrad(c,'kingCap',0,cy-H*.42,0,cy,[[0,'#8E2246'],[.5,'#521028'],[1,'#1E0610']]);
-  c.fill();
-  c.strokeStyle='#12040A';c.lineWidth=3.5;c.stroke();
-  c.save();
-  c.globalCompositeOperation='lighter';
-  c.strokeStyle=`rgba(${m.d.glow},.9)`;c.lineWidth=2.6;
-  c.globalAlpha=(rage?.85:.55)+Math.sin(G.t*3)*.2;
-  c.beginPath();
-  c.moveTo(-W*.4,cy-H*.04);c.lineTo(-W*.22,cy-H*.24);c.lineTo(-W*.3,cy-H*.34);
-  c.moveTo(W*.14,cy-H*.36);c.lineTo(W*.3,cy-H*.18);c.lineTo(W*.24,cy-H*.03);
-  c.moveTo(-W*.02,cy-H*.4);c.lineTo(W*.03,cy-H*.2);c.lineTo(-W*.04,cy-H*.06);
-  c.stroke();
-  c.restore();
-  const ky=cy-H*.4;
-  c.beginPath();
-  c.moveTo(-34,ky);
-  c.lineTo(-30,ky-20);c.lineTo(-18,ky-8);c.lineTo(-6,ky-28);
-  c.lineTo(6,ky-8);c.lineTo(18,ky-24);c.lineTo(30,ky-8);
-  c.lineTo(34,ky);
-  c.closePath();
-  c.fillStyle=linGrad(c,'crown',0,ky-28,0,ky,[[0,'#E8DFC8'],[1,'#7A6E52']]);
-  c.fill();
-  c.strokeStyle='#2A2418';c.lineWidth=1.6;c.stroke();
-  c.save();
-  c.globalCompositeOperation='lighter';
-  c.fillStyle='rgba(255,70,110,.9)';
-  ell(c,0,ky-6,3.4,3.4);c.fill();
-  c.restore();
+  // 大嘴與獠牙
+  mb(c,-W*0.16,-H*0.26+bob,W*0.32,H*0.1,'#7A2A10');
+  mb(c,-W*0.12,-H*0.26+bob,W*0.06,H*0.05,'#FFFFFF');
+  mb(c, W*0.06,-H*0.26+bob,W*0.06,H*0.05,'#FFFFFF');
+  // 巨大菌傘
+  const cy=-H*0.54+bob;
+  mb(c,-W*0.36-3,cy-H*0.44-3,W*0.72+6,H*0.14+3,F('#8E1A10'));
+  mb(c,-W*0.62-3,cy-H*0.3-3,W*1.24+6,H*0.32+6,F('#8E1A10'));
+  mb(c,-W*0.36,cy-H*0.44,W*0.72,H*0.14,F('#FF6A3C'));
+  mb(c,-W*0.62,cy-H*0.3,W*1.24,H*0.3,F('#E8402A'));
+  mb(c,-W*0.62,cy-H*0.3,W*1.24,H*0.09,F('#FF6A3C'));
+  mb(c,-W*0.62,cy-H*0.05,W*1.24,H*0.05,F('#A8200E'));
+  // 白斑
+  mb(c,-W*0.4,cy-H*0.22,W*0.18,H*0.1,F('#FFF3DC'));
+  mb(c, W*0.22,cy-H*0.26,W*0.2,H*0.11,F('#FFF3DC'));
+  mb(c,-W*0.06,cy-H*0.38,W*0.16,H*0.08,F('#FFF3DC'));
+  // 王冠
+  const ky=cy-H*0.42;
+  mb(c,-W*0.2,ky-H*0.05,W*0.4,H*0.05,'#FFC83C');
+  mb(c,-W*0.2,ky-H*0.12,W*0.08,H*0.07,'#FFC83C');
+  mb(c,-W*0.04,ky-H*0.14,W*0.08,H*0.09,'#FFC83C');
+  mb(c, W*0.12,ky-H*0.12,W*0.08,H*0.07,'#FFC83C');
+  mb(c,-W*0.2,ky-H*0.05,W*0.4,H*0.02,'#FFF0A0');
+  mb(c,-W*0.03,ky-H*0.04,W*0.06,H*0.03,'#E8402A');
 }
+
 
 /* ---------- 特效 ---------- */
 /* ============================================================
@@ -3190,11 +2999,11 @@ function drawGhosts(c){
     c.globalCompositeOperation='lighter';
     c.translate(g.x,g.y);
     c.scale(g.face,1);
-    c.fillStyle='#46E6D6';
-    rr(c,-11,-36,22,20,6);c.fill();
-    rr(c,-9,-18,9,16,4);c.fill();
-    rr(c,1,-18,9,16,4);c.fill();
-    rr(c,-14,-64,28,27,11);c.fill();
+    c.fillStyle='#8FE8FF';
+    c.fillRect(-6*AU,-17*AU,12*AU,11*AU);   // 身體
+    c.fillRect(-4*AU,-7*AU,3*AU,7*AU);      // 腿
+    c.fillRect( 1*AU,-7*AU,3*AU,7*AU);
+    c.fillRect(-8*AU,-30*AU,16*AU,15*AU);   // 大頭
     c.restore();
   }
 }
@@ -3487,7 +3296,7 @@ function render(){
   const hpr=P.hp/P.maxHp;
   if(hpr<0.3&&G.state==='play'){
     const pulse=.14+Math.sin(G.t*7)*.07;
-    m.fillStyle=`rgba(200,20,40,${pulse*(1-hpr/0.3)+0.05})`;
+    m.fillStyle=`rgba(220,40,60,${(pulse*(1-hpr/0.3)+0.04)*0.8})`;
     m.fillRect(0,0,view.w,view.h);
   }
   if(P.hurtT>0){
@@ -3656,46 +3465,42 @@ function drawPortrait(){
   const c=pfaceCtx;
   c.imageSmoothingEnabled=false;
   c.clearRect(0,0,50,50);
-  const hurt=P.hurtT>0?P.hurtT/0.4*0.7:0;
-  // 背光
-  c.save();
-  c.globalCompositeOperation='lighter';
-  c.fillStyle='rgba(120,190,255,.14)';
+  c.fillStyle='#2A4A7A';
   c.fillRect(0,0,50,50);
-  c.restore();
-
+  c.fillStyle='#3F6FB0';
+  c.fillRect(0,30,50,20);
+  const hurt=P.hurtT>0?P.hurtT/0.4*0.7:0;
+  const F=col=>flashify(col,hurt);
+  const bob=Math.round(Math.sin(G.t*2.4)*0.5+0.5);
   c.save();
-  c.translate(25,30);
-  c.scale(1.42,1.42);
-  c.translate(0,Math.sin(G.t*2.2)*.5);
-  c.fillStyle=flashify(SKIN_D,hurt);
-  rr(c,-7,-9,14,15,4);c.fill();
-  c.fillStyle=flashify(HOOD,hurt);
-  c.beginPath();
-  c.moveTo(-10,4);
-  c.quadraticCurveTo(-12,-13,0,-15);
-  c.quadraticCurveTo(12,-13,10,4);
-  c.lineTo(7,2);
-  c.quadraticCurveTo(0,-4,-7,2);
-  c.closePath();c.fill();
-  c.beginPath();
-  c.moveTo(-10,3);c.quadraticCurveTo(-17,6,-13,13);
-  c.quadraticCurveTo(-8,8,-6,3);c.closePath();c.fill();
-  c.strokeStyle=RIM;c.lineWidth=.9;
-  c.beginPath();
-  c.moveTo(-9,0);c.quadraticCurveTo(-11,-12,0,-14);
-  c.quadraticCurveTo(10,-12,9,0);c.stroke();
+  c.translate(25,30+bob);
+  const U=1.6;
+  const b=(x,y,w,h,col)=>{c.fillStyle=col;c.fillRect(Math.round(x*U),Math.round(y*U),Math.round(w*U),Math.round(h*U));};
+  b(-8,-13,16,11,F(C_LINE));
+  b(-6,-15,12,2,F(C_LINE));
+  b(-6,-2,12,2,F(C_LINE));
+  b(-7,-12,14,10,F(C_SKIN));
+  b(-5,-14,10,2,F(C_SKIN));
+  b(-7,-4,14,2,F(C_SKIN_SH));
+  b(-7,-16,14,2,F(C_HAT_DK));
+  b(-6,-15,12,4,F(C_HAT));
+  b(-6,-15,12,1,F(C_HAT_LT));
+  b(-10,-11,20,2,F(C_HAT_DK));
+  b(-10,-11,20,1,F(C_HAT));
+  b(-8,-9,2,4,F(C_HAIR));
+  b( 6,-9,2,4,F(C_HAIR));
   if(P.blink>=0){
-    c.save();
-    c.globalCompositeOperation='lighter';
-    c.fillStyle=P.hurtT>0?'#FF5A6E':EDGE;
-    rr(c,-6,-1.5,5,2.2,1);c.fill();
-    rr(c,1.5,-1.5,5,2.2,1);c.fill();
-    c.globalAlpha=.3;
-    ell(c,-3.5,-.4,7,5);c.fill();
-    ell(c,4,-.4,7,5);c.fill();
-    c.restore();
+    b(-5,-8,4,4,F(C_EYE));
+    b( 1,-8,4,4,F(C_EYE));
+    b(-5,-8,2,2,F('#FFFFFF'));
+    b( 1,-8,2,2,F('#FFFFFF'));
+  }else{
+    b(-5,-6,4,1,F(C_EYE));
+    b( 1,-6,4,1,F(C_EYE));
   }
+  b(-7,-4,2,1,F(C_BLUSH));
+  b( 5,-4,2,1,F(C_BLUSH));
+  b( 0,-4,2,1,F('#C4665A'));
   c.restore();
 }
 const mmCtx=$('mmc').getContext('2d');
@@ -3806,8 +3611,8 @@ function startGame(){
   BGM.start();
   G.state='play';
   setScreen(null);
-  toast('腐化楓林','往東深入，斬斷菌王');
-  sysmsg('進入 腐化楓林 · 核心 — 限時 20 分鐘','sys');
+  toast('楓葉平原','往東深入，討伐菇菇王');
+  sysmsg('進入 楓葉平原 · 深處 — 限時 20 分鐘','sys');
 }
 function dieGame(timeout){
   P.dead=true;
