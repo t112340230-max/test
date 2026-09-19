@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<meta name="description" content="楓蝕夜行 — 一個用純 Canvas 手繪、零外部素材的暗色橫向卷軸動作遊戲。">
-<meta name="theme-color" content="#06070F">
+<meta name="description" content="楓蝕夜行 — 一個用純 Canvas 手繪、零外部素材的橫向卷軸王級戰鬥遊戲。">
+<meta name="theme-color" content="#2A1038">
 <style>html,body{margin:0;height:100%}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>楓蝕夜行</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -48,8 +48,8 @@ body{
 
 /* 左上：資源 */
 #topleft{
-  position:absolute;left:18px;top:calc(16px + env(safe-area-inset-top,0px));
-  display:flex;flex-direction:column;gap:5px;align-items:flex-start;
+  position:absolute;left:18px;top:calc(96px + env(safe-area-inset-top,0px));
+  display:flex;flex-direction:column;gap:3px;align-items:flex-start;
 }
 .chip{display:flex;align-items:baseline;gap:8px;font-size:12px}
 .chip .k{font-family:var(--f-ui);text-transform:uppercase;letter-spacing:.2em;
@@ -70,8 +70,8 @@ body{
 
 /* BOSS 血條：寬、薄、分段 */
 #bossbar{
-  position:absolute;left:50%;transform:translateX(-50%);
-  top:calc(22px + env(safe-area-inset-top,0px));width:min(660px,78vw);
+  position:absolute;left:230px;
+  top:calc(16px + env(safe-area-inset-top,0px));width:min(560px,46vw);
   opacity:0;transition:opacity .5s;
 }
 #bossbar.on{opacity:1}
@@ -89,9 +89,9 @@ body{
 
 /* 底部 */
 #bottom{
-  position:absolute;left:0;right:0;bottom:0;
-  padding:0 18px calc(20px + env(safe-area-inset-bottom,0px));
-  display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  position:absolute;left:50%;transform:translateX(-50%);
+  bottom:calc(20px + env(safe-area-inset-bottom,0px));
+  display:flex;align-items:flex-end;gap:14px;
 }
 #vitals{display:flex;align-items:center;gap:12px}
 #portrait{
@@ -118,7 +118,7 @@ body{
   text-shadow:0 1px 3px #000;font-variant-numeric:tabular-nums}
 
 /* 技能槽：銳角方塊、冷卻由下往上抹除 */
-#hotbar{pointer-events:auto;display:flex;gap:8px}
+#hotbar{display:none}
 .slot{position:relative;width:52px;height:56px;flex:none;
   background:linear-gradient(180deg,rgba(22,27,49,.9),rgba(9,12,24,.9));
   border:1px solid var(--line);
@@ -185,6 +185,83 @@ body{
 kbd{font-family:var(--f-mono);font-weight:700;font-size:9px;padding:2px 5px;
   color:var(--ink-2);background:rgba(255,255,255,.05);border:1px solid var(--line)}
 body.touch #helpbar{display:none}
+
+
+/* ===== 王戰資訊層：地圖名 / 計時 / 死亡數 / Buff / 任務 / 快捷列 ===== */
+#mapchip{position:absolute;left:18px;top:calc(14px + env(safe-area-inset-top,0px));
+  display:flex;align-items:center;gap:8px;padding:5px 12px 5px 6px;
+  background:linear-gradient(90deg,rgba(18,8,26,.9),rgba(18,8,26,.4));
+  border-left:2px solid var(--amber)}
+#mapchip .w{font-family:var(--f-mono);font-size:7px;padding:2px 4px;
+  background:var(--amber);color:#1A0C04;letter-spacing:.08em}
+#mapchip b{font-family:var(--f-tc);font-weight:900;font-size:13px;letter-spacing:.1em;color:#FFE3BE}
+
+#runinfo{position:absolute;left:18px;top:calc(46px + env(safe-area-inset-top,0px));display:flex;gap:8px}
+.rbox{display:flex;align-items:center;gap:9px;padding:6px 12px;
+  background:rgba(14,6,20,.8);border:1px solid var(--line)}
+.rbox .rl{font-family:var(--f-ui);text-transform:uppercase;letter-spacing:.16em;
+  font-size:8px;font-weight:600;color:var(--ink-3);line-height:1.25}
+.rbox b{font-family:var(--f-mono);font-weight:700;font-size:20px;letter-spacing:.02em;
+  font-variant-numeric:tabular-nums;color:#FFE3BE}
+.rbox.time b{color:#FFD24D;text-shadow:0 0 16px rgba(255,210,77,.5)}
+.rbox.time.low b{color:#FF5A6E;text-shadow:0 0 18px rgba(255,51,85,.7);animation:tblink .9s steps(2,end) infinite}
+@keyframes tblink{50%{opacity:.35}}
+.rbox.deaths b{color:#FF8A99}
+
+#buffs{position:absolute;right:18px;top:calc(14px + env(safe-area-inset-top,0px));
+  display:grid;grid-template-columns:repeat(6,26px);gap:3px;justify-content:end}
+.buff{position:relative;width:26px;height:26px;background:rgba(14,6,20,.85);
+  border:1px solid var(--line);display:flex;align-items:center;justify-content:center;
+  font-family:var(--f-tc);font-weight:900;font-size:12px;overflow:hidden}
+.buff .bt{position:absolute;right:1px;bottom:0;font-family:var(--f-mono);font-size:7px;
+  color:#fff;text-shadow:0 0 3px #000,0 1px 2px #000}
+.buff .bw{position:absolute;left:0;bottom:0;height:2px;background:currentColor;opacity:.9}
+
+#quests{position:absolute;right:18px;top:calc(122px + env(safe-area-inset-top,0px));
+  width:210px;background:rgba(14,6,20,.78);border:1px solid var(--line);padding:7px 9px 8px}
+#quests .qh{display:flex;justify-content:space-between;align-items:baseline;
+  font-family:var(--f-tc);font-weight:900;font-size:11px;letter-spacing:.14em;color:#FFE3BE;
+  padding-bottom:5px;margin-bottom:5px;border-bottom:1px solid var(--line)}
+#quests .qh span{font-family:var(--f-mono);font-size:10px;color:var(--amber)}
+#qlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+#qlist li{display:flex;justify-content:space-between;align-items:baseline;gap:6px;
+  font-family:var(--f-tc);font-size:11px;color:var(--ink-2)}
+#qlist li.done{color:var(--ink-3);text-decoration:line-through}
+#qlist li i{font-style:normal;font-family:var(--f-mono);font-size:10px;color:var(--amber);flex:none}
+#qlist li.done i{color:#5BBF7A}
+
+#sysmsg{position:absolute;left:18px;bottom:calc(26px + env(safe-area-inset-bottom,0px));
+  width:min(420px,42vw);height:16px;overflow:hidden}
+#sysmsg div{font-family:var(--f-tc);font-size:11px;color:#C9A36B;letter-spacing:.04em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  animation:sysin .4s ease-out}
+@keyframes sysin{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+
+#quick{position:absolute;right:18px;bottom:calc(22px + env(safe-area-inset-bottom,0px));
+  display:flex;flex-direction:column;gap:4px;align-items:flex-end;pointer-events:auto}
+.qrow{display:flex;gap:4px}
+.qslot{position:relative;width:38px;height:38px;background:rgba(14,6,20,.82);
+  border:1px solid var(--line);display:flex;align-items:center;justify-content:center;
+  overflow:hidden;transition:border-color .12s}
+.qslot.empty{opacity:.42}
+.qslot .k{position:absolute;top:1px;left:2px;font-family:var(--f-mono);font-size:7px;color:var(--ink-3)}
+.qslot .n{position:absolute;right:2px;bottom:0;font-family:var(--f-mono);font-weight:700;
+  font-size:10px;color:#fff;text-shadow:0 1px 2px #000}
+.qslot canvas{width:24px;height:24px}
+.qslot .cd{position:absolute;left:0;right:0;bottom:0;background:rgba(8,3,14,.82);
+  display:flex;align-items:flex-start;justify-content:center;
+  font-family:var(--f-mono);font-size:10px;color:#FFD9A0;padding-top:1px}
+.qslot.hot{border-color:var(--amber)}
+.qslot.flash{animation:qpop .22s ease-out}
+@keyframes qpop{0%{box-shadow:inset 0 0 0 2px #FFD24D}100%{box-shadow:none}}
+
+@media (max-width:980px){
+  #quests{display:none}
+  #buffs{grid-template-columns:repeat(4,24px)}
+  .qslot{width:32px;height:32px}
+  .qslot canvas{width:20px;height:20px}
+  #sysmsg{display:none}
+}
 
 /* toasts */
 #toasts{position:absolute;left:50%;top:22%;transform:translateX(-50%);
@@ -279,14 +356,23 @@ body.touch #touch{display:block}
   <canvas id="game"></canvas>
 
   <div id="hud">
+    <div id="mapchip"><span class="w">WORLD</span><b>腐化楓林 · 核心</b></div>
+
+    <div id="runinfo">
+      <div class="rbox deaths"><span class="rl">DEATH<br>COUNT</span><b id="deathN">00</b></div>
+      <div class="rbox time" id="timebox"><span class="rl">剩餘<br>時間</span><b id="timeN">20:00</b></div>
+    </div>
+
     <div id="topleft">
       <div class="chip gold"><span class="k">Mesos</span><b id="meso">0</b></div>
       <div class="chip"><span class="k">Slain</span><b id="kills">0</b></div>
     </div>
 
-    <div id="minimap">
-      <p class="mm-t">腐化楓林 · Blighted Grove</p>
-      <canvas id="mmc" width="360" height="136"></canvas>
+    <div id="buffs"></div>
+
+    <div id="quests">
+      <div class="qh">任務指引 <span id="qprog">0/4</span></div>
+      <ul id="qlist"></ul>
     </div>
 
     <div id="bossbar">
@@ -296,6 +382,11 @@ body.touch #touch{display:block}
         <i class="bhp-fill" id="bossfill"></i>
         <i class="bhp-seg"></i>
       </div>
+    </div>
+
+    <div id="minimap">
+      <p class="mm-t">腐化楓林 · Blighted Grove</p>
+      <canvas id="mmc" width="360" height="136"></canvas>
     </div>
 
     <div id="combo">
@@ -324,14 +415,21 @@ body.touch #touch{display:block}
       <div id="hotbar"></div>
     </div>
 
+    <div id="quick">
+      <div class="qrow" id="qrow1"></div>
+      <div class="qrow" id="qrow2"></div>
+    </div>
+
+    <div id="sysmsg"></div>
+
     <div id="helpbar">
       <span><kbd>← →</kbd>移動</span>
       <span><kbd>SPACE</kbd>跳 / 二段跳</span>
       <span><kbd>SHIFT</kbd>衝刺</span>
       <span><kbd>↑</kbd>攀繩</span>
       <span><kbd>↓</kbd>長按落下</span>
-      <span><kbd>Z</kbd>三段斬</span>
-      <span><kbd>X C V</kbd>技能</span>
+      <span><kbd>Z X C V</kbd>技能</span>
+      <span><kbd>1 2</kbd>藥水</span>
       <span><kbd>H</kbd>收合</span>
     </div>
 
@@ -498,9 +596,9 @@ function resize(){
   bloomCv.height=Math.max(1,(view.h/BLOOM_DIV)|0);
   buildSky();
   vignetteG=ctx.createRadialGradient(view.w*.5,view.h*.46,view.h*.24,view.w*.5,view.h*.5,view.h*.95);
-  vignetteG.addColorStop(0,'rgba(4,5,12,0)');
-  vignetteG.addColorStop(.55,'rgba(4,5,12,.2)');
-  vignetteG.addColorStop(1,'rgba(3,4,10,.8)');
+  vignetteG.addColorStop(0,'rgba(12,4,16,0)');
+  vignetteG.addColorStop(.55,'rgba(12,4,16,.16)');
+  vignetteG.addColorStop(1,'rgba(8,2,12,.72)');
 }
 function buildSky(){
   const d=view.dpr, c=skyCtx, W=view.w, H=view.h;
@@ -509,54 +607,65 @@ function buildSky(){
   c.setTransform(d,0,0,d,0,0);
   c.clearRect(0,0,W,H);
 
-  // 夜空
+  // 黃昏：頂端紫、中段洋紅、地平線鎏金
   const g=c.createLinearGradient(0,0,0,H);
-  g.addColorStop(0,'#05060E');
-  g.addColorStop(.34,'#0C1124');
-  g.addColorStop(.68,'#172041');
-  g.addColorStop(1,'#26325C');
+  g.addColorStop(0,'#3A1B55');
+  g.addColorStop(.22,'#6E2A66');
+  g.addColorStop(.44,'#B2405C');
+  g.addColorStop(.64,'#E4703F');
+  g.addColorStop(.82,'#F9A64E');
+  g.addColorStop(1,'#FFD89A');
   c.fillStyle=g;c.fillRect(0,0,W,H);
 
-  // 星
-  let n=20261;
-  const rnd=()=>{n=(n*1103515245+12345)&0x7fffffff;return n/0x7fffffff;};
-  for(let i=0;i<150;i++){
-    const x=rnd()*W, y=rnd()*H*.66, r=rnd()*1.3+.3;
-    c.globalAlpha=.16+rnd()*.7;
-    c.fillStyle=rnd()<.15?'#9FD8FF':'#FFFFFF';
-    c.beginPath();c.arc(x,y,r,0,TAU);c.fill();
-  }
-  c.globalAlpha=1;
-
-  // 月
-  const mx=W*.79, my=H*.15;
+  // 低空的落日
+  const sx=W*.52, sy=H*.74;
   c.save();
   c.globalCompositeOperation='lighter';
-  const mg=c.createRadialGradient(mx,my,6,mx,my,H*.5);
-  mg.addColorStop(0,'rgba(214,232,255,.5)');
-  mg.addColorStop(.12,'rgba(150,185,255,.18)');
-  mg.addColorStop(1,'rgba(120,160,255,0)');
-  c.fillStyle=mg;c.fillRect(0,0,W,H);
+  const sg=c.createRadialGradient(sx,sy,8,sx,sy,H*.72);
+  sg.addColorStop(0,'rgba(255,248,214,.85)');
+  sg.addColorStop(.1,'rgba(255,214,130,.4)');
+  sg.addColorStop(.35,'rgba(255,140,70,.16)');
+  sg.addColorStop(1,'rgba(255,110,60,0)');
+  c.fillStyle=sg;c.fillRect(0,0,W,H);
   c.restore();
-  c.fillStyle='#E9F0FF';
-  c.beginPath();c.arc(mx,my,26,0,TAU);c.fill();
-  c.fillStyle='rgba(150,170,205,.5)';
-  c.beginPath();c.arc(mx-8,my-6,5,0,TAU);c.fill();
-  c.beginPath();c.arc(mx+7,my+5,7,0,TAU);c.fill();
-  c.beginPath();c.arc(mx+4,my-11,3.4,0,TAU);c.fill();
 
-  // 體積月光：從月亮斜射下來的光柱
+  // 夕照雲帶：深色剪影 + 被夕陽打亮的下緣
+  let n=7717;
+  const rnd=()=>{n=(n*1103515245+12345)&0x7fffffff;return n/0x7fffffff;};
+  for(let i=0;i<16;i++){
+    const cy=H*(.08+rnd()*.6);
+    const cx=rnd()*W;
+    const cw=W*(.14+rnd()*.3), ch=H*(.016+rnd()*.03);
+    const warm=1-Math.abs(cy/H-.74);
+    c.save();
+    c.globalAlpha=.42+rnd()*.32;
+    c.fillStyle='#2E1636';
+    c.beginPath();
+    c.ellipse(cx,cy,cw,ch,0,0,TAU);
+    c.ellipse(cx-cw*.5,cy+ch*.5,cw*.6,ch*.75,0,0,TAU);
+    c.ellipse(cx+cw*.55,cy+ch*.4,cw*.55,ch*.8,0,0,TAU);
+    c.fill();
+    c.globalCompositeOperation='lighter';
+    c.globalAlpha=.18*warm;
+    c.fillStyle='#FFB066';
+    c.beginPath();
+    c.ellipse(cx,cy+ch*.7,cw*.9,ch*.4,0,0,TAU);
+    c.fill();
+    c.restore();
+  }
+
+  // 斜射的夕陽光束
   c.save();
   c.globalCompositeOperation='lighter';
-  c.translate(mx,my);
-  c.rotate(2.32);
-  for(let i=0;i<5;i++){
-    const w=22+((i*29)%46), off=-150+i*96;
-    c.globalAlpha=.019+((i*7)%3)*.007;
-    c.fillStyle='#BFD6FF';
+  c.translate(sx,sy);
+  c.rotate(-2.0);
+  for(let i=0;i<6;i++){
+    const w=30+((i*31)%60), off=-220+i*110;
+    c.globalAlpha=.026+((i*7)%3)*.009;
+    c.fillStyle='#FFD8A0';
     c.beginPath();
     c.moveTo(off,0);c.lineTo(off+w,0);
-    c.lineTo(off+w*2.6+240,1900);c.lineTo(off+240,1900);
+    c.lineTo(off+w*2.4+300,2200);c.lineTo(off+300,2200);
     c.closePath();c.fill();
   }
   c.restore();
@@ -572,7 +681,7 @@ const ACTIONS={
   up:['arrowup','w'], down:['arrowdown','s'],
   jump:[' ','space'],
   atk1:['z','j'], atk2:['x','k'], atk3:['c','l'], atk4:['v','u'],
-  dash:['shift','f'], help:['h'],
+  dash:['shift','f'], help:['h'], pot1:['1'], pot2:['2'],
   pause:['p','escape'], mute:['m'],
 };
 const KEY2ACT={};
@@ -879,7 +988,7 @@ function newPlayer(keep){
     lv,exp:keep?keep.exp:0,...s,hp:s.maxHp,mp:s.maxMp,
     atkT:0,atkDur:0,atkKind:null,hitSet:null,
     whirlT:0,whirlTick:0,
-    dashT:0,dashCd:0,dashDir:1,ghostT:0,
+    dashT:0,dashCd:0,dashDir:1,ghostT:0,potCd:0,
     lastDir:null,lastDirT:-9,jumpBuf:0,downHold:0,
     chain:0,chainT:0,trail:[],
     cds:{atk1:0,atk2:0,atk3:0,atk4:0},
@@ -892,9 +1001,17 @@ function newGame(keep){
     state:'title',t:0,runT:0,shake:0,freeze:0,
     cam:{x:0,y:0},
     mobs:[],projs:[],parts:[],nums:[],drops:[],slashes:[],rings:[],leaves:[],
-    ghosts:[],zoomK:1,flash:0,lines:0,
+    ghosts:[],booms:[],zoomK:1,flash:0,lines:0,
     combo:{n:0,t:0,best:keep?keep.best:0},
     cine:0,hints:{},hint:null,hintT:0,
+    timeLeft:20*60, deaths:keep?keep.deaths:0, buffs:{},
+    inv:{hp:keep?keep.invHp:3, mp:keep?keep.invMp:3},
+    quests:[
+      {id:'slime',type:'slime',text:'肅清蝕影黏體',need:12,got:0},
+      {id:'mush', type:'mush', text:'清除腐化菇菇',need:6, got:0},
+      {id:'reach',type:null,   text:'抵達東側核心',need:1, got:0},
+      {id:'boss', type:'king', text:'擊倒菌王',    need:1, got:0},
+    ],
     spawnCd:SPAWNS.map(()=>0),
     boss:null,bossSpawned:false,bossPhase:1,bossShownHp:1,
     meteorQ:[],
@@ -946,7 +1063,7 @@ function makeProj(o){
   },o));
 }
 function addPart(x,y,o){
-  if(G.parts.length>560)return;
+  if(G.parts.length>900)return;
   G.parts.push(Object.assign({
     x,y,vx:rand(-90,90),vy:rand(-160,-40),life:.6,max:.6,
     size:rand(3,7),c:'#fff',grav:600,type:'spark',r:0,vr:rand(-8,8),
@@ -957,6 +1074,44 @@ function addRing(x,y,o){G.rings.push(Object.assign({x,y,r:10,max:120,life:.4,t:.
 function addNum(x,y,val,kind){
   G.nums.push({x:x+rand(-10,10),y,vx:rand(-30,30),vy:kind==='crit'?-260:-210,
     v:val,kind:kind||'dmg',life:kind==='crit'?1.15:0.92,max:kind==='crit'?1.15:0.92});
+}
+/* Buff：全部都有實際效果，不是裝飾 */
+function addBuff(id,dur,glyph,color){
+  const b=G.buffs[id];
+  if(b){b.t=Math.max(b.t,dur);b.max=Math.max(b.max,dur,b.max);}
+  else G.buffs[id]={t:dur,max:dur,glyph,color};
+}
+function hasBuff(id){return !!G.buffs[id];}
+function updateBuffs(dt){
+  for(const k in G.buffs){
+    G.buffs[k].t-=dt;
+    if(G.buffs[k].t<=0)delete G.buffs[k];
+  }
+  if(P.noDmgT>4&&P.hp<P.maxHp)addBuff('regen',0.6,'癒','#5BBF7A');
+  if(G.combo.n>=10)addBuff('rage',1.2,'戰','#FFD24D');
+}
+/* 任務進度 */
+function questProgress(type){
+  for(const q of G.quests){
+    if(q.got>=q.need)continue;
+    if(q.type===type){
+      q.got++;
+      if(q.got>=q.need){
+        sysmsg(`【任務】${q.text} — 完成`);
+        toast('任務完成',q.text);
+        SFX.levelup();
+      }
+      break;
+    }
+  }
+}
+function questsDone(){return G.quests.filter(q=>q.got>=q.need).length;}
+function sysmsg(t){
+  const box=document.getElementById('sysmsg');
+  if(!box)return;
+  const d=document.createElement('div');
+  d.textContent=t;
+  box.replaceChildren(d);
 }
 function toast(t1,t2){
   const box=document.getElementById('toasts');
@@ -1002,6 +1157,7 @@ function startDash(dir){
   p.face=p.dashDir;
   p.dashT=0.19; p.dashCd=0.58; p.ghostT=0; p.vy=0; p.climb=null;
   p.dashed=true;
+  addBuff('swift',3,'迅','#4FF0DC');
   SFX.dash();
   G.lines=Math.max(G.lines,0.3);
   addRing(p.x,p.y-PH*0.5,{max:95,life:.24,t:.24,c:'#9BE8FF',lw:5});
@@ -1063,6 +1219,7 @@ function updatePlayer(dt){
   for(const k in p.cds)p.cds[k]=Math.max(0,p.cds[k]-dt);
   p.dropT=Math.max(0,p.dropT-dt);
   p.dashCd=Math.max(0,p.dashCd-dt);
+  p.potCd=Math.max(0,p.potCd-dt);
   p.chainT=Math.max(0,p.chainT-dt);
   if(p.chainT<=0)p.chain=0;
   p.blink-=dt;
@@ -1115,7 +1272,7 @@ function updatePlayer(dt){
   }
 
   /* --- 水平移動 --- */
-  const target=mv*RUN;
+  const target=mv*RUN*(hasBuff('swift')?1.18:1);
   if(mv!==0){
     const step=ACC*dt;
     p.vx+=clamp(target-p.vx,-step,step);
@@ -1177,7 +1334,7 @@ function updatePlayer(dt){
   clampWorld(p);
   doAttacks(dt);
 
-  if(!G.bossSpawned&&p.x>BOSS_GATE)spawnBoss();
+  if(!G.bossSpawned&&p.x>BOSS_GATE){questProgress(null);spawnBoss();}
 }
 function clampWorld(p){
   p.x=clamp(p.x,22,WORLD.w-22);
@@ -1186,6 +1343,25 @@ function clampWorld(p){
 
 /* ---------- 技能 ---------- */
 function skillUnlocked(){return true;}
+function usePotion(kind){
+  if(G.state!=='play'||P.potCd>0)return;
+  if(G.inv[kind]<=0){sysmsg(`沒有${kind==='hp'?'紅':'藍'}藥水了`);return;}
+  G.inv[kind]--;
+  P.potCd=0.45;
+  if(kind==='hp'){
+    const h=Math.round(P.maxHp*0.35);
+    P.hp=Math.min(P.maxHp,P.hp+h);
+    addNum(P.x,P.y-PH-12,h,'heal');
+  }else{
+    const h=Math.round(P.maxMp*0.4);
+    P.mp=Math.min(P.maxMp,P.mp+h);
+    addNum(P.x,P.y-PH-12,h,'mana');
+  }
+  SFX.potion();
+  addBuff('pot',6,'藥',kind==='hp'?'#FF6A7C':'#6FB4F5');
+  const o=qpot[kind];
+  if(o){o.el.classList.remove('flash');void o.el.offsetWidth;o.el.classList.add('flash');}
+}
 function tryCast(s){
   if(P.cds[s.id]>0)return;
   if(P.mp<s.mp){toast('魔力不足','NOT ENOUGH MP');return;}
@@ -1214,7 +1390,8 @@ function doAttacks(dt){
         }
       }
       if(hit)G.shake=Math.max(G.shake,5);
-      addRing(p.x,p.y-PH/2,{max:140,life:.22,t:.22,c:'#7BE6FF',lw:5});
+      addRing(p.x,p.y-PH/2,{max:185,life:.24,t:.24,c:'#7BE6FF',lw:7});
+      if(hit)addBoom(p.x,p.y-PH/2,150,186,{spikes:false});
     }
   }
   if(G.cine<=0)for(const s of SKILLS)if(tapped[s.id])tryCast(s);
@@ -1249,8 +1426,14 @@ function castSlash(s){
     if(dx>-30&&dx<reach&&Math.abs(dy)<vspan){ hurtMob(m,rollDmg(s.mul*(fin?1.8:1)),p.x,fin?1.5:0.8); hit++; }
   }
   if(hit){
-    G.shake=Math.max(G.shake,fin?13:6);
-    if(fin){G.freeze=Math.max(G.freeze,0.06);G.flash=Math.max(G.flash,0.22);}
+    G.shake=Math.max(G.shake,fin?15:6);
+    if(fin){
+      G.freeze=Math.max(G.freeze,0.07);
+      G.flash=Math.max(G.flash,0.26);
+      addBoom(p.x+p.face*78,p.y-PH*.52,165,186);
+      burst(p.x+p.face*78,p.y-PH*.52,18,()=>({vx:p.face*rand(60,460),vy:rand(-260,260),
+        c:pick(['#FFFFFF','#9FF6FF','#4FF0DC']),size:rand(4,11),life:.45,max:.45,grav:120}));
+    }
   }
 }
 function castFire(s){
@@ -1260,24 +1443,26 @@ function castFire(s){
   p.atkT=p.atkDur=0.26; p.atkKind='cast';
   SFX.cast();
   const d=rollDmg(s.mul);
-  makeProj({x:p.x+p.face*32,y:p.y-PH*0.55,vx:p.face*780,vy:0,r:20,
+  makeProj({x:p.x+p.face*32,y:p.y-PH*0.55,vx:p.face*820,vy:0,r:30,
     dmg:d,pierce:3,life:1.3,type:'fire'});
+  addBoom(p.x+p.face*40,p.y-PH*0.55,90,30,{spikes:false});
   burst(p.x+p.face*32,p.y-PH*0.55,10,()=>({vx:p.face*rand(60,240),vy:rand(-90,90),c:pick(['#FFD24D','#FF8A1B','#FF4E1B']),size:rand(3,7),life:.32,max:.32,grav:0}));
 }
 function castWhirl(s){
   P.attacked=true;
   P.whirlT=0.70; P.whirlTick=0; P.atkT=P.atkDur=0.70; P.atkKind='whirl';
   SFX.slash(); SFX.cast();
-  addRing(P.x,P.y-PH/2,{max:170,life:.4,t:.4,c:'#FFFFFF',lw:8});
+  addRing(P.x,P.y-PH/2,{max:230,life:.42,t:.42,c:'#FFFFFF',lw:11});
+  addBoom(P.x,P.y-PH/2,210,190);
 }
 function castMeteor(s){
   P.attacked=true;
-  G.flash=Math.max(G.flash,0.55);
-  G.lines=Math.max(G.lines,1.4);
+  G.flash=Math.max(G.flash,0.3);
+  G.lines=Math.max(G.lines,1.2);
   SFX.roar(); G.shake=Math.max(G.shake,14);
   const d=rollDmg.bind(null,s.mul);
-  for(let i=0;i<14;i++)
-    G.meteorQ.push({t:i*0.085,x:P.x+rand(-520,520),roll:d});
+  for(let i=0;i<10;i++)
+    G.meteorQ.push({t:i*0.115,x:P.x+rand(-560,560),roll:d});
   toast('天降神罰','DIVINE JUDGEMENT');
 }
 
@@ -1300,6 +1485,7 @@ function hurtMob(m,d,fromX,kb){
     G.freeze=Math.max(G.freeze,0.05);
     G.shake=Math.max(G.shake,9);
     G.zoomK=Math.min(1.085,G.zoomK+0.05);
+    addBoom(m.x,m.y-m.h*0.5,86,44,{spikes:false});
   }
   burst(m.x,m.y-m.h*0.5,d.crit?14:8,()=>({
     vx:rand(-220,220),vy:rand(-240,20),
@@ -1311,6 +1497,7 @@ function hurtMob(m,d,fromX,kb){
 function killMob(m){
   m.dying=0.42; m.hp=0; m.vy=-280; m.vx=rand(-120,120);
   G.kills++;
+  questProgress(m.type);
   SFX.die();
   G.zoomK=Math.min(1.09,G.zoomK+(m.d.boss?0.12:0.035));
   G.flash=Math.max(G.flash,m.d.boss?0.8:0.18);
@@ -1321,7 +1508,8 @@ function killMob(m){
       type:'meso',val:randi(m.d.meso[0],m.d.meso[1]),life:16,t:0,ground:false});
   if(chance(m.d.boss?1:0.2))
     G.drops.push({x:m.x,y:m.y-m.h*0.5,vx:rand(-120,120),vy:-400,type:chance(.55)?'hp':'mp',val:0.3,life:16,t:0,ground:false});
-  addRing(m.x,m.y-m.h*0.5,{max:m.d.boss?420:120,life:.5,t:.5,c:m.d.boss?'#FF5A6E':'#E8B04B',lw:m.d.boss?14:6});
+  addBoom(m.x,m.y-m.h*0.5,m.d.boss?480:135,m.d.boss?340:38);
+  addRing(m.x,m.y-m.h*0.5,{max:m.d.boss?480:140,life:.5,t:.5,c:m.d.boss?'#FF5A6E':'#FFC46B',lw:m.d.boss?16:7});
   burst(m.x,m.y-m.h*0.5,m.d.boss?90:16,()=>({
     vx:rand(-340,340),vy:rand(-420,60),c:pick([`rgb(${m.d.glow})`,'#FFFFFF','#E8B04B']),
     size:rand(4,11),life:.7,max:.7}));
@@ -1333,7 +1521,7 @@ function killMob(m){
 function hurtPlayer(amt,fromX){
   const p=P;
   if(p.inv>0||p.dashT>0||G.cine>0||p.dead||G.state!=='play')return;
-  amt=Math.max(1,Math.round(amt*rand(0.9,1.1)));
+  amt=Math.max(1,Math.round(amt*rand(0.9,1.1)*(hasBuff('ward')?0.7:1)));
   p.hp-=amt;
   p.inv=0.95; p.hurtT=0.4; p.noDmgT=0;
   p.vx=Math.sign(p.x-fromX||1)*300;
@@ -1361,9 +1549,12 @@ function gainExp(v){
     SFX.levelup();
     G.shake=Math.max(G.shake,8);
     toast(`LEVEL ${P.lv}`,'等級提升！體力全滿');
-    addRing(P.x,P.y-PH/2,{max:280,life:.7,t:.7,c:'#4FF0DC',lw:10});
+    addRing(P.x,P.y-PH/2,{max:300,life:.7,t:.7,c:'#4FF0DC',lw:12});
+    addBoom(P.x,P.y-PH/2,280,186);
     burst(P.x,P.y-PH/2,46,()=>({vx:rand(-260,260),vy:rand(-520,-60),c:pick(['#DFFBFF','#4FF0DC','#FFFFFF']),size:rand(4,9),life:1,max:1,grav:420}));
     G.flash=Math.max(G.flash,0.5);
+    addBuff('ward',8,'護','#B06BF0');
+    sysmsg(`等級提升 — Lv.${P.lv}`);
   }
 }
 
@@ -1565,7 +1756,9 @@ function bossAI(b,dt){
       if(b.onGround&&el>0.35&&!b.slammed){
         b.slammed=true;
         G.shake=22; SFX.boom();
-        addRing(b.x,b.y-10,{max:520,life:.45,t:.45,c:'#FF5A6E',lw:16});
+        addBoom(b.x,b.y-20,360,350);
+        G.flash=Math.max(G.flash,.28);
+        addRing(b.x,b.y-10,{max:560,life:.45,t:.45,c:'#FF5A6E',lw:18});
         burst(b.x,b.y,34,()=>({vx:rand(-520,520),vy:rand(-420,-40),c:pick(['#39457A','#FF5A6E','#9FD8FF']),size:rand(4,12),life:.6,max:.6}));
         if(Math.abs(P.x-b.x)<420&&P.onGround)hurtPlayer(b.atk*1.25,b.x);
       }
@@ -1658,6 +1851,8 @@ function updateProjs(dt){
           const d=typeof q.dmg==='function'?q.dmg():q.dmg;
           hurtMob(m,d.amt!==undefined?d:{amt:Math.round(d),crit:false},q.x,0.6);
           if(q.type==='meteor'){explodeMeteor(q);done=true;break;}
+          addBoom(q.x,q.y,130,28);
+          G.shake=Math.max(G.shake,7);
           if(q.hit.size>=q.pierce)done=true;
         }
       }
@@ -1685,9 +1880,11 @@ function findFloorY(x,fromY){
   return best;
 }
 function explodeMeteor(q){
-  SFX.boom(); G.shake=Math.max(G.shake,13);
-  addRing(q.x,q.y,{max:260,life:.4,t:.4,c:'#FFC24D',lw:12});
-  burst(q.x,q.y,26,()=>({vx:rand(-420,420),vy:rand(-360,120),c:pick(['#FFF0A8','#FF9E1B','#FF4E1B','#FFFFFF']),size:rand(4,11),life:.55,max:.55}));
+  SFX.boom(); G.shake=Math.max(G.shake,18);
+  G.flash=Math.max(G.flash,0.16);
+  addBoom(q.x,q.y,215,22);
+  addRing(q.x,q.y,{max:340,life:.42,t:.42,c:'#FFC24D',lw:14});
+  burst(q.x,q.y,40,()=>({vx:rand(-560,560),vy:rand(-460,160),c:pick(['#FFF0A8','#FF9E1B','#FF4E1B','#FFFFFF']),size:rand(5,14),life:.65,max:.65}));
   const d=typeof q.dmg==='function'?q.dmg():q.dmg;
   for(const m of G.mobs){
     if(m.dying||q.hit.has(m.id))continue;
@@ -1725,14 +1922,10 @@ function updateDrops(dt){
       if(d.type==='meso'){
         G.meso+=d.val; SFX.coin();
         addNum(d.x,d.y-10,d.val,'meso');
-      }else if(d.type==='hp'){
-        const h=Math.round(P.maxHp*0.3);
-        P.hp=Math.min(P.maxHp,P.hp+h); SFX.potion();
-        addNum(d.x,d.y-10,h,'heal');
       }else{
-        const h=Math.round(P.maxMp*0.35);
-        P.mp=Math.min(P.maxMp,P.mp+h); SFX.potion();
-        addNum(d.x,d.y-10,h,'mana');
+        G.inv[d.type]++;
+        SFX.coin();
+        sysmsg(`獲得 ${d.type==='hp'?'紅':'藍'}藥水 x1`);
       }
       burst(d.x,d.y,7,()=>({vx:rand(-120,120),vy:rand(-160,-20),c:d.type==='meso'?'#FFD84D':d.type==='hp'?'#FF6B76':'#6BC4FF',size:rand(2,5),life:.32,max:.32}));
       G.drops.splice(i,1);
@@ -1754,6 +1947,10 @@ function updateFx(dt){
     n.life-=dt;
     if(n.life<=0){G.nums.splice(i,1);continue;}
     n.vy+=760*dt; n.x+=n.vx*dt; n.y+=n.vy*dt;
+  }
+  for(let i=G.booms.length-1;i>=0;i--){
+    G.booms[i].t-=dt;
+    if(G.booms[i].t<=0)G.booms.splice(i,1);
   }
   for(let i=G.rings.length-1;i>=0;i--){
     const r=G.rings[i];
@@ -1802,13 +1999,18 @@ function updateCam(dt){
    ============================================================ */
 let seed=1337;
 function sr(){seed=(seed*1103515245+12345)&0x7fffffff;return seed/0x7fffffff;}
-const BG={clouds:[],hills:[],trees:[],bushes:[],islands:[],birds:[],fore:[]};
+const BG={clouds:[],hills:[],trees:[],bushes:[],islands:[],birds:[],fore:[],beams:[]};
 (function buildBG(){
   for(let i=0;i<26;i++)BG.clouds.push({x:sr()*WORLD.w*1.3,y:120+sr()*430,s:.6+sr()*1.5,sp:.1+sr()*.1});
   for(let i=0;i<20;i++)BG.hills.push({x:i*300+sr()*130,h:150+sr()*250,w:290+sr()*230});
   for(let i=0;i<64;i++)BG.trees.push({x:sr()*WORLD.w,h:130+sr()*130,s:.7+sr()*.7,c:sr()});
   for(let i=0;i<120;i++)BG.bushes.push({x:sr()*WORLD.w,s:.6+sr()*.9,c:sr()});
-  for(let i=0;i<9;i++)BG.islands.push({x:260+i*520+sr()*180,y:170+sr()*280,w:118+sr()*130,c:sr()});
+  for(let i=0;i<11;i++)BG.islands.push({x:220+i*440+sr()*200,y:150+sr()*300,w:70+sr()*120,c:sr()});
+  for(let i=0;i<8;i++){
+    const rot=sr()*TAU;
+    BG.beams.push({x:300+i*620+sr()*260,y:WORLD.groundY-260-sr()*300,
+      r:260+sr()*260,w:26+sr()*34,rot,a0:-2.5+sr()*.6,a1:-0.5-sr()*.6});
+  }
   for(let i=0;i<14;i++)BG.birds.push({x:sr()*WORLD.w,y:150+sr()*280,sp:26+sr()*30,ph:sr()*10});
 })();
 
@@ -1825,101 +2027,128 @@ function drawBG(){
   const c=ctx;
   c.drawImage(skyCv,0,0,view.w,view.h);
 
-  // 稀薄的高空雲，只留剪影
-  (function clouds(){
-    const z=zoomNow(), span=WORLD.w*1.3, vw=viewW();
-    c.save();c.scale(z,z);
-    c.globalAlpha=.16;c.fillStyle='#1B2547';
-    for(const cl of BG.clouds){
-      let x=(cl.x-G.cam.x*.14)%span;
-      if(x<0)x+=span;
-      if(x>vw+320)continue;
-      const y=cl.y-G.cam.y*.06, sc=cl.s;
-      ell(c,x,y,58*sc,17*sc);c.fill();
-      ell(c,x-40*sc,y+7*sc,34*sc,12*sc);c.fill();
-      ell(c,x+42*sc,y+6*sc,38*sc,13*sc);c.fill();
-    }
-    c.globalAlpha=1;c.restore();
-  })();
-
-  // 遠方山稜剪影
-  bgLayer(.24,.16,c=>{
-    const base=WORLD.groundY-40, vw=viewW();
-    for(const h of BG.hills){
-      if(h.x-G.cam.x*.24<-h.w||h.x-G.cam.x*.24>vw+h.w)continue;
-      c.beginPath();
-      c.moveTo(h.x-h.w/2,base);
-      c.quadraticCurveTo(h.x-h.w*.22,base-h.h*1.05,h.x,base-h.h);
-      c.quadraticCurveTo(h.x+h.w*.24,base-h.h*1.05,h.x+h.w/2,base);
-      c.closePath();
-      c.fillStyle='#0E142B';c.fill();
-      // 月光打在稜線上的冷邊
-      c.strokeStyle='rgba(150,185,255,.18)';c.lineWidth=1.5;c.stroke();
-    }
-  });
-
-  // 浮空遺跡
-  bgLayer(.34,.24,c=>{
+  // 飄浮的破碎殘骸
+  bgLayer(.2,.12,c=>{
+    const vw=viewW();
     for(const il of BG.islands){
-      const bobY=il.y+Math.sin(G.t*0.4+il.x*0.01)*7;
-      const w=il.w, h=w*0.32;
+      if(il.x-G.cam.x*.2<-260||il.x-G.cam.x*.2>vw+260)continue;
+      const y=il.y+Math.sin(G.t*.35+il.x*.01)*8;
+      const w=il.w;
+      c.save();
+      c.translate(il.x,y);
+      c.rotate(Math.sin(G.t*.22+il.x)*0.06);
+      c.fillStyle='#2A1740';
       c.beginPath();
-      c.moveTo(-w/2+il.x,bobY);
-      c.lineTo(w/2+il.x,bobY);
-      c.lineTo(il.x+w*0.12,bobY+h*1.35);
-      c.closePath();
-      c.fillStyle='#10152C';c.fill();
-      c.fillStyle='#151C38';
-      rr(c,il.x-w/2,bobY-h*.42,w,h*.62,3);c.fill();
-      // 頂面的發光苔蘚
-      c.fillStyle='rgba(79,240,220,.5)';
-      c.fillRect(il.x-w/2+3,bobY-h*.42,w-6,1.6);
-      if(il.c<.5){
-        c.fillStyle='#0B1022';
-        c.fillRect(il.x-2.5,bobY-h*.4-24,5,24);
-        c.fillStyle='#0D1428';
-        ell(c,il.x,bobY-h*.4-31,18,12);c.fill();
-      }
-      c.strokeStyle='rgba(30,40,74,.9)';c.lineWidth=1.5;
+      c.moveTo(-w*.5,0);c.lineTo(-w*.2,-w*.22);c.lineTo(w*.34,-w*.16);
+      c.lineTo(w*.5,w*.06);c.lineTo(w*.1,w*.26);c.lineTo(-w*.3,w*.16);
+      c.closePath();c.fill();
+      c.strokeStyle='rgba(255,170,110,.3)';c.lineWidth=1.5;c.stroke();
+      c.restore();
+    }
+  });
+
+  // 遠方尖塔廢墟
+  bgLayer(.3,.2,c=>{
+    const base=WORLD.groundY-20, vw=viewW();
+    for(const h of BG.hills){
+      if(h.x-G.cam.x*.3<-h.w||h.x-G.cam.x*.3>vw+h.w)continue;
+      const w=h.w*.34, hh=h.h*1.25;
+      c.fillStyle='#22132E';
       c.beginPath();
-      c.moveTo(il.x-w*.2,bobY+h*.2);
-      c.quadraticCurveTo(il.x-w*.24,bobY+h*.9,il.x-w*.15,bobY+h*1.3);
+      c.moveTo(h.x-w*.5,base);
+      c.lineTo(h.x-w*.34,base-hh*.86);
+      c.lineTo(h.x-w*.1,base-hh);
+      c.lineTo(h.x+w*.2,base-hh*.72);
+      c.lineTo(h.x+w*.42,base-hh*.9);
+      c.lineTo(h.x+w*.5,base);
+      c.closePath();c.fill();
+      // 夕陽在邊緣鑲一道金邊
+      c.strokeStyle='rgba(255,180,110,.32)';c.lineWidth=2;
+      c.beginPath();
+      c.moveTo(h.x+w*.2,base-hh*.72);
+      c.lineTo(h.x+w*.42,base-hh*.9);
+      c.lineTo(h.x+w*.5,base);
       c.stroke();
+      // 窗口殘光
+      c.fillStyle='rgba(255,150,80,.2)';
+      for(let k=0;k<4;k++){
+        const wy=base-hh*(.2+k*.16);
+        c.fillRect(h.x-w*.2,wy,w*.14,hh*.05);
+      }
     }
   });
 
-  // 森林剪影
-  bgLayer(.55,.44,c=>{
-    const base=WORLD.groundY+30, vw=viewW();
+  // 巨大的斷裂環樑 —— 這是戰場最有辨識度的剪影
+  bgLayer(.46,.34,c=>{
+    const vw=viewW();
+    for(const b of BG.beams){
+      if(b.x-G.cam.x*.46<-b.r*1.4||b.x-G.cam.x*.46>vw+b.r*1.4)continue;
+      c.save();
+      c.translate(b.x,b.y);
+      c.rotate(b.rot);
+      c.strokeStyle='#1A0F26';
+      c.lineWidth=b.w;
+      c.beginPath();
+      c.arc(0,0,b.r,b.a0,b.a1);
+      c.stroke();
+      c.strokeStyle='rgba(255,170,100,.22)';
+      c.lineWidth=2.5;
+      c.beginPath();
+      c.arc(0,0,b.r-b.w*.5+1.5,b.a0,b.a1);
+      c.stroke();
+      // 斷面
+      c.fillStyle='#120A1C';
+      const ex=Math.cos(b.a1)*b.r, ey=Math.sin(b.a1)*b.r;
+      c.save();c.translate(ex,ey);c.rotate(b.a1);
+      c.fillRect(-b.w*.6,-b.w*.55,b.w*1.2,b.w*1.1);
+      c.restore();
+      c.restore();
+    }
+  });
+
+  // 近景的機械殘骸
+  bgLayer(.62,.5,c=>{
+    const base=WORLD.groundY+20, vw=viewW();
     for(const t of BG.trees){
-      if(t.x-G.cam.x*.55<-200||t.x-G.cam.x*.55>vw+200)continue;
-      c.fillStyle='#080B18';
-      c.fillRect(t.x-6*t.s,base-t.h,12*t.s,t.h);
-      const cy=base-t.h-10*t.s;
-      ell(c,t.x,cy,50*t.s,36*t.s);fill(c,'#080B18');
-      ell(c,t.x-30*t.s,cy+14*t.s,34*t.s,25*t.s);fill(c,'#080B18');
-      ell(c,t.x+32*t.s,cy+12*t.s,36*t.s,26*t.s);fill(c,'#080B18');
-      // 月光冷邊
-      c.globalAlpha=.5;
-      c.strokeStyle='rgba(120,160,230,.16)';c.lineWidth=2;
-      c.beginPath();c.ellipse(t.x+16*t.s,cy-6*t.s,46*t.s,32*t.s,0,-2.5,-0.5);c.stroke();
-      c.globalAlpha=1;
+      if(t.x-G.cam.x*.62<-220||t.x-G.cam.x*.62>vw+220)continue;
+      const w=46*t.s, hh=t.h*1.1;
+      c.fillStyle='#150C20';
+      c.beginPath();
+      c.moveTo(t.x-w*.6,base);
+      c.lineTo(t.x-w*.44,base-hh*.9);
+      c.lineTo(t.x+w*.16,base-hh);
+      c.lineTo(t.x+w*.5,base-hh*.6);
+      c.lineTo(t.x+w*.62,base);
+      c.closePath();c.fill();
+      c.strokeStyle='rgba(255,160,90,.2)';c.lineWidth=2;
+      c.beginPath();
+      c.moveTo(t.x+w*.16,base-hh);c.lineTo(t.x+w*.5,base-hh*.6);c.stroke();
+      if(t.c<.45){   // 發光的能量核
+        c.save();
+        c.globalCompositeOperation='lighter';
+        c.globalAlpha=.4+Math.sin(G.t*2+t.x)*.18;
+        c.fillStyle='rgba(180,90,255,.7)';
+        ell(c,t.x,base-hh*.55,11*t.s,11*t.s);c.fill();
+        c.globalAlpha=.16;
+        ell(c,t.x,base-hh*.55,34*t.s,34*t.s);c.fill();
+        c.restore();
+      }
     }
   });
 
-  // 地霧
-  (function fog(){
+  // 地面熱霧
+  (function haze(){
     const z=zoomNow(), vw=viewW();
     c.save();c.scale(z,z);
     c.globalCompositeOperation='lighter';
     for(let i=0;i<3;i++){
-      const f=.32+i*.22;
-      const y=WORLD.groundY-70-i*170-G.cam.y*f*.55;
+      const f=.34+i*.2;
+      const y=WORLD.groundY-56-i*140-G.cam.y*f*.55;
       const off=((G.cam.x*f)%520+520)%520;
-      c.globalAlpha=.055-i*.012;
-      c.fillStyle='#5E77C8';
+      c.globalAlpha=.06-i*.014;
+      c.fillStyle=i?'#FF8A4E':'#FFB877';
       for(let x=-520;x<vw+520;x+=520){
-        ell(c,x-off+260,y,330,34+i*10);c.fill();
+        ell(c,x-off+260,y,340,30+i*10);c.fill();
       }
     }
     c.restore();
@@ -1937,7 +2166,7 @@ function drawForeground(){
     const k=Math.abs(i*7)%3;
     const sc=1+k*0.26;
     c.globalAlpha=.9;
-    c.fillStyle='#04050C';
+    c.fillStyle='#0C0612';
     c.beginPath();
     c.moveTo(x-22*sc,y);
     c.quadraticCurveTo(x-10*sc,y-46*sc,x-1*sc,y-74*sc);
@@ -1958,11 +2187,11 @@ function drawPlatforms(){
     const dx1=p.solid?Math.min(p.x+p.w,vx1):p.x+p.w;
     const dw=dx1-dx0;
     const g=linGrad(c,'rock'+p.y+h,0,p.y,0,p.y+h,
-      [[0,'#1C2344'],[.16,'#121837'],[.5,'#0B0F22'],[1,'#05070F']]);
+      [[0,'#33203F'],[.16,'#22142A'],[.5,'#140C1A'],[1,'#08040B']]);
     if(p.solid){
       c.fillStyle=g;c.fillRect(dx0,p.y,dw,h);
       // 岩層
-      c.fillStyle='rgba(120,150,220,.055)';
+      c.fillStyle='rgba(255,170,110,.06)';
       c.fillRect(dx0,p.y+86,dw,3);
       c.fillRect(dx0,p.y+178,dw,4);
       c.fillStyle='rgba(0,0,0,.35)';
@@ -1976,7 +2205,7 @@ function drawPlatforms(){
         const k=Math.abs(Math.sin(vx*0.013))*1;
         const vy=p.y+40+((vx*7)%150);
         c.globalAlpha=(.1+k*.1)*(0.6+Math.sin(G.t*1.2+vx)*0.25);
-        c.strokeStyle=k<.5?'rgba(79,240,220,.8)':'rgba(139,107,240,.8)';
+        c.strokeStyle=k<.5?'rgba(255,140,70,.85)':'rgba(190,80,220,.8)';
         c.lineWidth=2;
         c.beginPath();
         c.moveTo(vx,vy);
@@ -1990,7 +2219,7 @@ function drawPlatforms(){
       c.strokeStyle='#05070F';c.lineWidth=2;c.stroke();
     }
     // 岩紋
-    c.fillStyle='rgba(120,150,220,.05)';
+    c.fillStyle='rgba(255,180,120,.055)';
     const i0=Math.max(0,Math.floor((dx0-p.x)/38)*38);
     const i1=Math.min(p.w,dx1-p.x);
     for(let i=i0;i<i1;i+=38){
@@ -1998,18 +2227,18 @@ function drawPlatforms(){
       c.fillRect(p.x+i+((i*13)%19),yy,9,2);
     }
     // 頂面石板
-    c.fillStyle='#252E54';
+    c.fillStyle='#46294F';
     c.fillRect(dx0,p.y-7,dw,8);
     c.fillStyle='rgba(0,0,0,.35)';
     for(let i=i0;i<i1;i+=46)c.fillRect(p.x+i,p.y-7,1.4,8);
     // 發光苔蘚：這條線是平台唯一的光源，也讓落點一眼可辨
     const mg=linGrad(c,'moss'+p.y,0,p.y-8,0,p.y+12,
-      [[0,'rgba(79,240,220,.42)'],[.35,'rgba(79,240,220,.10)'],[1,'rgba(79,240,220,0)']]);
+      [[0,'rgba(255,168,92,.5)'],[.35,'rgba(255,130,70,.12)'],[1,'rgba(255,110,60,0)']]);
     c.fillStyle=mg;c.fillRect(dx0,p.y-8,dw,20);
-    c.fillStyle='rgba(150,255,240,.85)';
+    c.fillStyle='rgba(255,214,160,.92)';
     c.fillRect(dx0,p.y-8,dw,1.6);
     // 苔蘚垂落
-    c.fillStyle='rgba(79,240,220,.22)';
+    c.fillStyle='rgba(255,160,90,.25)';
     const j0=Math.max(0,Math.floor((dx0-p.x)/29)*29);
     for(let j=j0;j<i1;j+=29){
       const hh=3+((j*31)%9);
@@ -2017,7 +2246,7 @@ function drawPlatforms(){
     }
     // 懸空平台的枯藤
     if(!p.solid){
-      c.strokeStyle='#0A1020';c.lineWidth=2.5;c.lineCap='round';
+      c.strokeStyle='#150A1C';c.lineWidth=2.5;c.lineCap='round';
       for(let i=0;i<3;i++){
         const vx=p.x+22+i*(p.w-44)/2;
         const len=20+((i*37)%26);
@@ -2038,7 +2267,7 @@ function drawDecor(){
     if(b.x<vx0||b.x>vx1)continue;
     const s=b.s;
     if(b.c<0.4){            // 枯草
-      c.strokeStyle='#0A0E1E';c.lineWidth=2*s;c.lineCap='round';
+      c.strokeStyle='#150A1C';c.lineWidth=2*s;c.lineCap='round';
       for(let i=-2;i<=2;i++){
         c.beginPath();
         c.moveTo(b.x+i*4*s,y);
@@ -2047,22 +2276,22 @@ function drawDecor(){
       }
       c.lineCap='butt';
     }else if(b.c<0.72){     // 碎岩
-      c.fillStyle='#131A33';
+      c.fillStyle='#241534';
       c.beginPath();
       c.moveTo(b.x-13*s,y);c.lineTo(b.x-8*s,y-13*s);c.lineTo(b.x+4*s,y-16*s);
       c.lineTo(b.x+12*s,y-6*s);c.lineTo(b.x+14*s,y);
       c.closePath();c.fill();
-      c.strokeStyle='rgba(150,185,255,.14)';c.lineWidth=1.2;c.stroke();
+      c.strokeStyle='rgba(255,170,110,.16)';c.lineWidth=1.2;c.stroke();
     }else{                  // 發光菌菇
       const glow=0.6+Math.sin(G.t*1.6+b.x*0.05)*0.25;
-      const col=b.c<0.87?'79,240,220':'139,107,240';
+      const col=b.c<0.87?'255,150,70':'200,80,230';
       c.save();
       c.globalCompositeOperation='lighter';
       c.globalAlpha=glow*.5;
       c.fillStyle=`rgba(${col},.5)`;
       ell(c,b.x,y-14*s,26*s,20*s);c.fill();
       c.restore();
-      c.fillStyle='#0D1327';
+      c.fillStyle='#1C0F26';
       c.fillRect(b.x-1.6*s,y-13*s,3.2*s,13*s);
       c.fillStyle=`rgba(${col},.95)`;
       c.beginPath();
@@ -2077,13 +2306,13 @@ function drawRopes(){
   const vx0=G.cam.x-40, vx1=G.cam.x+viewW()+40;
   for(const r of ROPES){
     if(r.x<vx0||r.x>vx1)continue;
-    c.strokeStyle='#0B1020';c.lineWidth=6;
+    c.strokeStyle='#150A1C';c.lineWidth=6;
     c.beginPath();c.moveTo(r.x,r.t);c.lineTo(r.x,r.b);c.stroke();
-    c.strokeStyle='rgba(120,150,210,.28)';c.lineWidth=2;
+    c.strokeStyle='rgba(255,170,110,.3)';c.lineWidth=2;
     for(let y=r.t+6;y<r.b;y+=14){
       c.beginPath();c.moveTo(r.x-5,y);c.lineTo(r.x+5,y+7);c.stroke();
     }
-    c.fillStyle='#1A2242';
+    c.fillStyle='#3A2144';
     c.fillRect(r.x-7,r.t-3,14,5);
   }
 }
@@ -2541,17 +2770,45 @@ function drawKing(c,m,f){
     c.stroke();
   }
   c.lineCap='butt';
-  c.fillStyle=flashify('#2A3050',f);
-  rr(c,-W*.56,-H*.56+bob,W*.18,H*.32,4);c.fill();
-  rr(c,W*.38,-H*.56-bob,W*.18,H*.32,4);c.fill();
+  // 手臂（要和軀幹咬合，不能浮在旁邊）
+  c.fillStyle=flashify('#3A1C34',f);
   c.beginPath();
-  c.moveTo(-W*.36,-H*.6+bob);c.lineTo(W*.36,-H*.6+bob);
-  c.lineTo(W*.3,-H*.08+bob);c.lineTo(-W*.3,-H*.08+bob);
+  c.moveTo(-W*.52,-H*.54+bob);c.lineTo(-W*.26,-H*.58+bob);
+  c.lineTo(-W*.24,-H*.2+bob);c.lineTo(-W*.46,-H*.14+bob);
+  c.closePath();c.fill();
+  c.beginPath();
+  c.moveTo(W*.52,-H*.54-bob);c.lineTo(W*.26,-H*.58-bob);
+  c.lineTo(W*.24,-H*.2-bob);c.lineTo(W*.46,-H*.14-bob);
+  c.closePath();c.fill();
+  // 軀幹：有機的菌柄，不是方塊
+  c.beginPath();
+  c.moveTo(-W*.3,-H*.6+bob);
+  c.quadraticCurveTo(-W*.34,-H*.34+bob,-W*.27,-H*.08+bob);
+  c.lineTo(W*.27,-H*.08+bob);
+  c.quadraticCurveTo(W*.34,-H*.34+bob,W*.3,-H*.6+bob);
   c.closePath();
-  c.fillStyle=f>0.01?flashify('#2C3358',f)
-    :linGrad(c,'kingBody',0,-H*.6,0,0,[[0,'#2C3358'],[1,'#0E1330']]);
+  c.fillStyle=f>0.01?flashify('#4A2440',f)
+    :linGrad(c,'kingBody',0,-H*.6,0,0,[[0,'#50283F'],[.55,'#331830'],[1,'#180A18']]);
   c.fill();
-  c.strokeStyle='#07091A';c.lineWidth=3;c.stroke();
+  c.strokeStyle='#150612';c.lineWidth=3;c.stroke();
+  // 胸口的菌紋
+  c.save();
+  c.globalCompositeOperation='lighter';
+  c.globalAlpha=.3+Math.sin(G.t*2.2)*.12;
+  c.strokeStyle=`rgba(${m.d.glow},.7)`;c.lineWidth=2;
+  for(let i=-1;i<=1;i++){
+    c.beginPath();
+    c.moveTo(i*W*.13,-H*.55+bob);
+    c.quadraticCurveTo(i*W*.2,-H*.36+bob,i*W*.1,-H*.12+bob);
+    c.stroke();
+  }
+  c.restore();
+  // 邊緣受夕照
+  c.strokeStyle='rgba(255,170,110,.22)';c.lineWidth=2;
+  c.beginPath();
+  c.moveTo(W*.3,-H*.6+bob);
+  c.quadraticCurveTo(W*.34,-H*.34+bob,W*.27,-H*.08+bob);
+  c.stroke();
   const ey=-H*.44+bob;
   c.save();
   c.globalCompositeOperation='lighter';
@@ -2615,6 +2872,155 @@ function drawKing(c,m,f){
 }
 
 /* ---------- 特效 ---------- */
+/* ============================================================
+   大型爆炸：楓之谷王級技能那種蓋住半個畫面的多層爆焰
+   固定以半徑 100 建立漸層後再縮放，避免每幀重建漸層
+   ============================================================ */
+function addBoom(x,y,scale,hue,opt){
+  if(G.booms.length>26)G.booms.shift();
+  G.booms.push(Object.assign({
+    x,y,scale:scale||120,hue:hue===undefined?26:hue,
+    t:0.52,life:0.52,spin:rand(0,TAU),spikes:true,
+  },opt||{}));
+}
+function boomGrad(c,key,stops){
+  return radGrad(c,'boom'+key,100,stops);
+}
+function drawBooms(c){
+  c=c||ctx;
+  for(const b of G.booms){
+    const k=clamp(1-b.t/b.life,0,1);
+    const ease=1-Math.pow(1-k,2.2);
+    const R=b.scale*(0.28+ease*0.9);
+    const fade=Math.pow(1-k,0.8);
+    const h=b.hue;
+    c.save();
+    c.translate(b.x,b.y);
+    c.globalCompositeOperation='lighter';
+
+    // 外層火環
+    c.save();
+    c.scale(R/100,R/100);
+    c.globalAlpha=fade*.62;
+    c.fillStyle=boomGrad(c,'ring'+h,[
+      [0,'rgba(0,0,0,0)'],
+      [.30,`hsla(${h+14},100%,60%,0)`],
+      [.52,`hsla(${h+10},100%,64%,.55)`],
+      [.68,`hsla(${h},100%,58%,.95)`],
+      [.82,`hsla(${h-16},100%,48%,.6)`],
+      [1,`hsla(${h-24},100%,42%,0)`],
+    ]);
+    ell(c,0,0,100,100);c.fill();
+    c.restore();
+
+    // 白熱核心
+    const cr=R*(0.52-ease*0.3);
+    if(cr>2){
+      c.save();
+      c.scale(cr/100,cr/100);
+      c.globalAlpha=Math.pow(1-k,1.6)*.72;
+      c.fillStyle=boomGrad(c,'core'+h,[
+        [0,'rgba(255,255,255,1)'],
+        [.35,`hsla(${h+26},100%,88%,.92)`],
+        [.7,`hsla(${h+6},100%,66%,.35)`],
+        [1,`hsla(${h},100%,60%,0)`],
+      ]);
+      ell(c,0,0,100,100);c.fill();
+      c.restore();
+    }
+
+    // 擴散衝擊環
+    for(let i=0;i<2;i++){
+      const rk=clamp(k*1.5-i*0.22,0,1);
+      if(rk<=0||rk>=1)continue;
+      c.globalAlpha=Math.pow(1-rk,1.9)*.6;
+      c.strokeStyle=i?`hsla(${h+30},100%,80%,1)`:'#FFFFFF';
+      c.lineWidth=(i?5:9)*(1-rk)+1;
+      c.beginPath();
+      c.arc(0,0,R*(0.7+rk*0.95)+i*16,0,TAU);
+      c.stroke();
+    }
+
+    // 放射光刺
+    if(b.spikes){
+      c.save();
+      c.rotate(b.spin+k*0.5);
+      c.globalAlpha=Math.pow(1-k,2.4)*.5;
+      const n=8;
+      for(let i=0;i<n;i++){
+        const len=R*(1.15+((i*37)%5)*0.16);
+        const wdt=R*0.045;
+        c.rotate(TAU/n);
+        c.fillStyle=`hsla(${h+18},100%,78%,.9)`;
+        c.beginPath();
+        c.moveTo(0,-wdt);
+        c.lineTo(len,0);
+        c.lineTo(0,wdt);
+        c.closePath();c.fill();
+      }
+      c.restore();
+    }
+    c.restore();
+  }
+}
+
+/* 角色身上的稜彩氣場 —— 高等角色站著不動也在發光 */
+function drawPlayerAura(c){
+  c=c||ctx;
+  const p=P;
+  const boost=p.atkT>0||p.whirlT>0?1:0.55;
+  const t=G.t;
+  c.save();
+  c.translate(p.x,p.y-PH*0.5);
+  c.globalCompositeOperation='lighter';
+
+  // 稜彩旋環
+  for(let i=0;i<3;i++){
+    const rot=t*(0.9+i*0.55)*(i%2?-1:1);
+    const rad=40+i*13;
+    c.save();
+    c.rotate(rot);
+    c.globalAlpha=(.24+Math.sin(t*3+i)*.07)*boost;
+    c.lineWidth=3.4-i*0.7;
+    const hue=(t*60+i*120)%360;
+    c.strokeStyle=`hsl(${hue},100%,72%)`;
+    c.beginPath();
+    c.arc(0,0,rad,0.2,2.5);
+    c.stroke();
+    c.beginPath();
+    c.arc(0,0,rad,3.4,5.7);
+    c.stroke();
+    c.restore();
+  }
+
+  // 繞行的光點
+  for(let i=0;i<7;i++){
+    const a=t*1.7+i*TAU/7;
+    const rad=46+Math.sin(t*2.2+i)*11;
+    const x=Math.cos(a)*rad, y=Math.sin(a)*rad*0.72;
+    const hue=(t*90+i*51)%360;
+    c.globalAlpha=(.5+Math.sin(t*5+i)*.3)*boost;
+    c.fillStyle=`hsl(${hue},100%,78%)`;
+    ell(c,x,y,2.6,2.6);c.fill();
+    c.globalAlpha=(.16)*boost;
+    ell(c,x,y,9,9);c.fill();
+  }
+
+  // 腳下的光池
+  c.globalAlpha=.2*boost;
+  c.fillStyle=radGrad(c,'auraPool',100,[
+    [0,'rgba(255,240,200,.7)'],
+    [.5,'rgba(255,170,90,.28)'],
+    [1,'rgba(255,120,60,0)'],
+  ]);
+  c.save();
+  c.scale(0.62,0.26);
+  c.translate(0,PH*0.5/0.26*0.62);
+  ell(c,0,0,100,100);c.fill();
+  c.restore();
+  c.restore();
+}
+
 /* 衝刺殘影 */
 function drawGhosts(c){
   c=c||ctx;
@@ -2699,12 +3105,12 @@ function drawHint(){
   const x=P.x, y=P.y-PH-46+Math.sin(G.t*3)*2;
   c.save();
   c.globalAlpha=a;
-  c.font='700 15px "Noto Sans TC","PingFang TC",system-ui,sans-serif';
+  c.font='700 12px "Noto Sans TC","PingFang TC",system-ui,sans-serif';
   c.textAlign='center';c.textBaseline='middle';
-  const w=c.measureText(G.hint).width+28;
-  c.beginPath();c.moveTo(x-8,y+15);c.lineTo(x+8,y+15);c.lineTo(x,y+24);c.closePath();
+  const w=c.measureText(G.hint).width+20;
+  c.beginPath();c.moveTo(x-6,y+12);c.lineTo(x+6,y+12);c.lineTo(x,y+19);c.closePath();
   c.fillStyle='rgba(10,7,22,.9)';c.fill();
-  rr(c,x-w/2,y-16,w,32,10);
+  rr(c,x-w/2,y-13,w,26,4);
   c.fillStyle='rgba(10,7,22,.9)';c.fill();
   c.strokeStyle='rgba(70,230,214,.85)';c.lineWidth=2;c.stroke();
   c.fillStyle='#EAF6FF';
@@ -2727,6 +3133,8 @@ function bloomBox(z){
   for(const o of G.projs)add(o.x,o.y,o.r*2.4+24);
   for(const o of G.slashes)add(o.x,o.y,o.chain===3?150:118);
   for(const o of G.ghosts)add(o.x,o.y-30,46);
+  for(const o of G.booms)add(o.x,o.y,o.scale*1.3);
+  add(P.x,P.y-PH*.5,70);
   for(const o of P.trail)add(o.x,o.y,22);
   if(!any)return null;
   const pad=26+G.shake*z;
@@ -2753,11 +3161,13 @@ function drawBloom(z,sx,sy){
   drawWeaponTrail(b);
   drawSlashes(b);
   drawProjs(b);
+  drawBooms(b);
   drawGhosts(b);
+  drawPlayerAura(b);
   b.restore();
   ctx.save();
   ctx.globalCompositeOperation='lighter';
-  ctx.globalAlpha=.56;
+  ctx.globalAlpha=.44;
   ctx.drawImage(bloomCv,bx,by,bw,bh,bx*BLOOM_DIV,by*BLOOM_DIV,bw*BLOOM_DIV,bh*BLOOM_DIV);
   ctx.restore();
 }
@@ -2774,7 +3184,7 @@ function drawSlashes(c){
     c.globalAlpha=(1-a)*0.95;
     c.globalCompositeOperation='lighter';
     c.rotate(-1.0+a*2.0);
-    const R=fin?86:58;
+    const R=fin?112:74;
     for(let i=0;i<3;i++){
       c.beginPath();
       c.arc(0,0,R+i*14,-(fin?1.25:0.95),(fin?1.25:0.95));
@@ -2988,10 +3398,12 @@ function render(){
   for(const m of G.mobs)if(onScreen(m.x,m.y,300))drawMob(m);
   drawRings();
   drawGhosts();
+  drawPlayerAura();
   drawPlayer();
   drawWeaponTrail();
   drawSlashes();
   drawProjs();
+  drawBooms();
   drawParts();
   drawNums();
   drawHint();
@@ -3041,23 +3453,97 @@ const hud={
   meso:$('meso'),kills:$('kills'),
   bossbar:$('bossbar'),bossfill:$('bossfill'),bossghost:$('bossghost'),
 };
-const slotEls={};
-(function buildHotbar(){
-  const bar=$('hotbar');
-  for(const s of SKILLS){
+const slotEls={}, qpot={}, buffEls={};
+function drawPotionIcon(c,kind){
+  c.clearRect(0,0,60,60);
+  c.save();c.translate(30,30);
+  const hot=kind==='hp';
+  c.fillStyle='#C9CEDC';
+  c.fillRect(-7,-22,14,6);
+  c.fillStyle='#8E94A8';
+  c.fillRect(-5,-17,10,4);
+  const g=c.createLinearGradient(0,-14,0,20);
+  g.addColorStop(0,hot?'#FF8A99':'#8FD0FF');
+  g.addColorStop(.55,hot?'#E01030':'#2E7FE0');
+  g.addColorStop(1,hot?'#6E0A1C':'#123C70');
+  c.beginPath();
+  c.moveTo(-8,-14);c.lineTo(8,-14);
+  c.quadraticCurveTo(17,4,12,15);
+  c.quadraticCurveTo(0,24,-12,15);
+  c.quadraticCurveTo(-17,4,-8,-14);
+  c.closePath();
+  c.fillStyle=g;c.fill();
+  c.strokeStyle='rgba(0,0,0,.55)';c.lineWidth=1.6;c.stroke();
+  c.fillStyle='rgba(255,255,255,.5)';
+  c.beginPath();c.ellipse(-5,2,2.4,7,-.3,0,TAU);c.fill();
+  c.restore();
+}
+(function buildQuick(){
+  const r1=$('qrow1'), r2=$('qrow2');
+  for(const sk of SKILLS){
     const el=document.createElement('div');
-    el.className='slot';
-    el.innerHTML=`<span class="key"></span><canvas class="ic" width="60" height="60"></canvas>
-      <span class="nm"></span><span class="mp"></span><span class="cd"></span>`;
-    el.querySelector('.key').textContent=s.key;
-    el.querySelector('.nm').textContent=s.name;
-    el.querySelector('.mp').textContent=s.mp?s.mp:'';
-    drawSkillIcon(el.querySelector('.ic').getContext('2d'),s.icon);
-    el.addEventListener('pointerdown',e=>{e.preventDefault();setAct(s.id,true);setTimeout(()=>setAct(s.id,false),60);});
-    bar.appendChild(el);
-    slotEls[s.id]={el,cd:el.querySelector('.cd')};
+    el.className='qslot hot';
+    el.innerHTML='<span class="k"></span><canvas width="60" height="60"></canvas><span class="cd"></span>';
+    el.querySelector('.k').textContent=sk.key;
+    drawSkillIcon(el.querySelector('canvas').getContext('2d'),sk.icon);
+    el.addEventListener('pointerdown',e=>{e.preventDefault();setAct(sk.id,true);setTimeout(()=>setAct(sk.id,false),60);});
+    r1.appendChild(el);
+    slotEls[sk.id]={el,cd:el.querySelector('.cd'),sk};
   }
+  for(let i=0;i<2;i++){const e=document.createElement('div');e.className='qslot empty';r1.appendChild(e);}
+  for(const [kind,key] of [['hp','1'],['mp','2']]){
+    const el=document.createElement('div');
+    el.className='qslot';
+    el.innerHTML='<span class="k"></span><canvas width="60" height="60"></canvas><span class="n"></span>';
+    el.querySelector('.k').textContent=key;
+    drawPotionIcon(el.querySelector('canvas').getContext('2d'),kind);
+    el.addEventListener('pointerdown',e=>{e.preventDefault();usePotion(kind);});
+    r2.appendChild(el);
+    qpot[kind]={el,n:el.querySelector('.n')};
+  }
+  for(let i=0;i<4;i++){const e=document.createElement('div');e.className='qslot empty';r2.appendChild(e);}
 })();
+function renderBuffs(){
+  const box=$('buffs');
+  if(!box)return;
+  for(const id in G.buffs){
+    let e=buffEls[id];
+    if(!e){
+      e=document.createElement('div');
+      e.className='buff';
+      e.innerHTML='<span class="g"></span><span class="bt"></span><i class="bw"></i>';
+      box.appendChild(e);
+      buffEls[id]=e;
+    }
+    const b=G.buffs[id];
+    e.style.color=b.color;
+    e.firstChild.textContent=b.glyph;
+    e.children[1].textContent=b.t>=10?Math.ceil(b.t):b.t.toFixed(1);
+    e.children[2].style.width=(clamp(b.t/b.max,0,1)*100)+'%';
+  }
+  for(const id in buffEls){
+    if(!G.buffs[id]){buffEls[id].remove();delete buffEls[id];}
+  }
+}
+function renderQuests(){
+  const ul=$('qlist');
+  if(!ul)return;
+  if(ul.children.length!==G.quests.length){
+    ul.replaceChildren(...G.quests.map(()=>{
+      const li=document.createElement('li');
+      li.innerHTML='<span></span><i></i>';
+      return li;
+    }));
+  }
+  G.quests.forEach((q,i)=>{
+    const li=ul.children[i];
+    const done=q.got>=q.need;
+    li.classList.toggle('done',done);
+    li.firstChild.textContent=q.text;
+    li.lastChild.textContent=done?'完成':`${q.got}/${q.need}`;
+  });
+  $('qprog').textContent=questsDone()+'/'+G.quests.length;
+}
 function flashSlot(id){
   const s=slotEls[id];
   if(!s)return;
@@ -3193,13 +3679,30 @@ function updateHUD(){
   if(lastHud.meso!==G.meso){hud.meso.textContent=G.meso.toLocaleString();lastHud.meso=G.meso;}
   if(lastHud.kills!==G.kills){hud.kills.textContent=G.kills;lastHud.kills=G.kills;}
 
-  for(const s of SKILLS){
-    const o=slotEls[s.id];
-    o.el.classList.toggle('locked',P.mp<s.mp);
-    const cd=P.cds[s.id];
-    if(cd>0.05){o.cd.style.opacity='1';o.cd.textContent=cd>=1?Math.ceil(cd):cd.toFixed(1);}
-    else o.cd.style.opacity='0';
+  for(const sk of SKILLS){
+    const o=slotEls[sk.id];
+    const cd=P.cds[sk.id];
+    if(cd>0.05){
+      o.cd.style.height=(clamp(cd/sk.cd,0,1)*100)+'%';
+      o.cd.textContent=cd>=1?Math.ceil(cd):cd.toFixed(1);
+    }else{
+      o.cd.style.height='0px';
+      o.cd.textContent='';
+    }
+    o.el.classList.toggle('empty',P.mp<sk.mp);
   }
+  qpot.hp.n.textContent=G.inv.hp;
+  qpot.mp.n.textContent=G.inv.mp;
+  qpot.hp.el.classList.toggle('empty',G.inv.hp<=0);
+  qpot.mp.el.classList.toggle('empty',G.inv.mp<=0);
+
+  const tl=Math.max(0,G.timeLeft);
+  const tstr=`${String(Math.floor(tl/60)).padStart(2,'0')}:${String(Math.floor(tl%60)).padStart(2,'0')}`;
+  if(lastHud.time!==tstr){$('timeN').textContent=tstr;lastHud.time=tstr;}
+  $('timebox').classList.toggle('low',tl<60);
+  if(lastHud.deaths!==G.deaths){$('deathN').textContent=String(G.deaths).padStart(2,'0');lastHud.deaths=G.deaths;}
+  renderBuffs();
+  renderQuests();
   const b=G.boss;
   if(b&&!b.dying){
     const r=clamp(b.hp/b.maxHp,0,1);
@@ -3243,10 +3746,13 @@ function startGame(){
   G.state='play';
   setScreen(null);
   toast('腐化楓林','往東深入，斬斷菌王');
+  sysmsg('進入 腐化楓林 · 核心 — 限時 20 分鐘');
 }
-function dieGame(){
+function dieGame(timeout){
   P.dead=true;
   G.state='dead';
+  G.deaths++;
+  G.timeout=!!timeout;
   SFX.die();
   BGM.stop();
   burst(P.x,P.y-PH/2,34,()=>({vx:rand(-320,320),vy:rand(-420,-40),c:pick(['#FF6B76','#FFFFFF','#46E6D6']),size:rand(4,10),life:.9,max:.9}));
@@ -3255,8 +3761,10 @@ function dieGame(){
   $('deathstats').innerHTML=
     `<div class="stat"><b>Lv.${P.lv}</b><i>目前等級</i></div>
      <div class="stat"><b>${G.kills}</b><i>累積擊殺</i></div>
-     <div class="stat"><b>${G.meso.toLocaleString()}</b><i>剩餘楓幣</i></div>
+     <div class="stat"><b>${String(G.deaths).padStart(2,'0')}</b><i>死亡次數</i></div>
      <div class="stat"><b>-${lost.toLocaleString()}</b><i>損失楓幣</i></div>`;
+  $('death').querySelector('.sub').textContent=G.timeout?'Time Expired':'You Died';
+  $('death').querySelector('.logo').textContent=G.timeout?'時 間 到':'倒 下';
   setTimeout(()=>setScreen('death'),650);
 }
 function revive(){
@@ -3282,7 +3790,8 @@ function winGame(){
   setScreen('win');
 }
 function nextRound(){
-  const keep={lv:P.lv,exp:P.exp,meso:G.meso,kills:G.kills,tier:G.tier+1,best:G.combo.best};
+  const keep={lv:P.lv,exp:P.exp,meso:G.meso,kills:G.kills,tier:G.tier+1,best:G.combo.best,
+    deaths:G.deaths,invHp:G.inv.hp,invMp:G.inv.mp};
   newGame(keep);
   G.state='play';
   hud.bossbar.classList.remove('on');
@@ -3334,6 +3843,13 @@ function frame(now){
       if(G.cine<=0){G.cine=0;document.getElementById('bosscard').classList.remove('on');}
     }
     if(!G.helpAuto&&G.runT>26){G.helpAuto=true;$('helpbar').classList.add('off');}
+    updateBuffs(dt);
+    if(tapped.pot1)usePotion('hp');
+    if(tapped.pot2)usePotion('mp');
+    if(G.cine<=0){
+      G.timeLeft-=dt;
+      if(G.timeLeft<=0){G.timeLeft=0;dieGame(true);}
+    }
     if(G.freeze>0){
       G.freeze-=dt;
     }else{
