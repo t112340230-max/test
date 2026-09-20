@@ -76,6 +76,11 @@ body{
 .chip .k{font-size:6px;color:#6A5230}
 .chip b{font-size:9px}
 .chip.gold b{color:#8A5A00}
+.chip.cls b{font-family:var(--f-cjk);font-size:12px;color:inherit}
+.qslot.locked{filter:grayscale(1) brightness(.5)}
+.qslot.locked::after{content:'鎖';position:absolute;inset:0;display:flex;
+  align-items:center;justify-content:center;font-family:var(--f-cjk);
+  font-size:13px;color:#FFD24D;text-shadow:1px 1px 0 #000}
 
 /* ===== 右上：復古小地圖 ===== */
 #minimap{position:absolute;right:10px;top:calc(10px + env(safe-area-inset-top,0px));width:186px;padding:0}
@@ -232,6 +237,48 @@ body{
 .ew-item.on{box-shadow:inset 1px 1px 0 rgba(255,240,160,.5),0 0 0 1px #FFC83C}
 .ew-item.locked{filter:grayscale(1) brightness(.55);cursor:not-allowed}
 .ew-item .tx{min-width:0}
+/* 商店 */
+#shopwin{position:absolute;right:14px;
+  top:calc(132px + env(safe-area-inset-top,0px));
+  bottom:calc(118px + env(safe-area-inset-bottom,0px));
+  width:378px;pointer-events:auto;z-index:8;
+  display:flex;flex-direction:column}
+#shopwin[hidden]{display:none!important}
+#shopwin .ew-body{padding:7px;overflow-y:auto;flex:1}
+.sw-tabs{display:flex;gap:3px;padding:5px 6px 0;background:var(--wood)}
+.sw-tab{flex:1;cursor:pointer;padding:5px 0 4px;
+  font-family:var(--f-cjk);font-weight:700;font-size:12px;color:#6A5230;
+  background:var(--wood-dk);border:2px solid var(--wood-ink);border-bottom:none;
+  box-shadow:inset 1px 1px 0 rgba(255,255,255,.18)}
+.sw-tab.on{background:var(--wood-lt);color:#3A2410}
+#swPurse{margin:0 0 7px;padding:4px 6px;background:var(--slate-dk);
+  border:2px solid var(--wood-ink);box-shadow:inset 1px 1px 0 rgba(255,255,255,.14);
+  font-family:var(--f-px);font-size:9px;color:#FFE08A}
+.sw-group{margin-bottom:9px}
+.sw-group>b{display:flex;justify-content:space-between;align-items:baseline;gap:6px;
+  font-family:var(--f-cjk);font-weight:700;font-size:12px;
+  margin-bottom:4px;letter-spacing:1px}
+.sw-group>b i{font-style:normal;font-family:var(--f-cjk);font-weight:400;
+  font-size:10px;color:#8A7A5A;text-align:right;flex:1}
+.sw-item{display:flex;align-items:center;gap:7px;padding:3px 5px;cursor:pointer;
+  background:var(--slate-dk);border:2px solid var(--wood-ink);
+  box-shadow:inset 1px 1px 0 rgba(255,255,255,.14);margin-bottom:3px}
+.sw-item:hover{background:#39456A}
+.sw-item.on{background:#5A4418;border-color:#FFC83C}
+.sw-item.poor{opacity:.5;cursor:not-allowed}
+.sw-item canvas{width:28px;height:28px;flex:none;image-rendering:pixelated}
+.sw-item .tx{min-width:0;flex:1}
+.sw-item .nm{font-family:var(--f-cjk);font-weight:700;font-size:12px;line-height:1.2}
+.sw-item .st{font-family:var(--f-cjk);font-size:10px;color:#7AE86A;line-height:1.25}
+.sw-item .ds{font-family:var(--f-cjk);font-size:10px;color:#A89878;line-height:1.25}
+.sw-item .pr{flex:none;text-align:right;font-family:var(--f-px);font-size:8px;
+  color:#FFD24D;line-height:1.6}
+.sw-item .pr em{display:block;font-style:normal;font-size:7px;color:#8AE86A}
+@media (max-width:1100px){
+  #shopwin{width:288px}
+  .sw-item .ds{display:none}
+}
+
 /* 底部欄的開啟鍵 */
 #equipbtn{flex:none;width:44px;height:44px;cursor:pointer;padding:0;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
@@ -361,6 +408,7 @@ body.touch #uibar{height:92px}
     <div id="topleft">
       <div class="chip gold bevel"><span class="k">MESO</span><b id="meso">0</b></div>
       <div class="chip bevel"><span class="k">SLAIN</span><b id="kills">0</b></div>
+      <div class="chip bevel cls" id="classchip"><span class="k">CLASS</span><b>劍士</b></div>
     </div>
 
     <div id="minimap" class="bevel">
@@ -406,6 +454,19 @@ body.touch #uibar{height:92px}
       </div>
     </div>
 
+    <div id="shopwin" class="bevel" hidden>
+      <div class="ew-t"><span id="swName">SHOP 商店</span><span class="ew-x" id="swClose">[X]</span></div>
+      <div class="sw-tabs">
+        <button class="sw-tab on" data-tab="weapon">武器 / 轉職</button>
+        <button class="sw-tab" data-tab="skill">技能</button>
+      </div>
+      <div class="ew-body">
+        <p class="ew-tip" id="swTip"></p>
+        <div id="swPurse"></div>
+        <div id="swList"></div>
+      </div>
+    </div>
+
     <div id="toasts"></div>
 
     <div id="helpbar">
@@ -416,6 +477,7 @@ body.touch #uibar{height:92px}
       <span><kbd>Z X C V</kbd>技能</span>
       <span><kbd>1 2</kbd>藥水</span>
       <span><kbd>E</kbd>裝備</span>
+      <span><kbd>F</kbd>商人</span>
       <span><kbd>H</kbd>收合</span>
     </div>
 
@@ -463,7 +525,8 @@ body.touch #uibar{height:92px}
       <div class="sub">Maple Blight</div>
       <div class="logo">楓 蝕 夜 行</div>
       <div class="rule"></div>
-      <p class="hint" style="margin:0 0 26px">楓林入夜後被孢子侵蝕。往東走，斬斷菇菇王。</p>
+      <p class="hint" style="margin:0 0 26px">楓林入夜後被孢子侵蝕。往東走，斬斷菇菇王。<br>
+        <b style="color:#FFD24D">武器決定職業</b> —— 劍士／槍兵／法師／弓手／刺客／死神，換把武器就換一套技能。</p>
       <div class="keys">
         <div class="krow"><kbd>← →</kbd><span>移動</span></div>
         <div class="krow"><kbd>SPACE</kbd><span>跳躍 / 二段跳</span></div>
@@ -472,10 +535,11 @@ body.touch #uibar{height:92px}
         <div class="krow"><kbd>↓</kbd><span>長按穿過平台</span></div>
         <div class="krow"><kbd>Z</kbd><span>三段連斬</span></div>
         <div class="krow"><kbd>X C V</kbd><span>烈焰 / 旋風 / 神罰</span></div>
-        <div class="krow"><kbd>滑鼠</kbd><span>點擊即攻擊</span></div>
+        <div class="krow"><kbd>F</kbd><span>找商人買武器與技能</span></div>
+        <div class="krow"><kbd>E</kbd><span>裝備欄</span></div>
       </div>
       <button class="btn" id="startbtn">進入楓林</button>
-      <p class="hint">敵人出手前會亮起紅光 —— 那是你衝刺閃避的時機</p>
+      <p class="hint">敵人出手前會亮起紅光 —— 那是你衝刺閃避的時機<br>金色錢幣招牌下站著商人，按 F 交易</p>
     </div>
   </div>
 
@@ -673,7 +737,7 @@ const ACTIONS={
   up:['arrowup','w'], down:['arrowdown','s'],
   jump:[' ','space'],
   atk1:['z','j'], atk2:['x','k'], atk3:['c','l'], atk4:['v','u'],
-  dash:['shift','f'], help:['h'], pot1:['1'], pot2:['2'], gear:['e'],
+  dash:['shift'], help:['h'], pot1:['1'], pot2:['2'], gear:['e'], shop:['f'],
   pause:['p','escape'], mute:['m'],
 };
 const KEY2ACT={};
@@ -952,14 +1016,228 @@ const SPAWNS=[
   ['mush',3080,925,3020,3250],['slime',3400,WORLD.groundY,3200,3520],
 ];
 
-/* 技能表 */
-/* 四招從第一秒就能用 —— 用 MP 與冷卻來平衡，而不是用等級鎖住玩家 */
-const SKILLS=[
-  {id:'atk1',name:'斬擊',   key:'Z',mp:0,  cd:0.26, mul:1.55,icon:'slash'},
-  {id:'atk2',name:'烈焰彈', key:'X',mp:16, cd:0.42, mul:2.40,icon:'fire'},
-  {id:'atk3',name:'旋風斬', key:'C',mp:34, cd:2.40, mul:1.45,icon:'whirl'},
-  {id:'atk4',name:'天降神罰',key:'V',mp:90, cd:20.0, mul:4.20,icon:'meteor'},
+/* ============================================================
+   職業（流派）
+   武器決定流派：換一把武器，四個技能格、被動加成與揮擊手感
+   會整組換掉。想轉職不用回城，把武器拿起來就是了。
+   ============================================================ */
+const CLASSES={
+  none:{
+    name:'拳鬥家', tag:'BRAWLER', col:'#E0A277',
+    desc:'空手也能打，但你遲早需要一把武器。',
+    swing:'thrust', rest:0.30, up:-0.9, down:0.10, lunge:6,
+    mods:{atk:-0.25, hp:0.10},
+    skills:['n_punch','n_punch','n_punch','n_punch'],
+  },
+  warrior:{
+    name:'劍士', tag:'WARRIOR', col:'#FF8A4C',
+    desc:'單手劍。三段連斬收尾最痛，血厚、站得住，正面硬拚的流派。',
+    swing:'sweep', rest:0.62, up:-2.45, down:0.74, lunge:0,
+    mods:{atk:0.10, hp:0.25, mp:-0.20},
+    skills:['w_slash','w_bash','w_whirl','w_judge'],
+  },
+  lancer:{
+    name:'槍兵', tag:'LANCER', col:'#7AC8FF',
+    desc:'長柄。攻擊距離最遠、可貫穿多隻，但單體傷害偏低。',
+    swing:'thrust', rest:0.28, up:-1.15, down:0.05, lunge:11,
+    mods:{atk:0.05, hp:0.15, spd:0.05},
+    skills:['l_pierce','l_sweep','l_charge','l_storm'],
+  },
+  mage:{
+    name:'法師', tag:'MAGE', col:'#C86BFF',
+    desc:'法杖。全遠程、範圍最大，魔力池深；但血薄，被貼身就麻煩。',
+    swing:'aim', rest:-0.18, up:-0.55, down:-0.05, lunge:0,
+    mods:{atk:0.20, hp:-0.25, mp:0.60, cdr:0.10},
+    skills:['m_bolt','m_nova','m_ward','m_meteor'],
+  },
+  ranger:{
+    name:'弓手', tag:'RANGER', col:'#8AE86A',
+    desc:'弓。射程極遠、移速高，靠風箏怪物過活。',
+    swing:'aim', rest:-0.12, up:-0.48, down:0.02, lunge:0,
+    mods:{atk:0.12, hp:-0.10, spd:0.18, crit:0.05},
+    skills:['r_shot','r_volley','r_roll','r_rain'],
+  },
+  rogue:{
+    name:'刺客', tag:'ROGUE', col:'#FFD24D',
+    desc:'匕首。攻速與爆擊最高、位移最靈活，代價是射程近到貼臉。',
+    swing:'thrust', rest:0.42, up:-1.3, down:0.22, lunge:7,
+    mods:{atk:-0.05, hp:-0.15, spd:0.22, crit:0.16, cdr:0.18},
+    skills:['g_stab','g_step','g_venom','g_dance'],
+  },
+  reaper:{
+    name:'死神', tag:'REAPER', col:'#B48CE8',
+    desc:'鐮刀。橫掃一片、砍中就回血，越多怪越強的收割流派。',
+    swing:'sweep', rest:0.70, up:-2.6, down:0.85, lunge:0,
+    mods:{atk:0.14, hp:0.05, crit:0.04},
+    skills:['d_reap','d_drain','d_mark','d_harvest'],
+  },
+};
+const CLASS_ORDER=['warrior','lancer','mage','ranger','rogue','reaper'];
+const SLOT_KEYS=['Z','X','C','V'];
+
+/* ------------------------------------------------------------
+   技能圖鑑
+   cast.kind 決定行為，其餘欄位是參數 —— 新增技能只要多一筆資料。
+     melee 近身判定框 / proj 發射物 / whirl 旋轉範圍
+     rain  天降轟炸   / dash 突進斬   / buff 增益
+   ------------------------------------------------------------ */
+const SKILL_DB={
+  /* --- 拳鬥（空手） --- */
+  n_punch:{cls:'none',slot:1,name:'徒手打擊',mp:0,cd:0.30,mul:0.9,icon:'slash',price:0,
+    desc:'很痛，但主要是你自己的手痛。',
+    cast:{kind:'melee',reach:74,vspan:70,chain:3,lunge:110}},
+
+  /* --- 劍士 --- */
+  w_slash:{cls:'warrior',slot:1,name:'三段連斬',mp:0,cd:0.26,mul:1.55,icon:'slash',price:0,
+    desc:'第三下是收尾重擊，傷害與範圍都放大。',
+    cast:{kind:'melee',reach:120,vspan:78,chain:3,finMul:1.8,lunge:150,finLunge:280}},
+  w_bash:{cls:'warrior',slot:2,name:'破空斬',mp:18,cd:0.85,mul:3.1,icon:'slash',price:900,
+    desc:'一記重砍，把前方所有東西一起震開。',
+    cast:{kind:'melee',reach:165,vspan:110,kb:2.1,lunge:230,boom:1}},
+  w_whirl:{cls:'warrior',slot:3,name:'旋風斬',mp:34,cd:2.40,mul:1.45,icon:'whirl',price:2600,
+    desc:'原地高速旋轉，持續掃掉周圍所有目標。',
+    cast:{kind:'whirl',dur:0.70,radius:128,tick:0.13}},
+  w_judge:{cls:'warrior',slot:4,name:'天降神罰',mp:90,cd:20,mul:4.2,icon:'meteor',price:7000,
+    desc:'召來十道隕石覆蓋整個戰場。',
+    cast:{kind:'rain',n:10,spread:560,type:'meteor',shout:'天降神罰'}},
+
+  /* --- 槍兵 --- */
+  l_pierce:{cls:'lancer',slot:1,name:'貫穿刺',mp:0,cd:0.30,mul:1.7,icon:'thrust',price:0,
+    desc:'又長又直的一刺，能同時串起好幾隻。',
+    cast:{kind:'melee',reach:196,vspan:52,chain:2,lunge:190}},
+  l_sweep:{cls:'lancer',slot:2,name:'橫掃千軍',mp:20,cd:0.95,mul:2.4,icon:'slash',price:900,
+    desc:'長柄橫掃，半徑內全部擊飛。',
+    cast:{kind:'melee',reach:180,vspan:130,kb:1.9,boom:1}},
+  l_charge:{cls:'lancer',slot:3,name:'衝鋒突擊',mp:30,cd:2.2,mul:2.8,icon:'dash',price:2600,
+    desc:'挺槍衝過去，沿路的敵人全部被撞開。',
+    cast:{kind:'dash',dist:300,vspan:80,iframe:0.3}},
+  l_storm:{cls:'lancer',slot:4,name:'雷霆萬鈞',mp:85,cd:18,mul:3.6,icon:'meteor',price:7000,
+    desc:'十二道落雷沿著地面追著敵人劈。',
+    cast:{kind:'rain',n:12,spread:620,type:'meteor',el:'storm',shout:'雷霆萬鈞'}},
+
+  /* --- 法師 --- */
+  m_bolt:{cls:'mage',slot:1,name:'秘法彈',mp:6,cd:0.32,mul:1.9,icon:'bolt',price:0,
+    desc:'一發穿透式魔彈，安全距離外的基本輸出。',
+    cast:{kind:'proj',n:1,speed:900,r:28,pierce:3,style:'magic'}},
+  m_nova:{cls:'mage',slot:2,name:'烈焰新星',mp:26,cd:1.1,mul:1.5,icon:'nova',price:1100,
+    desc:'扇形噴出五發火球，近距離全中最痛。',
+    cast:{kind:'proj',n:5,spread:0.62,speed:700,r:26,pierce:2,style:'magic'}},
+  m_ward:{cls:'mage',slot:3,name:'秘法護盾',mp:40,cd:12,mul:0,icon:'buff',price:2800,
+    desc:'十秒內大幅減傷，並提升法術威力。',
+    cast:{kind:'buff',id:'ward',dur:10,glyph:'盾',col:'#7AC8FF',stats:{def:0.42,atk:0.20}}},
+  m_meteor:{cls:'mage',slot:4,name:'隕石災變',mp:100,cd:22,mul:4.6,icon:'meteor',price:7600,
+    desc:'十四發隕石砸穿戰場，法師的收場方式。',
+    cast:{kind:'rain',n:14,spread:640,type:'meteor',shout:'隕石災變'}},
+
+  /* --- 弓手 --- */
+  r_shot:{cls:'ranger',slot:1,name:'精準射擊',mp:0,cd:0.28,mul:1.6,icon:'arrow',price:0,
+    desc:'又快又直的一箭，射程壓過所有近戰。',
+    cast:{kind:'proj',n:1,speed:1250,r:18,pierce:2,el:'leaf'}},
+  r_volley:{cls:'ranger',slot:2,name:'箭雨齊發',mp:18,cd:0.9,mul:1.35,icon:'arrow',price:1000,
+    desc:'一次拉開三箭，上中下同時封鎖。',
+    cast:{kind:'proj',n:3,spread:0.34,speed:1100,r:16,pierce:2,el:'leaf'}},
+  r_roll:{cls:'ranger',slot:3,name:'迴避翻滾',mp:16,cd:1.6,mul:1.2,icon:'dash',price:2400,
+    desc:'往後翻滾脫離貼身，過程全程無敵。',
+    cast:{kind:'dash',dist:-260,vspan:70,iframe:0.45}},
+  r_rain:{cls:'ranger',slot:4,name:'萬箭穿心',mp:88,cd:19,mul:3.2,icon:'rain',price:7200,
+    desc:'十六支箭從天而降，覆蓋一整條路。',
+    cast:{kind:'rain',n:16,spread:600,type:'meteor',el:'leaf',shout:'萬箭穿心'}},
+
+  /* --- 刺客 --- */
+  g_stab:{cls:'rogue',slot:1,name:'影刃連擊',mp:0,cd:0.16,mul:1.05,icon:'thrust',price:0,
+    desc:'極短的出手間隔，靠爆擊與連擊數堆傷害。',
+    cast:{kind:'melee',reach:86,vspan:64,chain:4,lunge:170}},
+  g_step:{cls:'rogue',slot:2,name:'瞬影突襲',mp:16,cd:1.0,mul:2.6,icon:'dash',price:1000,
+    desc:'瞬間穿過敵群，沿路全部挨一刀。',
+    cast:{kind:'dash',dist:280,vspan:70,iframe:0.28}},
+  g_venom:{cls:'rogue',slot:3,name:'淬毒之刃',mp:34,cd:14,mul:0,icon:'buff',price:2800,
+    desc:'十二秒內爆擊率與移速大幅上升。',
+    cast:{kind:'buff',id:'venom',dur:12,glyph:'毒',col:'#8AE86A',stats:{crit:0.30,spd:0.25,atk:0.12}}},
+  g_dance:{cls:'rogue',slot:4,name:'影襲亂舞',mp:76,cd:15,mul:1.3,icon:'whirl',price:6800,
+    desc:'原地爆發一輪高速亂刺，攻擊判定極密。',
+    cast:{kind:'whirl',dur:1.1,radius:150,tick:0.07}},
+
+  /* --- 死神 --- */
+  d_reap:{cls:'reaper',slot:1,name:'收割',mp:0,cd:0.34,mul:1.75,icon:'reap',price:0,
+    desc:'大幅度橫掃，一次帶走一整排。',
+    cast:{kind:'melee',reach:150,vspan:120,chain:2,lunge:130}},
+  d_drain:{cls:'reaper',slot:2,name:'靈魂汲取',mp:22,cd:1.2,mul:2.2,icon:'reap',price:1100,
+    desc:'砍中的每個目標都把血還給你。',
+    cast:{kind:'melee',reach:160,vspan:130,heal:0.09,boom:1}},
+  d_mark:{cls:'reaper',slot:3,name:'死亡標記',mp:36,cd:13,mul:0,icon:'buff',price:2800,
+    desc:'十二秒內攻擊力暴漲，但減傷歸零。',
+    cast:{kind:'buff',id:'mark',dur:12,glyph:'死',col:'#C86BFF',stats:{atk:0.55,crit:0.08}}},
+  d_harvest:{cls:'reaper',slot:4,name:'大鐮審判',mp:82,cd:16,mul:1.9,icon:'whirl',price:7000,
+    desc:'鐮刃張到最大，一圈一圈把周圍清空並回血。',
+    cast:{kind:'whirl',dur:1.3,radius:200,tick:0.12,heal:0.04}},
+};
+for(const id in SKILL_DB)SKILL_DB[id].id=id;
+/* 每個流派的第一招免費，其餘要在商人那裡買 */
+const FREE_SKILLS=Object.keys(SKILL_DB).filter(id=>SKILL_DB[id].price===0);
+
+function weaponClass(){
+  const w=(P&&P.equipment&&P.equipment.weapon)||'none';
+  const d=EQUIP.weapon[w];
+  return (d&&d.cls)||'none';
+}
+function classDef(){return CLASSES[weaponClass()]||CLASSES.none;}
+/* 目前武器對應的四個技能格（沒學會的回傳定義但標記 locked） */
+function activeSkills(){
+  return classDef().skills.map((id,i)=>{
+    const d=SKILL_DB[id];
+    if(!d)return null;
+    return {...d, slot:i+1, key:SLOT_KEYS[i], slotKey:'atk'+(i+1),
+            locked:!(G.learned&&G.learned.has(id))};
+  });
+}
+
+/* ============================================================
+   商人
+   站在地圖上的實體 NPC，走近按 F 開店。
+   ============================================================ */
+const NPCS=[
+  {id:'m1', x:300,  y:WORLD.groundY, name:'流浪商人 · 柯爾',
+   line:'武器決定你是什麼職業。換把武器，整套技能就換了。'},
+  {id:'m2', x:2430, y:1085,          name:'高台補給商',
+   line:'打到這裡了？該換新流派試試看了。'},
+  {id:'m3', x:3480, y:WORLD.groundY, name:'前線補給官',
+   line:'再往東就是菇菇王。買齊了再過去。'},
 ];
+const NPC_PAL={
+  '#':'#1B1428','S':'#F2C79A','s':'#C99468','E':'#2A2238',
+  'H':'#C42410','h':'#8E1808',
+  'F':'#DCD4C4','f':'#A89888',
+  'R':'#E8A34A','r':'#A86A22',
+  'W':'#4A5570','w':'#2E3648','G':'#FFD24D',
+};
+const M_MERCHANT=padRows([
+  '    ######    ',
+  '   #HHHHHH#   ',
+  '  #HHHHHHHH#  ',
+  ' #hhhhhhhhhh# ',
+  '##hhhhhhhhhh##',
+  '#hhhhhhhhhhhh#',
+  ' ############ ',
+  '   #SSSSSS#   ',
+  '   #SEESEE#   ',
+  '   #SSSSSS#   ',
+  '   #sFFFFs#   ',
+  '   #FFFFFF#   ',
+  '  #RRRRRRRR#  ',
+  ' #RRRRRRRRRR# ',
+  '#RRRRRRRRRRRR#',
+  '#SRRRRGGRRRRS#',
+  '#sRRRRGGRRRRs#',
+  '#RRRRRRRRRRRR#',
+  ' #rRRRRRRRRr# ',
+  ' #rrrrrrrrrr# ',
+  ' #rrrrrrrrrr# ',
+  '  #WW####WW#  ',
+  '  #WW####WW#  ',
+  '  #ww####ww#  ',
+  ' #WWWW##WWWW# ',
+  ' ############ ',
+]);
 
 /* ============================================================
    遊戲狀態
@@ -983,7 +1261,7 @@ function newPlayer(keep){
     dashT:0,dashCd:0,dashDir:1,ghostT:0,potCd:0,
     lastDir:null,lastDirT:-9,jumpBuf:0,downHold:0,
     chain:0,chainT:0,trail:[],
-    equipment:{weapon:'flame_sword', helmet:'lava_helm',
+    equipment:{weapon:'basic_sword', helmet:'lava_helm',
       chestplate:'lava_chest', leggings:'lava_legs',
       aura:'thunder_ring', shoes:'none'},
     critBonus:0, spdMul:1, cdrMul:1,
@@ -1004,7 +1282,7 @@ function newGame(keep){
     inv:{hp:keep?keep.invHp:3, mp:keep?keep.invMp:3},
     // 只有取得過的裝備才穿得上；開局先給基本配備
     owned:keep&&keep.owned?keep.owned:{
-      weapon:new Set(['none','basic_sword','flame_sword']),
+      weapon:new Set(['none','basic_sword']),
       helmet:new Set(['none','lava_helm']),
       chestplate:new Set(['none','lava_chest']),
       leggings:new Set(['none','lava_legs']),
@@ -1022,12 +1300,15 @@ function newGame(keep){
     meteorQ:[],
     kills:keep?keep.kills:0, meso:keep?keep.meso:0,
     tier:keep?keep.tier:1,
+    learned:keep&&keep.learned?new Set(keep.learned):new Set(FREE_SKILLS),
   };
   for(const sl of EQUIP_SLOTS)
     if(!(G.owned[sl] instanceof Set))G.owned[sl]=new Set(['none']);
+  for(const id of FREE_SKILLS)G.learned.add(id);
   P=newPlayer(keep);
   if(typeof PixelFX!=='undefined')PixelFX.clear();
   recalcStats(false);   // 把裝備加成算進初始數值
+  refreshClass();       // 依武器決定流派與技能格
   for(let i=0;i<SPAWNS.length;i++)spawnFromDef(i);
   for(let i=0;i<46;i++)G.leaves.push(newLeaf(true));
   camSnap();
@@ -1196,10 +1477,19 @@ function drawNums(c){
 }
 
 /* Buff：全部都有實際效果，不是裝飾 */
-function addBuff(id,dur,glyph,color){
+function buffStat(k){
+  let v=0;
+  for(const i in G.buffs){
+    const st=G.buffs[i].stats;
+    if(st&&st[k])v+=st[k];
+  }
+  return v;
+}
+function addBuff(id,dur,glyph,color,stats){
   const b=G.buffs[id];
   if(b){b.t=Math.max(b.t,dur);b.max=Math.max(b.max,dur,b.max);}
-  else G.buffs[id]={t:dur,max:dur,glyph,color};
+  else G.buffs[id]={t:dur,max:dur,glyph,color,stats};
+  if(stats)G.buffs[id].stats=stats;
 }
 function hasBuff(id){return !!G.buffs[id];}
 function updateBuffs(dt){
@@ -1396,7 +1686,7 @@ function updatePlayer(dt){
   }
 
   /* --- 水平移動 --- */
-  const target=mv*RUN*(hasBuff('swift')?1.18:1)*(P.spdMul||1);
+  const target=mv*RUN*(hasBuff('swift')?1.18:1)*(P.spdMul||1)*(1+buffStat('spd'));
   if(mv!==0){
     const step=ACC*dt;
     p.vx+=clamp(target-p.vx,-step,step);
@@ -1487,15 +1777,27 @@ function usePotion(kind){
   if(o){o.el.classList.remove('flash');void o.el.offsetWidth;o.el.classList.add('flash');}
 }
 function tryCast(s){
-  if(P.cds[s.id]>0)return;
+  if(!s)return;
+  if(s.locked){
+    toast('尚未習得 '+s.name,'找商人學技能 — 按 F');
+    SFX.warn();
+    return;
+  }
+  if(P.cds[s.slotKey]>0)return;
   if(P.mp<s.mp){toast('魔力不足','NOT ENOUGH MP');return;}
   P.mp-=s.mp;
-  P.cds[s.id]=s.cd*(P.cdrMul||1);
-  flashSlot(s.id);
-  if(s.id==='atk1')castSlash(s);
-  else if(s.id==='atk2')castFire(s);
-  else if(s.id==='atk3')castWhirl(s);
-  else castMeteor(s);
+  P.cds[s.slotKey]=s.cd*(P.cdrMul||1);
+  flashSlot(s.slotKey);
+  castSkill(s);
+}
+function castSkill(s){
+  const c=s.cast;
+  if(c.kind==='melee')castMelee(s,c);
+  else if(c.kind==='proj')castProj(s,c);
+  else if(c.kind==='whirl')castWhirl(s,c);
+  else if(c.kind==='rain')castRain(s,c);
+  else if(c.kind==='dash')castDash(s,c);
+  else if(c.kind==='buff')castBuffSkill(s,c);
 }
 function doAttacks(dt){
   const p=P;
@@ -1504,94 +1806,174 @@ function doAttacks(dt){
     p.whirlT-=dt;
     p.whirlTick-=dt;
     if(p.whirlTick<=0){
-      p.whirlTick=0.13;
-      const s=SKILLS[2];
-      let hit=false;
+      const w=p.whirlCfg||{mul:1.4,radius:128,tick:0.13};
+      p.whirlTick=w.tick;
+      let hit=0;
       for(const m of G.mobs){
         if(m.dying)continue;
-        if(Math.hypot(m.x-p.x,(m.y-m.h/2)-(p.y-PH/2))<128){
-          hurtMob(m,rollDmg(s.mul),p.x,0.45); hit=true;
+        if(Math.hypot(m.x-p.x,(m.y-m.h/2)-(p.y-PH/2))<w.radius){
+          hurtMob(m,rollDmg(w.mul),p.x,0.45); hit++;
         }
       }
-      if(hit)G.shake=Math.max(G.shake,5);
-      addRing(p.x,p.y-PH/2,{max:185,life:.24,t:.24,c:'#7BE6FF',lw:7});
-      if(hit)addBoom(p.x,p.y-PH/2,150,186,{spikes:false});
+      if(hit){
+        G.shake=Math.max(G.shake,5);
+        if(w.heal)healPlayer(P.maxHp*w.heal*hit);
+        addBoom(p.x,p.y-PH/2,w.radius*1.15,186,{spikes:false});
+      }
+      addRing(p.x,p.y-PH/2,{max:w.radius*1.45,life:.24,t:.24,c:'#7BE6FF',lw:7});
     }
   }
-  if(G.cine<=0)for(const s of SKILLS)if(tapped[s.id])tryCast(s);
+  if(G.cine<=0){
+    const sk=P.skills||[];
+    for(const s of sk)if(s&&tapped[s.slotKey])tryCast(s);
+  }
 }
-/* 連擊越高，爆擊率與傷害一起往上疊 */
+function healPlayer(v){
+  const before=P.hp;
+  P.hp=clamp(P.hp+v,0,P.maxHp);
+  const got=Math.round(P.hp-before);
+  if(got>0)addNum(P.x,P.y-PH-16,got,'heal');
+}
+/* 連擊越高，爆擊率與傷害一起往上疊；增益也在這裡統一結算 */
 function rollDmg(mul,style){
   const n=G.combo.n;
-  const crit=chance(0.26+(P.critBonus||0)+Math.min(n,40)*0.003);
-  const base=P.atk*mul*(1+Math.min(n,60)*0.005)*rand(0.88,1.12);
+  const crit=chance(0.26+(P.critBonus||0)+buffStat('crit')+Math.min(n,40)*0.003);
+  const base=P.atk*(1+buffStat('atk'))*mul*(1+Math.min(n,60)*0.005)*rand(0.88,1.12);
   return{amt:Math.round(base*(crit?2.3:1)),crit,style};
 }
-/* 普攻是三段連斬：第三下是收尾重擊，範圍、傷害、特效都放大 */
-function castSlash(s){
+
+/* ---------- 近身：一個矩形判定框，參數決定流派手感 ---------- */
+function castMelee(s,c){
   const p=P;
   p.attacked=true;
   autoFace();
-  p.chain=(p.chain%3)+1;
-  p.chainT=0.62;
-  const fin=p.chain===3;
-  p.atkT=p.atkDur=fin?0.34:0.26;
+  const nchain=c.chain||1;
+  let fin=false;
+  if(nchain>1){
+    p.chain=(p.chain%nchain)+1;
+    p.chainT=0.62;
+    fin=p.chain===nchain;
+  }
+  p.atkT=p.atkDur=fin?0.34:(c.dur||0.26);
   p.atkKind='slash';
-  p.vx+=p.face*(fin?280:150);
+  const lunge=fin?(c.finLunge||c.lunge||0):(c.lunge||0);
+  if(lunge)p.vx+=p.face*lunge;
   p.trail.length=0;
-  SFX.slash(fin);
-  const ox=p.x+p.face*54, oy=p.y-PH*0.52;
+  SFX.slash(fin||!!c.boom);
   {
     const w=eq('weapon');
-    if(w.onSwing)w.onSwing(p,heroWeaponTip(),fin);
+    if(w.onSwing)w.onSwing(p,heroWeaponTip(),fin||!!c.boom);
   }
-  const reach=fin?146:120, vspan=fin?96:78;
+  const mul=s.mul*(fin?(c.finMul||1.8):1);
+  const reach=c.reach*(fin?1.2:1), vspan=c.vspan*(fin?1.2:1);
   let hit=0;
   for(const m of G.mobs){
     if(m.dying)continue;
     const dx=(m.x-p.x)*p.face, dy=(m.y-m.h/2)-(p.y-PH/2);
-    if(dx>-30&&dx<reach&&Math.abs(dy)<vspan){ hurtMob(m,rollDmg(s.mul*(fin?1.8:1)),p.x,fin?1.5:0.8); hit++; }
+    if(dx>-30&&dx<reach&&Math.abs(dy)<vspan){
+      hurtMob(m,rollDmg(mul,s.cast.style),p.x,(c.kb||1)*(fin?1.5:0.8));
+      hit++;
+    }
   }
   if(hit){
-    G.shake=Math.max(G.shake,fin?15:6);
-    if(fin){
+    if(c.heal)healPlayer(P.maxHp*c.heal*hit);
+    G.shake=Math.max(G.shake,fin||c.boom?15:6);
+    if(fin||c.boom){
       G.freeze=Math.max(G.freeze,0.07);
       G.flash=Math.max(G.flash,0.26);
-      addBoom(p.x+p.face*78,p.y-PH*.52,165,186);
-      burst(p.x+p.face*78,p.y-PH*.52,18,()=>({vx:p.face*rand(60,460),vy:rand(-260,260),
+      const bx=p.x+p.face*reach*0.6, by=p.y-PH*.52;
+      addBoom(bx,by,reach*1.2,186);
+      burst(bx,by,18,()=>({vx:p.face*rand(60,460),vy:rand(-260,260),
         c:pick(['#FFFFFF','#9FF6FF','#4FF0DC']),size:rand(4,11),life:.45,max:.45,grav:120}));
     }
   }
 }
-function castFire(s){
+
+/* ---------- 發射物：n 發、可扇形散開 ---------- */
+function castProj(s,c){
   const p=P;
   p.attacked=true;
   autoFace();
-  p.atkT=p.atkDur=0.26; p.atkKind='cast';
+  p.atkT=p.atkDur=c.dur||0.24; p.atkKind='cast';
   SFX.cast();
-  const d=rollDmg(s.mul,'magic');
-  const el=eq('weapon').element;
-  makeProj({x:p.x+p.face*32,y:p.y-PH*0.55,vx:p.face*820,vy:0,r:30,
-    dmg:d,pierce:3,life:1.3,type:'fire',el});
-  addBoom(p.x+p.face*40,p.y-PH*0.55,90,ELEM_HUE[el]||30,{spikes:false});
-  burst(p.x+p.face*32,p.y-PH*0.55,10,()=>({vx:p.face*rand(60,240),vy:rand(-90,90),c:pick(['#FFD24D','#FF8A1B','#FF4E1B']),size:rand(3,7),life:.32,max:.32,grav:0}));
+  const el=c.el||eq('weapon').element||'fire';
+  const n=c.n||1, spread=c.spread||0;
+  const ox=p.x+p.face*30, oy=p.y-PH*0.55;
+  for(let i=0;i<n;i++){
+    const a=n===1?0:(-spread/2+spread*i/(n-1));
+    makeProj({x:ox,y:oy,
+      vx:p.face*Math.cos(a)*c.speed, vy:Math.sin(a)*c.speed,
+      r:c.r||24, dmg:rollDmg(s.mul,c.style),
+      pierce:c.pierce||1, life:c.life||1.3, type:'fire', el});
+  }
+  addBoom(ox+p.face*10,oy,90,ELEM_HUE[el]||30,{spikes:false});
+  burst(ox,oy,10,()=>({vx:p.face*rand(60,240),vy:rand(-90,90),
+    c:pick(['#FFD24D','#FF8A1B','#FF4E1B']),size:rand(3,7),life:.32,max:.32,grav:0}));
 }
-function castWhirl(s){
+
+/* ---------- 旋轉範圍 ---------- */
+function castWhirl(s,c){
   P.attacked=true;
-  P.whirlT=0.70; P.whirlTick=0; P.atkT=P.atkDur=0.70; P.atkKind='whirl';
+  P.whirlT=c.dur; P.whirlTick=0;
+  P.atkT=P.atkDur=c.dur; P.atkKind='whirl';
+  P.whirlCfg={mul:s.mul,radius:c.radius,tick:c.tick,heal:c.heal};
   SFX.slash(); SFX.cast();
-  addRing(P.x,P.y-PH/2,{max:230,life:.42,t:.42,c:'#FFFFFF',lw:11});
-  addBoom(P.x,P.y-PH/2,210,190);
+  addRing(P.x,P.y-PH/2,{max:c.radius*1.8,life:.42,t:.42,c:'#FFFFFF',lw:11});
+  addBoom(P.x,P.y-PH/2,c.radius*1.6,190);
 }
-function castMeteor(s){
+
+/* ---------- 天降轟炸 ---------- */
+function castRain(s,c){
   P.attacked=true;
   G.flash=Math.max(G.flash,0.3);
   G.lines=Math.max(G.lines,1.2);
   SFX.roar(); G.shake=Math.max(G.shake,14);
   const d=()=>rollDmg(s.mul,'magic');
-  for(let i=0;i<10;i++)
-    G.meteorQ.push({t:i*0.115,x:P.x+rand(-560,560),roll:d});
-  toast('天降神罰','DIVINE JUDGEMENT');
+  for(let i=0;i<c.n;i++)
+    G.meteorQ.push({t:i*0.1,x:P.x+rand(-c.spread,c.spread),roll:d,el:c.el});
+  if(c.shout)toast(c.shout,s.name);
+}
+
+/* ---------- 突進：沿路掃過去，過程無敵 ---------- */
+function castDash(s,c){
+  const p=P;
+  p.attacked=true;
+  autoFace();
+  const dir=c.dist<0?-p.face:p.face;
+  const dist=Math.abs(c.dist);
+  const x0=p.x, x1=clamp(p.x+dir*dist,30,WORLD.w-30);
+  p.atkT=p.atkDur=0.26; p.atkKind='slash';
+  p.dashT=Math.max(p.dashT,c.iframe||0.25);
+  p.ghostT=0.3;
+  p.vx=dir*RUN*2.2; p.vy=Math.min(p.vy,-60);
+  SFX.dash();
+  const lo=Math.min(x0,x1)-40, hi=Math.max(x0,x1)+40;
+  let hit=0;
+  for(const m of G.mobs){
+    if(m.dying)continue;
+    if(m.x>lo&&m.x<hi&&Math.abs((m.y-m.h/2)-(p.y-PH/2))<c.vspan){
+      hurtMob(m,rollDmg(s.mul,s.cast.style),x0,1.4); hit++;
+    }
+  }
+  if(hit)G.shake=Math.max(G.shake,11);
+  for(let i=0;i<10;i++){
+    const t=i/9;
+    burst(lerp(x0,x1,t),p.y-PH*0.5+rand(-16,16),2,()=>({
+      vx:rand(-90,90),vy:rand(-120,40),c:pick(['#FFFFFF','#9FF6FF']),
+      size:rand(3,7),life:.3,max:.3}));
+  }
+}
+
+/* ---------- 增益 ---------- */
+function castBuffSkill(s,c){
+  P.attacked=true;
+  addBuff(c.id,c.dur,c.glyph,c.col,c.stats);
+  SFX.levelup();
+  G.flash=Math.max(G.flash,0.2);
+  addRing(P.x,P.y-PH/2,{max:200,life:.5,t:.5,c:c.col,lw:9});
+  burst(P.x,P.y-PH/2,22,()=>({vx:rand(-190,190),vy:rand(-260,-40),
+    c:c.col,size:rand(3,8),life:.6,max:.6,grav:260}));
+  toast(s.name,CLASSES[s.cls].name);
 }
 
 /* ---------- 傷害 ---------- */
@@ -1667,7 +2049,7 @@ function killMob(m){
 function hurtPlayer(amt,fromX){
   const p=P;
   if(p.inv>0||p.dashT>0||G.cine>0||p.dead||G.state!=='play')return;
-  amt=Math.max(1,Math.round(amt*rand(0.9,1.1)*(hasBuff('ward')?0.7:1)));
+  amt=Math.max(1,Math.round(amt*rand(0.9,1.1)*(1-clamp(buffStat('def'),0,0.7))));
   p.hp-=amt;
   p.inv=0.95; p.hurtT=0.4; p.noDmgT=0;
   p.vx=Math.sign(p.x-fromX||1)*300;
@@ -2015,7 +2397,7 @@ function updateProjs(dt){
       G.meteorQ.splice(i,1);
       const x=clamp(mq.x,40,WORLD.w-40);
       makeProj({x,y:G.cam.y-90,vx:rand(-40,40),vy:1500,r:26,dmg:mq.roll,
-        life:4,type:'meteor',targetY:findFloorY(x,P.y)});
+        life:4,type:'meteor',el:mq.el,targetY:findFloorY(x,P.y)});
     }
   }
 }
@@ -2631,15 +3013,87 @@ function swordMatrix(L,hilt,half){
   g[0][gx]='u';g[H-1][gx]='u';
   for(let i=0;i<L;i++){                                        // 劍身：往劍尖收窄
     const t=i/(L-1);
-    const hh=t<0.58?half:t<0.84?half-1:0;
+    const hh=t<0.62?half:t<0.88?half-1:0;
     const x=hilt+i;
     for(let dy=-hh;dy<=hh;dy++)
-      g[cy+dy][x]=dy===-hh?'1':dy===hh?'3':(dy===0?'4':'2');
+      g[cy+dy][x]=dy===-hh?'1':dy===hh?'3':'2';
   }
   return padRows(g.map(r=>r.join('')));
 }
+/* 匕首：短、薄、快 */
+function daggerMatrix(L){return swordMatrix(L,5,1);}
+/* 長槍：細長木柄 + 菱形槍頭 */
+function spearMatrix(L){
+  const W=L+14, H=9, cy=4;
+  const g=Array.from({length:H},()=>Array(W).fill(' '));
+  for(let x=0;x<L;x++){g[cy-1][x]='G';g[cy][x]='G';g[cy+1][x]='g';}
+  for(let y=cy-2;y<=cy+2;y++){g[y][L]='U';g[y][L+1]='u';}     // 護環
+  const T=11;                                                  // 槍頭
+  for(let i=0;i<T;i++){
+    const hh=i<2?1:i<7?2:i<9?1:0;
+    for(let dy=-hh;dy<=hh;dy++)
+      g[cy+dy][L+2+i]=dy===-hh?'1':dy===hh?'3':'2';
+  }
+  return padRows(g.map(r=>r.join('')));
+}
+/* 法杖：木柄 + 頂端寶珠 */
+function staffMatrix(L){
+  const W=L+8, H=9, cy=4;
+  const g=Array.from({length:H},()=>Array(W).fill(' '));
+  g[cy-1][0]='K';g[cy][0]='K';g[cy+1][0]='K';
+  for(let x=1;x<L;x++){g[cy-1][x]='G';g[cy][x]='G';g[cy+1][x]='g';}
+  const ox=L+1, R=3.4;
+  for(let dy=-4;dy<=4;dy++)for(let dx=-4;dx<=4;dx++){
+    const d=Math.hypot(dx,dy);
+    if(d>R)continue;
+    const y=cy+dy, x=ox+dx;
+    if(y<0||y>=H||x<0||x>=W)continue;
+    g[y][x]=(dx<=-1&&dy<=-1&&d<R-1.2)?'1':d>R-1?'3':'2';
+  }
+  for(let dy=-2;dy<=2;dy++)g[cy+dy][L-1]='u';                  // 珠座
+  return padRows(g.map(r=>r.join('')));
+}
+/* 弓：弓臂往前鼓、弓弦往後收成 V 字，握把在中間 */
+function bowMatrix(){
+  const H=17, cy=8, R=8, W=14;
+  const g=Array.from({length:H},()=>Array(W).fill(' '));
+  for(let d=-cy;d<=cy;d++){
+    const t=d/cy;
+    const lx=3+Math.round(R*(1-t*t));                           // 弓臂：拋物線外鼓
+    const y=cy+d;
+    g[y][lx-1]='1';g[y][lx]='2';g[y][lx+1]='3';
+    if(Math.abs(d)<cy)g[y][3]='u';                              // 弓弦：直的
+  }
+  for(let dy=-2;dy<=2;dy++){g[cy+dy][9]='G';g[cy+dy][10]='g';}  // 握把
+  g[cy-3][9]='U';g[cy+3][9]='U';
+  return padRows(g.map(r=>r.join('')));
+}
+/* 鐮刀：長柄 + 由環帶算出來的大彎刃 */
+function scytheMatrix(L){
+  const W=L+10, H=19, cy=15;
+  const g=Array.from({length:H},()=>Array(W).fill(' '));
+  for(let x=0;x<L;x++){g[cy-1][x]='G';g[cy][x]='G';g[cy+1][x]='g';}
+  for(let dy=-2;dy<=2;dy++)g[cy+dy][L-1]='U';                   // 柄頭箍
+  // 刃根接在柄頂，往前上方兜一個大彎
+  const ccx=L-1, ccy=cy-7, rO=8.4, rI=5.8;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const dx=x-ccx, dy=y-ccy, d=Math.hypot(dx,dy);
+    if(d>rO||d<rI)continue;
+    const a=Math.atan2(dy,dx);
+    if(a<-0.75||a>1.62)continue;
+    const t=(d-rI)/(rO-rI);
+    g[y][x]=t>0.72?'1':t>0.32?'2':'3';
+  }
+  return padRows(g.map(r=>r.join('')));
+}
+
 const MTX_SWORD =swordMatrix(21,7,2);
 const MTX_GLAIVE=swordMatrix(28,8,2);
+const MTX_DAGGER=daggerMatrix(12);
+const MTX_SPEAR =spearMatrix(18);
+const MTX_STAFF =staffMatrix(17);
+const MTX_BOW   =bowMatrix();
+const MTX_SCYTHE=scytheMatrix(18);
 const MTX_PIVOT_X=3, MTX_PIVOT_Y=4;   // 握把中心 = 旋轉中心
 
 const WPAL={
@@ -2653,10 +3107,20 @@ const WPAL={
          '1':'#EFFFD8','2':'#6FD44A','3':'#256A22','4':'#C8FF9A'},
   storm:{K:'#FFE08A',G:'#4A3060',g:'#241038',U:'#FFD24D',u:'#5A18A0',
          '1':'#FFFFFF','2':'#B858F0','3':'#4E1290','4':'#F0D8FF'},
+  wood :{K:'#8A6A3E',G:'#7A5226',g:'#4A2E14',U:'#C9A16B',u:'#6A4520',
+         '1':'#E8D8A0','2':'#A8803C','3':'#5A3A16','4':'#D8C080'},
+  bone :{K:'#D8D0C0',G:'#5A5468',g:'#2E2A3A',U:'#C0B8A8',u:'#4A4458',
+         '1':'#FFFFFF','2':'#CFC8D8','3':'#6A6280','4':'#E8E2F0'},
+  venom:{K:'#C9D8A0',G:'#3A4A24',g:'#1E280E',U:'#A8F06A',u:'#2F5A1A',
+         '1':'#EFFFC8','2':'#5AC83C','3':'#1E5A1E','4':'#C8FF9A'},
+  gold :{K:'#FFE8A0',G:'#6A5220',g:'#3A2C0E',U:'#FFD24D',u:'#8A6A00',
+         '1':'#FFFFFF','2':'#FFC83C','3':'#A87000','4':'#FFF0B0'},
 };
-function drawWeaponMatrix(c,mtx,pal){
-  drawMatrix(c,mtx,-MTX_PIVOT_X,-MTX_PIVOT_Y,pal);
+function drawWeaponMatrix(c,mtx,pal,px,py){
+  drawMatrix(c,mtx,-(px===undefined?MTX_PIVOT_X:px),-(py===undefined?MTX_PIVOT_Y:py),pal);
 }
+/* 握把中心（= 旋轉中心）不是每種武器都一樣 */
+const WPIVOT={bow:[9,8], scythe:[3,15]};
 
 /* 共用劍形產生器：所有武器都是同一套結構，只換配色與長度，
    劍身往劍尖收窄，上緣受光、下緣陰影 —— 這是像素刀劍的標準畫法 */
@@ -2732,7 +3196,7 @@ function outlinePass(cv,col){
   c.clearRect(0,0,w,h);
   c.drawImage(tmp,0,0);
 }
-const RW=64, RH=26, RPX=12, RPY=13;
+const RW=76, RH=46, RPX=16, RPY=23;
 /* 頭盔的調色盤 = 盔甲色 + 露在面甲窗裡的膚色與眼睛 */
 const _helmPal=new Map();
 function helmPal(pal){
@@ -2801,7 +3265,15 @@ function armWeaponCanvas(wepId,armorSet,white){
        'a':ARMOR_PAL[armorSet]['3'],'H':PX_PAL.S,'h':PX_PAL.s}
     : ARM_PAL_BASE;
   const wep=EQUIP.weapon[wepId];
-  if(wep&&wep.draw){c.save();c.translate(8,0);wep.draw(c);c.restore();}
+  if(wep&&(wep.mtx||wep.draw)){
+    c.save();
+    c.translate(wep.hold===undefined?8:wep.hold,0);
+    if(wep.mtx){
+      const pv=WPIVOT[wep.shape];
+      drawWeaponMatrix(c,wep.mtx,wep.wpal,pv&&pv[0],pv&&pv[1]);
+    }else wep.draw(c);
+    c.restore();
+  }
   drawMatrix(c,M_ARM_H,0,-1,ap);
   c.restore();
   outlinePass(cv,OUTLINE);
@@ -2816,18 +3288,26 @@ function armWeaponCanvas(wepId,armorSet,white){
 }
 /* 揮砍角度：由上往下掃過約 185 度 */
 function heroArmAngle(){
-  const p=P;
+  const p=P, cd=classDef();
+  const REST=cd.rest, UP=cd.up, DOWN=cd.down;
   if(p.whirlT>0)return (G.t*15)%TAU-Math.PI;
   if(p.atkT>0&&(p.atkKind==='slash'||p.atkKind==='cast')){
     const t=clamp(1-p.atkT/p.atkDur,0,1);
-    if(t<0.16)return A_REST+(A_UP-A_REST)*(t/0.16);      // 舉劍過頭
+    if(t<0.16)return REST+(UP-REST)*(t/0.16);            // 舉起來
     const k=clamp((t-0.16)/0.68,0,1);
-    return A_UP+(A_DOWN-A_UP)*k;                          // 一路劈下來
+    return UP+(DOWN-UP)*k;                                // 揮/刺出去
   }
   if(p.climb)return -1.45;
-  if(!p.onGround)return p.vy<0?-1.05:A_REST-0.15;
-  if(Math.abs(p.vx)>20)return A_REST+Math.sin(G.t*11)*0.20;
-  return A_REST+Math.sin(G.t*2.0)*0.05;
+  if(!p.onGround)return p.vy<0?REST-1.6:REST-0.15;
+  if(Math.abs(p.vx)>20)return REST+Math.sin(G.t*11)*0.20;
+  return REST+Math.sin(G.t*2.0)*0.05;
+}
+/* 刺擊流派：出手瞬間武器沿著自己的軸線往前送 */
+function heroArmLunge(){
+  const p=P, cd=classDef();
+  if(!cd.lunge||p.atkT<=0||p.atkKind==='whirl')return 0;
+  const t=clamp(1-p.atkT/p.atkDur,0,1);
+  return cd.lunge*Math.sin(clamp((t-0.12)/0.5,0,1)*Math.PI);
 }
 
 /* ---------- 烘焙 ---------- */
@@ -3041,6 +3521,7 @@ function drawPlayer(){
   c.save();
   c.translate(SHOULDER_X*S,(SHOULDER_Y+qNow.bob)*S);
   c.rotate(ang);
+  c.translate(Math.round(heroArmLunge())*S,0);
   c.imageSmoothingEnabled=false;
   c.drawImage(armWeaponCanvas(wepId,sleeveSet,false),
               -RPX*S,-RPY*S,RW*S,RH*S);
@@ -3059,6 +3540,7 @@ function drawPlayer(){
     c.save();
     c.translate(SHOULDER_X*S,(SHOULDER_Y+qNow.bob)*S);
     c.rotate(ang);
+    c.translate(Math.round(heroArmLunge())*S,0);
     c.imageSmoothingEnabled=false;
     c.drawImage(armWeaponCanvas(wepId,sleeveSet,true),
                 -RPX*S,-RPY*S,RW*S,RH*S);
@@ -3385,24 +3867,22 @@ const rarityOf=it=>RARITY[(it&&it.rarity)||'common'];
 /* ---------- 裝備圖鑑 ---------- */
 const EQUIP={
   weapon:{
-    none:{name:'空手',desc:'沒有武器，只剩拳頭',rarity:'common',len:0,draw(){},trail(){},
+    none:{name:'空手',desc:'沒有武器，只剩拳頭',rarity:'common',len:0,cls:'none',price:0,draw(){},
       icon(c){c.fillStyle='#E0A277';c.fillRect(9,11,10,9);c.fillStyle='#FFD9A8';c.fillRect(9,11,10,4);c.fillStyle='#E0A277';c.fillRect(11,20,6,4);}},
     basic_sword:{
       name:'旅人之劍', desc:'樸素可靠，青白色斬擊軌跡', rarity:'common', len:21,
+      cls:'warrior', shape:'sword', price:0,
       stats:{atk:0.10},
       icon(c){icoBlade(c,['#241B3A','#A6DCF2','#EAF6FF','#FFC83C']);},
-      draw(c){
-        drawWeaponMatrix(c,MTX_SWORD,WPAL.steel);
-      },
+      mtx:MTX_SWORD, wpal:WPAL.steel,
     },
     flame_sword:{
       name:'烈焰劍', desc:'劍尖常燃，揮砍噴出大量火星', rarity:'rare', len:21,
+      cls:'warrior', shape:'sword', price:2200,
       stats:{atk:0.30, crit:0.05},
       element:'fire',
       icon(c){icoBlade(c,['#3A0E04','#FF6A1E','#FFC83C','#FFC83C'],'#FFF3A0');},
-      draw(c){
-        drawWeaponMatrix(c,MTX_SWORD,WPAL.flame);
-      },
+      mtx:MTX_SWORD, wpal:WPAL.flame,
       /* 待機／走路時劍尖飄出火星 */
       ambient(dt,tip,p){
         p.wepT=(p.wepT||0)-dt;
@@ -3445,12 +3925,11 @@ const EQUIP={
     },
     frost_edge:{
       name:'冰霜之刃', desc:'揮砍散出冰晶，碎片會墜落', rarity:'rare', drop:{bat:0.07}, len:21,
+      cls:'warrior', shape:'sword', price:3000,
       stats:{atk:0.24, cdr:0.12},
       element:'ice',
       icon(c){icoBlade(c,['#123A5A','#7AC8FF','#EAFBFF','#9FD8F0'],'#DFFFFF');},
-      draw(c){
-        drawWeaponMatrix(c,MTX_SWORD,WPAL.frost);
-      },
+      mtx:MTX_SWORD, wpal:WPAL.frost,
       ambient(dt,tip,p){
         p.wepT=(p.wepT||0)-dt;
         if(p.wepT>0||PixelFX.busy())return;
@@ -3477,13 +3956,12 @@ const EQUIP={
     },
     verdant_blade:{
       name:'翠葉刃', desc:'揮砍捲起葉片，落地化為草屑', len:21,
+      cls:'warrior', shape:'sword', price:3400,
       stats:{atk:0.22, hp:0.10},
       element:'leaf',
       rarity:'rare', drop:{slime:0.05, mush:0.05},
       icon(c){icoBlade(c,['#123A18','#4FB33A','#A8F06A','#78D45A'],'#DFFFC8');},
-      draw(c){
-        drawWeaponMatrix(c,MTX_SWORD,WPAL.leaf);
-      },
+      mtx:MTX_SWORD, wpal:WPAL.leaf,
       ambient(dt,tip,p){
         p.wepT=(p.wepT||0)-dt;
         if(p.wepT>0||PixelFX.busy())return;
@@ -3505,13 +3983,12 @@ const EQUIP={
     },
     storm_glaive:{
       name:'雷霆戟', desc:'菇菇王的遺物 — 揮擊時劈出閃電', len:36,
+      cls:'lancer', shape:'spear', price:12000,
       stats:{atk:0.55, crit:0.10, cdr:0.08},
       element:'storm',
       rarity:'legend', drop:{king:1.0},
       icon(c){icoBlade(c,['#2A1050','#B858F0','#F0D8FF','#FFC83C'],'#FFF3A0');},
-      draw(c){
-        drawWeaponMatrix(c,MTX_GLAIVE,WPAL.storm);
-      },
+      mtx:MTX_GLAIVE, wpal:WPAL.storm,
       ambient(dt,tip,p){
         p.wepT=(p.wepT||0)-dt;
         if(p.wepT>0||PixelFX.busy())return;
@@ -3535,6 +4012,66 @@ const EQUIP={
         });
       },
     },
+
+    /* ---- 槍兵 ---- */
+    war_spear:{
+      name:'鐵刃長槍', desc:'最基本的長柄武器，刺得又遠又穩', rarity:'common',
+      cls:'lancer', shape:'spear', price:1500, len:34,
+      mtx:MTX_SPEAR, wpal:WPAL.steel, stats:{atk:0.12, hp:0.05},
+      icon(c){icoBlade(c,['#241B3A','#A6DCF2','#EAF6FF','#8A6A3E']);}},
+    dragoon_lance:{
+      name:'龍騎騎槍', desc:'槍頭鍍了一層金，貫穿力翻倍', rarity:'epic',
+      cls:'lancer', shape:'spear', price:5200, len:34,
+      mtx:MTX_SPEAR, wpal:WPAL.gold, stats:{atk:0.34, hp:0.10, crit:0.04},
+      icon(c){icoBlade(c,['#3A2C0E','#FFC83C','#FFF0B0','#FFD24D'],'#FFF3A0');}},
+
+    /* ---- 法師 ---- */
+    apprentice_staff:{
+      name:'學徒法杖', desc:'珠子會自己發光，不必你出力', rarity:'common',
+      cls:'mage', shape:'staff', price:1200, len:30,
+      mtx:MTX_STAFF, wpal:WPAL.frost, stats:{atk:0.10, mp:0.25},
+      icon(c){icoBlade(c,['#123A5A','#7AC8FF','#EAFBFF','#7A5226'],'#DFFFFF');}},
+    magma_staff:{
+      name:'熔核法杖', desc:'杖頭封著一塊還在燒的岩心', rarity:'epic',
+      cls:'mage', shape:'staff', price:4800, len:30, element:'fire',
+      mtx:MTX_STAFF, wpal:WPAL.flame, stats:{atk:0.38, mp:0.35, cdr:0.08},
+      icon(c){icoBlade(c,['#3A0E04','#FF6A1E','#FFC83C','#7A5226'],'#FFF3A0');}},
+
+    /* ---- 弓手 ---- */
+    hunter_bow:{
+      name:'獵人短弓', desc:'輕、快、拉得動，射程壓過所有近戰', rarity:'common',
+      cls:'ranger', shape:'bow', price:1300, len:20, hold:2,
+      mtx:MTX_BOW, wpal:WPAL.wood, stats:{atk:0.10, spd:0.06},
+      icon(c){icoBlade(c,['#3A2A10','#A8803C','#E8D8A0','#5A3A16']);}},
+    gale_bow:{
+      name:'疾風獵弓', desc:'弦震出的風把箭再推一把', rarity:'epic',
+      cls:'ranger', shape:'bow', price:5000, len:20, hold:2, element:'leaf',
+      mtx:MTX_BOW, wpal:WPAL.venom, stats:{atk:0.32, spd:0.14, crit:0.06},
+      icon(c){icoBlade(c,['#123A18','#5AC83C','#EFFFC8','#2F5A1A'],'#DFFFC8');}},
+
+    /* ---- 刺客 ---- */
+    shadow_fang:{
+      name:'影牙匕首', desc:'短到必須貼臉，但快得離譜', rarity:'common',
+      cls:'rogue', shape:'dagger', price:1400, len:13,
+      mtx:MTX_DAGGER, wpal:WPAL.frost, stats:{atk:0.06, crit:0.08, spd:0.06},
+      icon(c){icoBlade(c,['#123A5A','#7AC8FF','#EAFBFF','#9FD8F0']);}},
+    venom_kris:{
+      name:'淬毒曲刃', desc:'刃上的綠色不是鏽', rarity:'epic',
+      cls:'rogue', shape:'dagger', price:4600, len:13, element:'leaf',
+      mtx:MTX_DAGGER, wpal:WPAL.venom, stats:{atk:0.22, crit:0.18, spd:0.10},
+      icon(c){icoBlade(c,['#123A18','#5AC83C','#EFFFC8','#2F5A1A'],'#DFFFC8');}},
+
+    /* ---- 死神 ---- */
+    crescent_scythe:{
+      name:'殘月鐮', desc:'橫掃一片，砍到誰都算', rarity:'rare',
+      cls:'reaper', shape:'scythe', price:1600, len:26, hold:4,
+      mtx:MTX_SCYTHE, wpal:WPAL.bone, stats:{atk:0.16, hp:0.06},
+      icon(c){icoBlade(c,['#2E2A3A','#CFC8D8','#FFFFFF','#5A5468']);}},
+    styx_scythe:{
+      name:'冥河鐮', desc:'刃口吸走的東西不只有血', rarity:'legend',
+      cls:'reaper', shape:'scythe', price:5600, len:26, hold:4, element:'storm',
+      mtx:MTX_SCYTHE, wpal:WPAL.storm, stats:{atk:0.42, hp:0.12, crit:0.06},
+      icon(c){icoBlade(c,['#2A1050','#B858F0','#F0D8FF','#4E1290'],'#FFF3A0');}},
   },
 
   aura:{
@@ -3770,6 +4307,8 @@ function equipStats(){
     if(!st)continue;
     for(const k in st)t[k]=(t[k]||0)+st[k];
   }
+  const cm=classDef().mods;           // 流派被動
+  for(const k in cm)t[k]=(t[k]||0)+cm[k];
   return t;
 }
 /* keepRatio：換裝時保留血量百分比，避免換件裝備就爆血或暴斃 */
@@ -3860,6 +4399,157 @@ function buildEquipWin(){
   equipWinBuilt=true;
   refreshEquipWin();
 }
+
+/* ============================================================
+   商店
+   內容全部從 EQUIP / SKILL_DB 生出來，
+   之後在圖鑑裡加一把武器或一個技能，商店就會自動多一列。
+   ============================================================ */
+let shopTab='weapon', shopNpc=null;
+function openShop(npc){
+  shopNpc=npc||NPCS[0];
+  toggleEquipWin(false);
+  const w=$('shopwin');
+  w.hidden=false;
+  $('swName').textContent=shopNpc.name;
+  $('swTip').textContent=shopNpc.line;
+  renderShop();
+  SFX.coin();
+}
+function closeShop(){const w=$('shopwin');if(w)w.hidden=true;}
+function toggleShop(){
+  const w=$('shopwin');
+  if(!w)return;
+  if(w.hidden){
+    const n=nearestNpc();
+    if(!n){toast('附近沒有商人','走到金色錢幣招牌下面再按 F');return;}
+    openShop(n);
+  }else closeShop();
+}
+function priceText(v){return v.toLocaleString()+' 楓幣';}
+function buyFx(ok){
+  if(ok){SFX.coin();G.flash=Math.max(G.flash,0.12);}
+  else{SFX.warn();}
+}
+function renderShop(){
+  const box=$('swList');
+  if(!box)return;
+  $('swPurse').textContent=`持有 ${G.meso.toLocaleString()} 楓幣   目前流派 ${classDef().name}`;
+  box.replaceChildren();
+  document.querySelectorAll('.sw-tab').forEach(t=>t.classList.toggle('on',t.dataset.tab===shopTab));
+  if(shopTab==='weapon')renderShopWeapons(box);
+  else renderShopSkills(box);
+}
+function shopRow(opt){
+  const el=document.createElement('div');
+  el.className='sw-item'+(opt.on?' on':'')+(opt.poor?' poor':'');
+  const cv=document.createElement('canvas');
+  cv.width=28;cv.height=28;
+  const cc=cv.getContext('2d');
+  cc.imageSmoothingEnabled=false;
+  if(opt.icon)opt.icon(cc);
+  const tx=document.createElement('div');
+  tx.className='tx';
+  tx.innerHTML='<div class="nm"></div><div class="st"></div><div class="ds"></div>';
+  tx.querySelector('.nm').textContent=opt.name;
+  tx.querySelector('.nm').style.color=opt.col||'#F4EEDC';
+  tx.querySelector('.st').textContent=opt.stat||'';
+  tx.querySelector('.ds').textContent=opt.desc||'';
+  const pr=document.createElement('div');
+  pr.className='pr';
+  pr.innerHTML=`${opt.price}<em>${opt.action}</em>`;
+  el.appendChild(cv);el.appendChild(tx);el.appendChild(pr);
+  el.addEventListener('pointerdown',e=>{e.preventDefault();opt.onClick();});
+  return el;
+}
+function renderShopWeapons(box){
+  for(const cls of CLASS_ORDER){
+    const cd=CLASSES[cls];
+    const ids=Object.keys(EQUIP.weapon).filter(id=>EQUIP.weapon[id].cls===cls);
+    if(!ids.length)continue;
+    const g=document.createElement('div');
+    g.className='sw-group';
+    const t=document.createElement('b');
+    t.style.color=cd.col;
+    t.innerHTML=`<span>${cd.name}</span><i>${cd.desc}</i>`;
+    g.appendChild(t);
+    for(const id of ids){
+      const it=EQUIP.weapon[id];
+      const owned=G.owned.weapon.has(id);
+      const worn=P.equipment.weapon===id;
+      const poor=!owned&&G.meso<(it.price||0);
+      g.appendChild(shopRow({
+        icon:it.icon, name:it.name, col:rarityOf(it).col,
+        stat:(it.element?`【${ELEMENTS[it.element].name}】`:'')+statText(it.stats),
+        desc:it.desc, on:worn, poor,
+        price:owned?'—':priceText(it.price||0),
+        action:worn?'裝備中':owned?'點擊裝備':poor?'楓幣不足':'購買',
+        onClick(){
+          if(worn)return;
+          if(owned){equip('weapon',id);renderShop();return;}
+          if(G.meso<(it.price||0)){buyFx(false);toast('楓幣不足',priceText(it.price||0));return;}
+          G.meso-=it.price||0;
+          G.owned.weapon.add(id);
+          buyFx(true);
+          sysmsg(`買下 ${it.name}（-${(it.price||0).toLocaleString()} 楓幣）`,'item');
+          equip('weapon',id);
+          renderShop();
+        },
+      }));
+    }
+    box.appendChild(g);
+  }
+}
+function renderShopSkills(box){
+  const cur=weaponClass();
+  const order=[cur,...CLASS_ORDER.filter(c=>c!==cur)];
+  for(const cls of order){
+    const cd=CLASSES[cls];
+    if(!cd)continue;
+    const ids=cd.skills.filter((v,i,a)=>a.indexOf(v)===i);
+    const g=document.createElement('div');
+    g.className='sw-group';
+    const t=document.createElement('b');
+    t.style.color=cd.col;
+    t.innerHTML=`<span>${cd.name}${cls===cur?'（目前流派）':''}</span><i>${cls===cur?'':'需要對應武器才能施放'}</i>`;
+    g.appendChild(t);
+    ids.forEach((sid,i)=>{
+      const sk=SKILL_DB[sid];
+      if(!sk)return;
+      const known=G.learned.has(sid);
+      const poor=!known&&G.meso<sk.price;
+      g.appendChild(shopRow({
+        icon:cc=>{
+          const big=document.createElement('canvas');
+          big.width=big.height=60;
+          drawSkillIcon(big.getContext('2d'),sk.icon);
+          cc.drawImage(big,0,0,60,60,0,0,28,28);
+        },
+        name:`${SLOT_KEYS[i]}　${sk.name}`,
+        col:known?'#F4EEDC':'#A89878',
+        stat:`魔力 ${sk.mp}　冷卻 ${sk.cd}s`+(sk.mul?`　倍率 ${sk.mul}x`:''),
+        desc:sk.desc,
+        on:known&&cls===cur,
+        poor,
+        price:known?'已習得':priceText(sk.price),
+        action:known?'—':poor?'楓幣不足':'學習',
+        onClick(){
+          if(known)return;
+          if(G.meso<sk.price){buyFx(false);toast('楓幣不足',priceText(sk.price));return;}
+          G.meso-=sk.price;
+          G.learned.add(sid);
+          buyFx(true);
+          toast('習得 '+sk.name,cd.name+' — '+SLOT_KEYS[i]);
+          sysmsg(`習得技能 ${sk.name}（-${sk.price.toLocaleString()} 楓幣）`,'qst');
+          refreshClass();
+          renderShop();
+        },
+      }));
+    });
+    box.appendChild(g);
+  }
+}
+
 function refreshEquipWin(){
   const tot=document.getElementById('ewTotals');
   if(tot){
@@ -3902,7 +4592,7 @@ function toggleEquipWin(force){
   const btn=document.getElementById('equipbtn');
   if(!w)return;
   const open=force!==undefined?force:w.hidden;
-  if(open&&!equipWinBuilt)buildEquipWin();
+  if(open){closeShop();if(!equipWinBuilt)buildEquipWin();}
   w.hidden=!open;
   if(btn)btn.classList.toggle('on',open);
   if(open)refreshEquipWin();
@@ -3915,8 +4605,17 @@ function equip(slot,id){
     sysmsg(`還沒取得 ${EQUIP[slot][id].name||id}`,'warn');
     return;
   }
+  const wasCls=weaponClass();
   P.equipment[slot]=id;
   recalcStats(true);           // 保留血量百分比重算
+  if(slot==='weapon'){
+    refreshClass();
+    const c=weaponClass();
+    if(c!==wasCls){
+      toast(CLASSES[c].name,CLASSES[c].tag+' — 技能已換成這個流派');
+      sysmsg(`流派變更 — ${CLASSES[c].name}：${CLASSES[c].desc}`,'sys');
+    }
+  }
   sysmsg(`裝備變更 — ${EQUIP[slot][id].name||id}`,'item');
   if(typeof refreshEquipWin==='function')refreshEquipWin();
 }
@@ -3925,7 +4624,7 @@ function equip(slot,id){
 function heroWeaponTip(){
   const def=HERO_CLIPS[HeroAnim.clip];
   const q=heroPose(HeroAnim.clip,clamp(HeroAnim.frame,0,def.frames-1));
-  const L=(eq('weapon').len||0)+6;
+  const L=(eq('weapon').len||0)+6+heroArmLunge();
   const a=heroArmAngle();
   const z=zoomNow()/PIXEL;
   const S=Math.max(1,Math.round(AU*z))/z;
@@ -4328,6 +5027,60 @@ function addBoom(x,y,scale,hue,opt){
 
 
 /* 角色氣場：像素光點繞行，取代原本的平滑漸層環 */
+function drawNpcs(){
+  const c=ctx;
+  const z=zoomNow()/PIXEL;
+  const S=Math.max(1,Math.round(AU*z))/z;
+  for(const n of NPCS){
+    if(!onScreen(n.x,n.y,260))continue;
+    const dx=Math.round((n.x-G.cam.x)*z)/z+G.cam.x;
+    const dy=Math.round((n.y-G.cam.y)*z)/z+G.cam.y;
+    const bob=Math.round(Math.sin(G.t*1.8+n.x)*0.5+0.5);
+    c.save();
+    c.globalAlpha=.3;
+    c.fillStyle='#2A1A38';
+    c.fillRect(dx-9*S,dy-S,18*S,2*S);
+    c.globalAlpha=1;
+    c.translate(dx,dy);
+    for(let y=0;y<M_MERCHANT.length;y++){
+      const row=M_MERCHANT[y];
+      for(let x=0;x<row.length;x++){
+        const col=NPC_PAL[row[x]];
+        if(!col)continue;
+        c.fillStyle=col;
+        c.fillRect((x-7)*S,(y-M_MERCHANT.length+bob)*S,S,S);
+      }
+    }
+    // 頭上的錢幣招牌
+    const py=(-M_MERCHANT.length-4+Math.round(Math.sin(G.t*3+n.x)*1.2))*S;
+    c.fillStyle='#FFD24D';
+    c.fillRect(-3*S,py,6*S,6*S);
+    c.fillStyle='#8A6A00';
+    c.fillRect(-2*S,py+S,4*S,4*S);
+    c.fillStyle='#FFF0A0';
+    c.fillRect(-S,py+2*S,S,2*S);
+    c.fillRect(-2*S,py+3*S,3*S,S);
+    c.restore();
+  }
+}
+let _npcHintId=null;
+function updateNpcHint(){
+  if(G.state!=='play')return;
+  const n=nearestNpc();
+  if(n&&_npcHintId!==n.id){
+    _npcHintId=n.id;
+    G.hint=`${n.name} — 按 F 交易`;
+    G.hintT=3.0;
+  }else if(!n)_npcHintId=null;
+}
+function nearestNpc(){
+  let best=null,bd=1e9;
+  for(const n of NPCS){
+    const d=Math.hypot(n.x-P.x,n.y-P.y);
+    if(d<bd){bd=d;best=n;}
+  }
+  return bd<110?best:null;
+}
 function drawPlayerAura(c){
   c=c||ctx;
   const p=P, t=G.t;
@@ -4661,6 +5414,7 @@ function render(){
   drawLeaves();
   drawDrops();
   for(const m of G.mobs)if(onScreen(m.x,m.y,300))drawMob(m);
+  drawNpcs();
   drawRings();
   drawGhosts();
   drawPlayerAura();
@@ -4741,19 +5495,42 @@ function drawPotionIcon(c,kind){
   c.beginPath();c.ellipse(-5,2,2.4,7,-.3,0,TAU);c.fill();
   c.restore();
 }
-(function buildQuick(){
-  const r1=$('qrow1'), r2=$('qrow2');
-  for(const sk of SKILLS){
+/* 技能格跟著武器（流派）整組換掉 */
+function rebuildSkillRow(){
+  const r1=$('qrow1');
+  if(!r1)return;
+  r1.replaceChildren();
+  for(const k in slotEls)delete slotEls[k];
+  for(const sk of (P.skills||[])){
     const el=document.createElement('div');
-    el.className='qslot hot';
+    el.className='qslot hot'+(sk.locked?' locked':'');
     el.innerHTML='<span class="k"></span><canvas width="60" height="60"></canvas><span class="cd"></span>';
     el.querySelector('.k').textContent=sk.key;
     drawSkillIcon(el.querySelector('canvas').getContext('2d'),sk.icon);
-    el.addEventListener('pointerdown',e=>{e.preventDefault();setAct(sk.id,true);setTimeout(()=>setAct(sk.id,false),60);});
+    el.title=`${sk.name}（${sk.key}）— ${sk.desc}`;
+    el.addEventListener('pointerdown',e=>{e.preventDefault();setAct(sk.slotKey,true);setTimeout(()=>setAct(sk.slotKey,false),60);});
     r1.appendChild(el);
-    slotEls[sk.id]={el,cd:el.querySelector('.cd'),sk};
+    slotEls[sk.slotKey]={el,cd:el.querySelector('.cd'),sk};
   }
-  for(let i=0;i<2;i++){const e=document.createElement('div');e.className='qslot empty';r1.appendChild(e);}
+  for(let i=P.skills?P.skills.length:0;i<6;i++){
+    const e=document.createElement('div');e.className='qslot empty';r1.appendChild(e);
+  }
+}
+/* 換武器 = 換流派：重算技能格、被動加成與 HUD 上的職業名 */
+function refreshClass(){
+  P.skills=activeSkills();
+  rebuildSkillRow();
+  recalcStats(true);
+  const cd=classDef();
+  const chip=$('classchip');
+  if(chip){
+    chip.querySelector('b').textContent=cd.name;
+    chip.querySelector('.k').textContent=cd.tag;
+    chip.style.color=cd.col;
+  }
+}
+(function buildQuick(){
+  const r2=$('qrow2');
   for(const [kind,key] of [['hp','1'],['mp','2']]){
     const el=document.createElement('div');
     el.className='qslot';
@@ -4842,6 +5619,60 @@ function drawSkillIcon(c,kind){
       c.restore();
     }
     c.fillStyle='#DFFBFF';ell(c,0,0,4,4);c.fill();
+  }else if(kind==='thrust'){
+    c.fillStyle='#CFF6FF';
+    c.beginPath();c.moveTo(24,0);c.lineTo(4,-8);c.lineTo(4,8);c.closePath();c.fill();
+    c.fillStyle='#7AC8FF';c.fillRect(-24,-3,30,6);
+    c.fillStyle='#FFFFFF';c.fillRect(-24,-3,30,2);
+  }else if(kind==='bolt'){
+    const g=c.createRadialGradient(0,0,2,0,0,22);
+    g.addColorStop(0,'#FFFFFF');g.addColorStop(.4,'#C86BFF');g.addColorStop(1,'#3A0A6A');
+    c.fillStyle=g;ell(c,0,0,20,20);c.fill();
+    c.fillStyle='rgba(255,255,255,.9)';ell(c,-5,-5,6,6);c.fill();
+  }else if(kind==='arrow'){
+    c.strokeStyle='#8AE86A';c.lineWidth=4;c.lineCap='round';
+    c.beginPath();c.moveTo(-22,10);c.lineTo(16,-10);c.stroke();
+    c.fillStyle='#EFFFD8';
+    c.beginPath();c.moveTo(24,-14);c.lineTo(8,-10);c.lineTo(18,-2);c.closePath();c.fill();
+    c.strokeStyle='#2F7A2A';c.lineWidth=3;
+    c.beginPath();c.moveTo(-22,10);c.lineTo(-12,4);c.moveTo(-18,16);c.lineTo(-8,10);c.stroke();
+  }else if(kind==='nova'){
+    for(let i=0;i<5;i++){
+      c.save();c.rotate(-0.6+i*0.3);
+      const g=c.createRadialGradient(18,0,1,18,0,9);
+      g.addColorStop(0,'#FFF0C0');g.addColorStop(.5,'#FF8A3C');g.addColorStop(1,'rgba(142,28,24,0)');
+      c.fillStyle=g;ell(c,18,0,9,9);c.fill();
+      c.restore();
+    }
+    c.fillStyle='#FFE8B0';ell(c,-12,0,6,6);c.fill();
+  }else if(kind==='dash'){
+    c.fillStyle='#FFD24D';
+    c.beginPath();c.moveTo(22,0);c.lineTo(0,-14);c.lineTo(0,14);c.closePath();c.fill();
+    c.fillStyle='rgba(255,210,77,.55)';
+    for(let i=0;i<3;i++)c.fillRect(-24+i*8,-4+i,6,8-i*2);
+  }else if(kind==='buff'){
+    const g=c.createLinearGradient(0,-22,0,22);
+    g.addColorStop(0,'#DFF6FF');g.addColorStop(1,'#2A6AE0');
+    c.fillStyle=g;
+    c.beginPath();c.moveTo(0,-22);c.lineTo(17,-12);c.lineTo(17,6);c.lineTo(0,22);
+    c.lineTo(-17,6);c.lineTo(-17,-12);c.closePath();c.fill();
+    c.fillStyle='rgba(255,255,255,.8)';
+    c.beginPath();c.moveTo(0,-16);c.lineTo(9,-10);c.lineTo(0,2);c.lineTo(-9,-10);c.closePath();c.fill();
+  }else if(kind==='reap'){
+    c.strokeStyle='#B48CE8';c.lineWidth=9;c.lineCap='round';
+    c.beginPath();c.arc(-2,6,18,-2.5,-0.2);c.stroke();
+    c.strokeStyle='#F0E4FF';c.lineWidth=3;
+    c.beginPath();c.arc(-2,6,18,-2.5,-0.2);c.stroke();
+    c.strokeStyle='#5A4468';c.lineWidth=4;
+    c.beginPath();c.moveTo(-16,20);c.lineTo(-2,-12);c.stroke();
+  }else if(kind==='rain'){
+    c.fillStyle='#EFFFD8';
+    for(let i=0;i<5;i++){
+      const x=-20+i*10;
+      c.beginPath();c.moveTo(x,-22+((i*7)%9));c.lineTo(x-4,-8+((i*7)%9));c.lineTo(x+4,-8+((i*7)%9));c.closePath();c.fill();
+      c.strokeStyle='#5AC83C';c.lineWidth=2.4;
+      c.beginPath();c.moveTo(x,-8+((i*7)%9));c.lineTo(x,12+((i*7)%9));c.stroke();
+    }
   }else{
     const g=c.createLinearGradient(0,-24,0,20);
     g.addColorStop(0,'#FFD8DE');g.addColorStop(.45,'#FF3355');g.addColorStop(1,'#6E0A1C');
@@ -4934,9 +5765,10 @@ function updateHUD(){
   if(lastHud.meso!==G.meso){hud.meso.textContent=G.meso.toLocaleString();lastHud.meso=G.meso;}
   if(lastHud.kills!==G.kills){hud.kills.textContent=G.kills;lastHud.kills=G.kills;}
 
-  for(const sk of SKILLS){
-    const o=slotEls[sk.id];
-    const cd=P.cds[sk.id];
+  for(const sk of (P.skills||[])){
+    const o=slotEls[sk.slotKey];
+    if(!o)continue;
+    const cd=P.cds[sk.slotKey];
     if(cd>0.05){
       o.cd.style.height=(clamp(cd/sk.cd,0,1)*100)+'%';
       o.cd.textContent=cd>=1?Math.ceil(cd):cd.toFixed(1);
@@ -4944,7 +5776,7 @@ function updateHUD(){
       o.cd.style.height='0px';
       o.cd.textContent='';
     }
-    o.el.classList.toggle('empty',P.mp<sk.mp);
+    o.el.classList.toggle('empty',sk.locked||P.mp<sk.mp);
   }
   qpot.hp.n.textContent=G.inv.hp;
   qpot.mp.n.textContent=G.inv.mp;
@@ -5047,6 +5879,7 @@ function winGame(){
 }
 function nextRound(){
   const keep={lv:P.lv,exp:P.exp,meso:G.meso,kills:G.kills,tier:G.tier+1,best:G.combo.best,
+    learned:[...G.learned],
     deaths:G.deaths,invHp:G.inv.hp,invMp:G.inv.mp,owned:G.owned};
   newGame(keep);
   G.state='play';
@@ -5057,6 +5890,10 @@ function nextRound(){
 }
 document.getElementById('equipbtn').addEventListener('click',()=>toggleEquipWin());
 document.getElementById('ewClose').addEventListener('click',()=>toggleEquipWin(false));
+document.getElementById('swClose').addEventListener('click',()=>closeShop());
+document.querySelectorAll('.sw-tab').forEach(t=>{
+  t.addEventListener('click',()=>{shopTab=t.dataset.tab;renderShop();});
+});
 $('startbtn').addEventListener('click',startGame);
 $('resumebtn').addEventListener('click',()=>{G.state='play';setScreen(null);});
 $('revivebtn').addEventListener('click',revive);
@@ -5079,6 +5916,7 @@ function frame(now){
   if(tapped.mute)Audio0.toggle();
   if(tapped.help)$('helpbar').classList.toggle('off');
   if(tapped.gear)toggleEquipWin();
+  if(tapped.shop)toggleShop();
   if(tapped.pause){
     if(G.state==='play'){G.state='pause';setScreen('pause');}
     else if(G.state==='pause'){G.state='play';setScreen(null);}
@@ -5115,6 +5953,7 @@ function frame(now){
       updatePlayer(dt);
       updateHeroAnim(dt);
       updateEquipVfx(dt);
+      updateNpcHint();
       PixelFX.update(dt);
       updateMobs(dt);
       updateProjs(dt);
@@ -5156,7 +5995,8 @@ function boot(saved){
 }
 try{
   window.claude?.hot?.snapshot?.(()=>({
-    keep:{lv:P.lv,exp:P.exp,meso:G.meso,kills:G.kills,tier:G.tier,best:G.combo.best},
+    keep:{lv:P.lv,exp:P.exp,meso:G.meso,kills:G.kills,tier:G.tier,best:G.combo.best,
+      learned:[...G.learned]},
     x:P.x,y:P.y,hp:P.hp,mp:P.mp,state:G.state,
   }));
 }catch(e){}
