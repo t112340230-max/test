@@ -983,7 +983,9 @@ function newPlayer(keep){
     dashT:0,dashCd:0,dashDir:1,ghostT:0,potCd:0,
     lastDir:null,lastDirT:-9,jumpBuf:0,downHold:0,
     chain:0,chainT:0,trail:[],
-    equipment:{weapon:'flame_sword', aura:'thunder_ring', shoes:'none'},
+    equipment:{weapon:'flame_sword', helmet:'lava_helm',
+      chestplate:'lava_chest', leggings:'lava_legs',
+      aura:'thunder_ring', shoes:'none'},
     critBonus:0, spdMul:1, cdrMul:1,
     cds:{atk1:0,atk2:0,atk3:0,atk4:0},
     inv:0,hurtT:0,noDmgT:0,walkPhase:0,blink:rand(1,4),
@@ -1003,6 +1005,9 @@ function newGame(keep){
     // 只有取得過的裝備才穿得上；開局先給基本配備
     owned:keep&&keep.owned?keep.owned:{
       weapon:new Set(['none','basic_sword','flame_sword']),
+      helmet:new Set(['none','lava_helm']),
+      chestplate:new Set(['none','lava_chest']),
+      leggings:new Set(['none','lava_legs']),
       aura:new Set(['none','thunder_ring']),
       shoes:new Set(['none']),
     },
@@ -1018,6 +1023,8 @@ function newGame(keep){
     kills:keep?keep.kills:0, meso:keep?keep.meso:0,
     tier:keep?keep.tier:1,
   };
+  for(const sl of EQUIP_SLOTS)
+    if(!(G.owned[sl] instanceof Set))G.owned[sl]=new Set(['none']);
   P=newPlayer(keep);
   if(typeof PixelFX!=='undefined')PixelFX.clear();
   recalcStats(false);   // 把裝備加成算進初始數值
@@ -1538,10 +1545,6 @@ function castSlash(s){
     const w=eq('weapon');
     if(w.onSwing)w.onSwing(p,heroWeaponTip(),fin);
   }
-  playAnim('slashArc',ox,oy,{
-    scale:fin?3.0:2.1, flip:p.face, fps:fin?18:22,
-    rot:(p.chain===2?0.5:-0.35)+rand(-.1,.1),
-  });
   const reach=fin?146:120, vspan=fin?96:78;
   let hit=0;
   for(const m of G.mobs){
@@ -1635,7 +1638,7 @@ function killMob(m){
     G.drops.push({x:m.x+rand(-m.w,m.w),y:m.y-m.h*0.5,vx:rand(-190,190),vy:rand(-420,-190),
       type:'meso',val:randi(m.d.meso[0],m.d.meso[1]),life:16,t:0,ground:false});
   // 裝備掉落：依怪物種類與掉落率抽
-  for(const slot of ['weapon','aura','shoes']){
+  for(const slot of EQUIP_SLOTS){
     let dropped=false;
     for(const id in EQUIP[slot]){
       const it=EQUIP[slot][id];
@@ -2463,105 +2466,147 @@ function drawRopes(){
    ============================================================ */
 const AU=2;
 const CH_FW=72, CH_FH=62;
+function padRows(rows){
+  const w=Math.max(...rows.map(r=>r.length));
+  return rows.map(r=>r+' '.repeat(w-r.length));
+}
 const CH_AX=30, CH_AY=46;
 const OUTLINE='#1B1428';
 
+/* ============================================================
+   泰拉瑞亞風格角色：模組化圖層
+   ------------------------------------------------------------
+   比例約三頭身：頭 10px / 軀幹 9px / 雙腿 10px（共 29 美術像素）
+   疊加順序：後方手臂 → 基礎身體 → 胸甲 → 護腿 → 頭盔 → 前方手臂
+   基礎身體交給 outlinePass 自動描邊；裝備矩陣自己用 '#' 畫 1px 深色邊。
+   ============================================================ */
 const PX_PAL={
-  '.':null,
-  'D':'#166E82','H':'#2BB8C4','h':'#7DEDEE',      // 帽：暗/主/亮
-  'F':'#FFE07A','f':'#C9932E',                    // 髮：亮/暗
-  'S':'#FFD9A8','s':'#D89468','L':'#FFF0D8',      // 膚：主/陰影/受光
-  'E':'#2A2238','W':'#FFFFFF','R':'#FF8FA0','M':'#B85A50',
-  'A':'#4A8CE8','a':'#27509E','l':'#A8D4FF',      // 上衣：主/暗/受光
-  'G':'#FFE9A8','n':'#1B2F52',                    // 徽記 / 腰帶
-  'p':'#2E4E86','q':'#1D3660',                    // 褲
-  'B':'#9A5E2A','b':'#C98A48',                    // 靴
-  'C':'#EE5540','c':'#A62A18','v':'#FF9A82',      // 披風
+  '.':null,' ':null,
+  '#':'#1B1428',
+  'S':'#F2C79A','s':'#C99468','L':'#FFE6C8',      // 膚
+  'E':'#2A2238',
+  'F':'#8A5A2A','f':'#5A3616',                    // 髮
+  'T':'#4A8CE8','t':'#27509E',                    // 內襯衣
+  'P':'#3A4A6A','p':'#232F4A',                    // 內襯褲
+  'B':'#6A4520','b':'#4A2E14',                    // 鞋
+};
+/* 頭（含髮） */
+const M_HEAD=padRows([
+  ' FFFFFF   ',
+  'FFFFFFFF  ',
+  'FFSSSSSFF ',
+  'FSSSSSSSF ',
+  'FSEESEESS ',
+  'FSSSSSSSS ',
+  ' SSSSSSS  ',
+  ' sSSSSSs  ',
+  '  sSSSs   ',
+  '   sss    ',
+]);
+/* 軀幹 */
+const M_TORSO=padRows([
+  '  TTTT  ',
+  ' TTTTTT ',
+  ' TTTTTT ',
+  ' TTTTTT ',
+  ' tTTTTt ',
+  ' tTTTTt ',
+  ' tTTTTt ',
+  '  tttt  ',
+  '  ssss  ',
+]);
+/* 單腿（左右各畫一次，靠 step 位移做出跨步） */
+const M_LEG=padRows([
+  'PPP',
+  'PPP',
+  'PPP',
+  'PPP',
+  'ppp',
+  'ppp',
+  'BBB',
+  'BBB',
+  'BBB',
+  'bbb',
+]);
+/* 手臂（後臂固定、前臂跟著武器旋轉） */
+const M_ARM=padRows([
+  'TTT',
+  'TTT',
+  'ttt',
+  'SSS',
+  'SSS',
+  'sSs',
+  'ss ',
+]);
+
+/* 前方手臂：橫向姿勢，與武器合成後整塊繞肩膀旋轉 */
+const M_ARM_H=padRows([
+  'AAAAHHH',
+  'AAAAHHH',
+  'aaaahhh',
+]);
+const ARM_PAL_BASE={'A':PX_PAL.T,'a':PX_PAL.t,'H':PX_PAL.S,'h':PX_PAL.s};
+
+/* ---------- 盔甲：矩陣自己帶 '#' 描邊 ---------- */
+const ARMOR_MTX={
+  /* 頭盔：整顆頭包住，只留一道橫向面甲縫給眼睛 */
+  helmet:padRows([
+    '  ######  ',
+    ' #222222# ',
+    '#21111122#',
+    '#22222222#',
+    '#222222222',
+    '#2       2',
+    '#3#     3#',
+    '#33#  #33#',
+    ' #3#  #3# ',
+    '  ##  ##  ',
+  ]),
+  /* 胸甲：肩甲往兩側各多出 2px，腰帶壓深色 */
+  chest:padRows([
+    '  ######  ',
+    '#11111111#',
+    '#12222221#',
+    '#32222223#',
+    ' #122221# ',
+    ' #123321# ',
+    ' #122221# ',
+    ' #333333# ',
+    '  #4444#  ',
+    '   ####   ',
+  ]),
+  /* 護腿：連靴子一起包，兩側各留 1px 描邊 */
+  /* 後方手臂的護肩袖：蓋掉內襯衣露出來的那一塊 */
+  sleeve:padRows([
+    '222',
+    '222',
+    '333',
+  ]),
+  legs:padRows([
+    '#111#',
+    '#222#',
+    '#222#',
+    '#133#',
+    '#333#',
+    '#333#',
+    '#144#',
+    '#444#',
+    '#####',
+  ]),
+};
+const ARMOR_PAL={
+  lava  :{'#':'#2A0A04','1':'#FFE07A','2':'#F2701C','3':'#B52A10','4':'#6E1408'},
+  shadow:{'#':'#0E0520','1':'#CBA6F5','2':'#6E36C4','3':'#3B1C82','4':'#1B0C44'},
+  none  :null,
 };
 
-const M_HEAD=[
-  '.....DDDDDD.....',
-  '...DDhhhhhhDD...',
-  '..DhhhhhhhhhhD..',
-  '.DHHHHHHHHHHHHD.',
-  '.DHHHHHHHHHHHHD.',
-  'DDDDDDDDDDDDDDDD',
-  '.fLSSSSSSSSSSLf.',
-  '.fSSSSSSSSSSSSf.',
-  '.FSWEESSSSWEESF.',
-  '.FSEEESSSSEEESF.',
-  '.FSSEESSSSSEESF.',
-  '.fSRRSSMMSSRRSf.',
-  '..sSSSSSSSSSSs..',
-  '...ssssssssss...',
-];
-const M_HEAD_BLINK=[
-  '.FSSSSSSSSSSSSF.',
-  '.FSEEESSSSEEESF.',
-  '.FSSSSSSSSSSSSF.',
-];
-const M_TORSO=[
-  '..AAAAAAAA..',
-  '.lAAAAAAAAl.',
-  '.aAAAAAAAAa.',
-  '.aAAGGGGAAa.',
-  '.aAAGWWGAAa.',
-  '.aAAGGGGAAa.',
-  '.aAAAAAAAAa.',
-  '.aaaaaaaaaa.',
-  '.annnnnnnna.',
-  '..pppppppp..',
-  '..qqqqqqqq..',
-];
-const M_LEG=[
-  'pppp',
-  'pppp',
-  'pppp',
-  'qqqq',
-  'BBBB',
-  'bbbb',
-  'BBBB',
-];
-const M_CAPE=[
-  '..vCCCC',
-  '.vCCCCc',
-  '.CCCCCc',
-  'CCCCCCc',
-  'CCCCCcc',
-  'CCCCCc.',
-  'CCCCcc.',
-  'cCCCcc.',
-  'cCCCc..',
-  'cCCcc..',
-  '.cCCc..',
-  '.ccc...',
-  '..cc...',
-  '..c....',
-];
-const M_ARMB=[
-  'aAa',
-  'aAa',
-  'aAa',
-  'aAa',
-  'aAa',
-  'sSs',
-  'sss',
-];
-const M_ARMF=[
-  '..AAAA..',
-  '.lAAAAl.',
-  '.aAAASSs',
-  '.aAAASSs',
-  '..aaa.s.',
-];
-
 /* 保留舊名稱給頭像、眨眼疊層與武器圖鑑使用 */
-const C_SKIN=PX_PAL.S, C_SKIN_SH=PX_PAL.s, C_BLUSH=PX_PAL.R;
-const C_HAT=PX_PAL.H,  C_HAT_LT=PX_PAL.h,  C_HAT_DK=PX_PAL.D;
+const C_SKIN=PX_PAL.S, C_SKIN_SH=PX_PAL.s, C_BLUSH='#E08A78';
+const C_HAT='#FF6A1E',  C_HAT_LT='#FFD24D',  C_HAT_DK='#C42410';
 const C_HAIR=PX_PAL.F, C_HAIR_DK=PX_PAL.f;
-const C_ARM=PX_PAL.A,  C_ARM_LT=PX_PAL.l,  C_ARM_DK=PX_PAL.a;
-const C_PANT=PX_PAL.p, C_BOOT=PX_PAL.B,    C_BOOT_LT=PX_PAL.b;
-const C_CAPE=PX_PAL.C, C_CAPE_DK=PX_PAL.c;
+const C_ARM=PX_PAL.T,  C_ARM_LT='#96C9FF',  C_ARM_DK=PX_PAL.t;
+const C_PANT=PX_PAL.P, C_BOOT=PX_PAL.B,    C_BOOT_LT=PX_PAL.b;
+const C_CAPE='#EE5540', C_CAPE_DK='#A62A18';
 const C_LINE=OUTLINE,  C_EYE=PX_PAL.E;
 const C_BLADE='#EAF6FF', C_BLADE_SH='#A6DCF2', C_HILT='#FFC83C', C_GRIP='#7A4A28';
 
@@ -2572,10 +2617,6 @@ const C_BLADE='#EAF6FF', C_BLADE_SH='#A6DCF2', C_HILT='#FFC83C', C_GRIP='#7A4A28
      1 刃上緣高光   2 刃身   3 刃下緣陰影   4 刃中脊高光
    換武器 = 換調色盤，形狀邏輯完全共用。
    ============================================================ */
-function padRows(rows){
-  const w=Math.max(...rows.map(r=>r.length));
-  return rows.map(r=>r+' '.repeat(w-r.length));
-}
 /* 刃身逐列收窄：中脊最長、上下緣依序縮短，剖面才是菱形而不是方頭 */
 function bladeRows(L,hiltA,hiltB,capA,capB){
   const R=(ch,n)=>ch.repeat(Math.max(0,n));
@@ -2591,8 +2632,8 @@ function bladeRows(L,hiltA,hiltB,capA,capB){
     capA,
   ]);
 }
-const MTX_SWORD =bladeRows(22,'  KGGGGgUU',' KKGGGGgUU','        uu','       uUUu');
-const MTX_GLAIVE=bladeRows(30,'  KGGGGgUUU',' KKGGGGgUUU','        uUu','       uUUUu');
+const MTX_SWORD =bladeRows(17,'  KGGgUU',' KKGGgUU','      uu','     uUUu');
+const MTX_GLAIVE=bladeRows(24,'  KGGgUUU',' KKGGgUUU','      uUu','     uUUUu');
 const MTX_PIVOT_X=4, MTX_PIVOT_Y=4;   // 握把中心 = 旋轉中心
 
 const WPAL={
@@ -2610,53 +2651,6 @@ const WPAL={
 function drawWeaponMatrix(c,mtx,pal){
   drawMatrix(c,mtx,-MTX_PIVOT_X,-MTX_PIVOT_Y,pal);
 }
-
-/* ============================================================
-   揮砍軌跡：半月形「字串矩陣」
-   由環帶 + 角度範圍逐格判定生成，外緣亮、內緣暗，
-   全部是 1x1 像素格，沒有任何向量線條。
-   ============================================================ */
-const _cres={};
-function crescentMatrix(rOut,thick,a0,a1){
-  const key=rOut+'|'+thick+'|'+a0.toFixed(2)+'|'+a1.toFixed(2);
-  let m=_cres[key];
-  if(m)return m;
-  const size=rOut*2+3, cx=rOut+1, cy=rOut+1;
-  const rows=[];
-  for(let y=0;y<size;y++){
-    let row='';
-    for(let x=0;x<size;x++){
-      const dx=x-cx+0.5, dy=y-cy+0.5;
-      const d=Math.hypot(dx,dy);
-      let ch=' ';
-      if(d<=rOut&&d>=rOut-thick){
-        let a=Math.atan2(dy,dx);
-        while(a<a0)a+=TAU;
-        if(a<=a1){
-          const t=(d-(rOut-thick))/thick;
-          ch=t>0.74?'1':t>0.40?'2':'3';
-        }
-      }
-      row+=ch;
-    }
-    rows.push(row);
-  }
-  m={rows,cx,cy};
-  _cres[key]=m;
-  return m;
-}
-function drawSlashMatrix(c,q,pal,rOut,thick){
-  const a1=q.armA+0.15, a0=a1-1.25;
-  const m=crescentMatrix(rOut,thick,a0,a1);
-  drawMatrix(c,m.rows,4-m.cx,-13-m.cy,pal);
-}
-const SPAL={
-  steel:{'1':'#FFFFFF','2':'#CFF6FF','3':'#5FA8D8'},
-  flame:{'1':'#FFF3A0','2':'#FF8A1E','3':'#C42410'},
-  frost:{'1':'#FFFFFF','2':'#9FDCFF','3':'#2E6AA8'},
-  leaf :{'1':'#EFFFD8','2':'#8AE05A','3':'#2F7A2A'},
-  storm:{'1':'#FFFFFF','2':'#C87AF5','3':'#5A18A0'},
-};
 
 /* 共用劍形產生器：所有武器都是同一套結構，只換配色與長度，
    劍身往劍尖收窄，上緣受光、下緣陰影 —— 這是像素刀劍的標準畫法 */
@@ -2732,71 +2726,93 @@ function outlinePass(cv,col){
   c.clearRect(0,0,w,h);
   c.drawImage(tmp,0,0);
 }
-/* 反向映射旋轉貼圖：逐個目的像素回推來源，所以不會有縫也不會糊 */
-function blitRot(dst,imgData,W,H,PX,PY,ang,ax,ay){
-  const d=imgData.data;
-  const R=Math.ceil(Math.hypot(W,H)/2)+2;
-  const ca=Math.cos(-ang), sa=Math.sin(-ang);
-  ax=Math.round(ax); ay=Math.round(ay);
-  for(let dy=-R;dy<=R;dy++){
-    for(let dx=-R;dx<=R;dx++){
-      const lx=dx+0.5, ly=dy+0.5;
-      const sx=Math.floor(lx*ca-ly*sa+PX);
-      const sy=Math.floor(lx*sa+ly*ca+PY);
-      if(sx<0||sy<0||sx>=W||sy>=H)continue;
-      const i=(sy*W+sx)<<2;
-      if(d[i+3]<8)continue;
-      dst.fillStyle=`rgb(${d[i]},${d[i+1]},${d[i+2]})`;
-      dst.fillRect(ax+dx,ay+dy,1,1);
+const RW=64, RH=26, RPX=12, RPY=13;
+/* ---------- 單幀：雙腳之間 = (0,0) ---------- */
+function drawTerraLayer(c,q,layer,pal){
+  const step=q.step, bob=q.bob;
+  const legY=-10, torsoY=-19, headY=-29;
+  if(layer==='base'){
+    // 後方手臂
+    drawMatrix(c,M_ARM,-5,torsoY+1);
+    // 雙腿
+    if(q.air){
+      drawMatrix(c,M_LEG,-3,legY+q.tuck+bob);
+      drawMatrix(c,M_LEG, 1,legY+q.tuck-1+bob);
+    }else{
+      drawMatrix(c,M_LEG,-3+step,legY);
+      drawMatrix(c,M_LEG, 1-step,legY);
     }
+    drawMatrix(c,M_TORSO,-4,torsoY+bob);
+    drawMatrix(c,M_HEAD,-5,headY+bob);
+    return;
+  }
+  if(!pal)return;
+  if(layer==='leggings'){
+    if(q.air){
+      drawMatrix(c,ARMOR_MTX.legs,-4,legY+q.tuck+bob,pal);
+      drawMatrix(c,ARMOR_MTX.legs, 0,legY+q.tuck-1+bob,pal);
+    }else{
+      drawMatrix(c,ARMOR_MTX.legs,-4+step,legY,pal);
+      drawMatrix(c,ARMOR_MTX.legs, 0-step,legY,pal);
+    }
+  }else if(layer==='chestplate'){
+    drawMatrix(c,ARMOR_MTX.sleeve,-5,torsoY+1+bob,pal);
+    drawMatrix(c,ARMOR_MTX.chest,-5,torsoY-1+bob,pal);
+  }else if(layer==='helmet'){
+    drawMatrix(c,ARMOR_MTX.helmet,-5,headY-1+bob,pal);
   }
 }
-/* 手臂與武器的水平姿勢暫存（含描邊），之後整塊旋轉 */
-const RW=64, RH=26, RPX=12, RPY=13;
-const _uprightCache={};
-function uprightLayer(key,drawFn){
-  let e=_uprightCache[key];
-  if(e)return e;
-  const cv=document.createElement('canvas');
+function drawHeroFrame(c,q){ drawTerraLayer(c,q,'base'); }
+
+/* ============================================================
+   泰拉瑞亞式揮砍：實體武器 + 前臂繞肩膀旋轉
+   先把「手臂+武器」烘成一張朝右的直立貼圖（含 1px 描邊），
+   繪製時用 ctx.translate(肩膀) + ctx.rotate(角度) 整塊轉，
+   關閉 imageSmoothing 保持硬邊像素感。
+   ============================================================ */
+const SHOULDER_X=2, SHOULDER_Y=-17;          // 肩膀（美術像素）
+const A_REST=0.55, A_UP=-2.45, A_DOWN=0.72;  // 收招 / 舉劍 / 劈下
+const _awCache={};
+function armWeaponCanvas(wepId,armorSet,white){
+  const key=wepId+'|'+(armorSet||'-')+(white?'|w':'');
+  let cv=_awCache[key];
+  if(cv)return cv;
+  cv=document.createElement('canvas');
   cv.width=RW;cv.height=RH;
   const c=cv.getContext('2d');
   c.imageSmoothingEnabled=false;
   c.save();c.translate(RPX,RPY);
-  drawFn(c);
+  const ap=armorSet&&ARMOR_PAL[armorSet]
+    ? {'A':ARMOR_PAL[armorSet]['2'],'a':ARMOR_PAL[armorSet]['3'],'H':PX_PAL.S,'h':PX_PAL.s}
+    : ARM_PAL_BASE;
+  const wep=EQUIP.weapon[wepId];
+  if(wep&&wep.draw){c.save();c.translate(8,0);wep.draw(c);c.restore();}
+  drawMatrix(c,M_ARM_H,0,-1,ap);
   c.restore();
   outlinePass(cv,OUTLINE);
-  e={img:c.getImageData(0,0,RW,RH)};
-  _uprightCache[key]=e;
-  return e;
+  if(white){
+    c.globalCompositeOperation='source-atop';
+    c.fillStyle='#FFFFFF';
+    c.fillRect(0,0,RW,RH);
+    c.globalCompositeOperation='source-over';
+  }
+  _awCache[key]=cv;
+  return cv;
 }
-
-/* ---------- 單幀：雙腳之間 = (0,0) ---------- */
-function drawHeroFrame(c,q){
-  const step=q.step, bob=q.bob;
-
-  // 腿：站立時不跟著呼吸浮動
-  if(q.air){
-    drawMatrix(c,M_LEG,-4,-7+q.tuck+bob);
-    drawMatrix(c,M_LEG, 1,-8+q.tuck+bob);
-  }else{
-    drawMatrix(c,M_LEG,-4+step,-7);
-    drawMatrix(c,M_LEG, 1-step,-7);
+/* 揮砍角度：由上往下掃過約 185 度 */
+function heroArmAngle(){
+  const p=P;
+  if(p.whirlT>0)return (G.t*15)%TAU-Math.PI;
+  if(p.atkT>0&&(p.atkKind==='slash'||p.atkKind==='cast')){
+    const t=clamp(1-p.atkT/p.atkDur,0,1);
+    if(t<0.16)return A_REST+(A_UP-A_REST)*(t/0.16);      // 舉劍過頭
+    const k=clamp((t-0.16)/0.68,0,1);
+    return A_UP+(A_DOWN-A_UP)*k;                          // 一路劈下來
   }
-
-  c.save();
-  c.translate(0,bob);
-  drawMatrix(c,M_CAPE,-12-q.cape,-19);
-  drawMatrix(c,M_ARMB,-8,-16);
-  drawMatrix(c,M_TORSO,-6,-18);
-  drawMatrix(c,M_HEAD,-8,-32);
-  if(q.mouth==='open'){
-    c.fillStyle=PX_PAL.M;c.fillRect(-2,-21,4,3);
-    c.fillStyle=PX_PAL.s;c.fillRect(-2,-21,4,1);
-  }
-  // 前臂：與武器同一個旋轉中心
-  const arm=uprightLayer('armf',cc=>drawMatrix(cc,M_ARMF,-2,-2));
-  blitRot(c,arm.img,RW,RH,RPX,RPY,q.armA,4,-13);
-  c.restore();
+  if(p.climb)return -1.45;
+  if(!p.onGround)return p.vy<0?-1.05:A_REST-0.15;
+  if(Math.abs(p.vx)>20)return A_REST+Math.sin(G.t*11)*0.20;
+  return A_REST+Math.sin(G.t*2.0)*0.05;
 }
 
 /* ---------- 烘焙 ---------- */
@@ -2806,7 +2822,8 @@ function frameCanvas(){
   cv.getContext('2d').imageSmoothingEnabled=false;
   return cv;
 }
-function sheetFromFrames(name,n,drawOne){
+function sheetFromFrames(name,n,drawOne,opt){
+  const noOutline=opt&&opt.outline===false;
   const cv=document.createElement('canvas');
   cv.width=CH_FW*n; cv.height=CH_FH;
   const c=cv.getContext('2d');
@@ -2817,7 +2834,7 @@ function sheetFromFrames(name,n,drawOne){
     fc.save();fc.translate(CH_AX,CH_AY);
     drawOne(fc,f);
     fc.restore();
-    outlinePass(fr,OUTLINE);
+    if(!noOutline)outlinePass(fr,OUTLINE);
     c.drawImage(fr,f*CH_FW,0);
   }
   Sprites.defineSheet(name,{fw:CH_FW,fh:CH_FH,frames:n,cv});
@@ -2834,7 +2851,21 @@ function sheetFromFrames(name,n,drawOne){
 function bakeHeroSheets(){
   for(const name in HERO_CLIPS){
     sheetFromFrames('hero_'+name,HERO_CLIPS[name].frames,
-      (fc,f)=>drawHeroFrame(fc,heroPose(name,f)));
+      (fc,f)=>drawTerraLayer(fc,heroPose(name,f),'base'));
+  }
+}
+/* 盔甲各自烘一組覆蓋圖層，共用同一個 (CH_AX,CH_AY) 錨點，
+   所以換裝只是多疊一張圖，角色絕對不會位移。 */
+function bakeArmorSheets(){
+  for(const set in ARMOR_PAL){
+    const pal=ARMOR_PAL[set];
+    if(!pal)continue;
+    for(const piece of ['chestplate','leggings','helmet']){
+      for(const clip in HERO_CLIPS){
+        sheetFromFrames(`arm_${set}_${piece}_${clip}`,HERO_CLIPS[clip].frames,
+          (fc,f)=>drawTerraLayer(fc,heroPose(clip,f),piece,pal),{outline:false});
+      }
+    }
   }
 }
 
@@ -2960,35 +2991,62 @@ function drawPlayer(){
   c.drawImage(src,f*CH_FW,0,CH_FW,CH_FH,
               -CH_AX*S,-CH_AY*S,CH_FW*S,CH_FH*S);
 
-  // 武器圖層：同一個錨點，直接疊上去
-  const wepId=p.equipment?p.equipment.weapon:'none';
-  const wsh=wepId!=='none'?Sprites.get(`wep_${wepId}_${HeroAnim.clip}`):null;
-  if(wsh&&wsh.ready){
-    c.drawImage(wsh.cv,f*CH_FW,0,CH_FW,CH_FH,
-                -CH_AX*S,-CH_AY*S,CH_FW*S,CH_FH*S);
+  // 盔甲圖層：胸甲 → 護腿 → 頭盔（同一錨點，直接疊）
+  const E=p.equipment||{};
+  const blit=cv2=>c.drawImage(cv2,f*CH_FW,0,CH_FW,CH_FH,
+                              -CH_AX*S,-CH_AY*S,CH_FW*S,CH_FH*S);
+  const armorSheets=[];
+  for(const slot of ['chestplate','leggings','helmet']){
+    const id=E[slot];
+    if(!id||id==='none')continue;
+    const def=EQUIP[slot]&&EQUIP[slot][id];
+    if(!def||!def.set)continue;
+    const a1=Sprites.get(`arm_${def.set}_${slot}_${HeroAnim.clip}`);
+    if(a1&&a1.ready){blit(a1.cv);armorSheets.push(def.set+'_'+slot);}
   }
 
   // 眨眼：即時蓋一層，不必為了眨眼多烘一整組幀
-  if(p.blink<0&&!p.climb){
-    for(let y=0;y<M_HEAD_BLINK.length;y++){
-      const row=M_HEAD_BLINK[y];
-      for(let x=0;x<row.length;x++){
-        const col=PX_PAL[row[x]];
-        if(!col)continue;
-        c.fillStyle=col;
-        c.fillRect((-8+x)*S,(-24+y)*S,S,S);
-      }
-    }
+  if(p.blink<0&&!p.climb&&!(E.helmet&&E.helmet!=='none')){
+    const q0=heroPose(HeroAnim.clip,f);
+    c.fillStyle=PX_PAL.S;
+    c.fillRect(-3*S,(-29+4+q0.bob)*S,2*S,S);
+    c.fillRect( 0*S,(-29+4+q0.bob)*S,2*S,S);
+    c.fillStyle=OUTLINE;
+    c.fillRect(-3*S,(-29+5+q0.bob)*S,2*S,S);
+    c.fillRect( 0*S,(-29+5+q0.bob)*S,2*S,S);
   }
+
+  /* 前方手臂 + 武器：實體繞著肩膀旋轉（泰拉瑞亞闊劍揮砍） */
+  const wepId=E.weapon||'none';
+  const chestId=(E.chestplate&&E.chestplate!=='none')?E.chestplate:null;
+  const sleeveSet=chestId&&EQUIP.chestplate[chestId]?EQUIP.chestplate[chestId].set:null;
+  const qNow=heroPose(HeroAnim.clip,f);
+  const ang=heroArmAngle();
+  c.save();
+  c.translate(SHOULDER_X*S,(SHOULDER_Y+qNow.bob)*S);
+  c.rotate(ang);
+  c.imageSmoothingEnabled=false;
+  c.drawImage(armWeaponCanvas(wepId,sleeveSet,false),
+              -RPX*S,-RPY*S,RW*S,RH*S);
+  c.restore();
+
   // 受擊白閃
   if(p.hurtT>0){
+    const al=clamp(p.hurtT/0.4,0,1)*0.85;
+    c.globalAlpha=al;
     const fsh=Sprites.get('hero_'+HeroAnim.clip+'_flash');
-    const wfsh=wsh?Sprites.get(`wep_${wepId}_${HeroAnim.clip}_flash`):null;
-    c.globalAlpha=clamp(p.hurtT/0.4,0,1)*0.85;
-    if(fsh&&fsh.ready)
-      c.drawImage(fsh.cv,f*CH_FW,0,CH_FW,CH_FH,-CH_AX*S,-CH_AY*S,CH_FW*S,CH_FH*S);
-    if(wfsh&&wfsh.ready)
-      c.drawImage(wfsh.cv,f*CH_FW,0,CH_FW,CH_FH,-CH_AX*S,-CH_AY*S,CH_FW*S,CH_FH*S);
+    if(fsh&&fsh.ready)blit(fsh.cv);
+    for(const k of armorSheets){
+      const af=Sprites.get(`arm_${k}_${HeroAnim.clip}_flash`);
+      if(af&&af.ready)blit(af.cv);
+    }
+    c.save();
+    c.translate(SHOULDER_X*S,(SHOULDER_Y+qNow.bob)*S);
+    c.rotate(ang);
+    c.imageSmoothingEnabled=false;
+    c.drawImage(armWeaponCanvas(wepId,sleeveSet,true),
+                -RPX*S,-RPY*S,RW*S,RH*S);
+    c.restore();
     c.globalAlpha=1;
   }
   c.restore();
@@ -3314,26 +3372,20 @@ const EQUIP={
     none:{name:'空手',desc:'沒有武器，只剩拳頭',rarity:'common',len:0,draw(){},trail(){},
       icon(c){c.fillStyle='#E0A277';c.fillRect(9,11,10,9);c.fillStyle='#FFD9A8';c.fillRect(9,11,10,4);c.fillStyle='#E0A277';c.fillRect(11,20,6,4);}},
     basic_sword:{
-      name:'旅人之劍', desc:'樸素可靠，青白色斬擊軌跡', rarity:'common', len:27,
+      name:'旅人之劍', desc:'樸素可靠，青白色斬擊軌跡', rarity:'common', len:21,
       stats:{atk:0.10},
       icon(c){icoBlade(c,['#241B3A','#A6DCF2','#EAF6FF','#FFC83C']);},
       draw(c){
         drawWeaponMatrix(c,MTX_SWORD,WPAL.steel);
       },
-      trail(c,q){
-        drawSlashMatrix(c,q,SPAL.steel,q.trail>1?20:16,5);
-      },
     },
     flame_sword:{
-      name:'烈焰劍', desc:'劍尖常燃，揮砍噴出大量火星', rarity:'rare', len:27,
+      name:'烈焰劍', desc:'劍尖常燃，揮砍噴出大量火星', rarity:'rare', len:21,
       stats:{atk:0.30, crit:0.05},
       element:'fire',
       icon(c){icoBlade(c,['#3A0E04','#FF6A1E','#FFC83C','#FFC83C'],'#FFF3A0');},
       draw(c){
         drawWeaponMatrix(c,MTX_SWORD,WPAL.flame);
-      },
-      trail(c,q){
-        drawSlashMatrix(c,q,SPAL.flame,q.trail>1?22:18,7);
       },
       /* 待機／走路時劍尖飄出火星 */
       ambient(dt,tip,p){
@@ -3376,15 +3428,12 @@ const EQUIP={
       },
     },
     frost_edge:{
-      name:'冰霜之刃', desc:'揮砍散出冰晶，碎片會墜落', rarity:'rare', drop:{bat:0.07}, len:27,
+      name:'冰霜之刃', desc:'揮砍散出冰晶，碎片會墜落', rarity:'rare', drop:{bat:0.07}, len:21,
       stats:{atk:0.24, cdr:0.12},
       element:'ice',
       icon(c){icoBlade(c,['#123A5A','#7AC8FF','#EAFBFF','#9FD8F0'],'#DFFFFF');},
       draw(c){
         drawWeaponMatrix(c,MTX_SWORD,WPAL.frost);
-      },
-      trail(c,q){
-        drawSlashMatrix(c,q,SPAL.frost,q.trail>1?21:17,6);
       },
       ambient(dt,tip,p){
         p.wepT=(p.wepT||0)-dt;
@@ -3411,16 +3460,13 @@ const EQUIP={
       },
     },
     verdant_blade:{
-      name:'翠葉刃', desc:'揮砍捲起葉片，落地化為草屑', len:27,
+      name:'翠葉刃', desc:'揮砍捲起葉片，落地化為草屑', len:21,
       stats:{atk:0.22, hp:0.10},
       element:'leaf',
       rarity:'rare', drop:{slime:0.05, mush:0.05},
       icon(c){icoBlade(c,['#123A18','#4FB33A','#A8F06A','#78D45A'],'#DFFFC8');},
       draw(c){
         drawWeaponMatrix(c,MTX_SWORD,WPAL.leaf);
-      },
-      trail(c,q){
-        drawSlashMatrix(c,q,SPAL.leaf,q.trail>1?20:16,6);
       },
       ambient(dt,tip,p){
         p.wepT=(p.wepT||0)-dt;
@@ -3449,9 +3495,6 @@ const EQUIP={
       icon(c){icoBlade(c,['#2A1050','#B858F0','#F0D8FF','#FFC83C'],'#FFF3A0');},
       draw(c){
         drawWeaponMatrix(c,MTX_GLAIVE,WPAL.storm);
-      },
-      trail(c,q){
-        drawSlashMatrix(c,q,SPAL.storm,q.trail>1?25:21,7);
       },
       ambient(dt,tip,p){
         p.wepT=(p.wepT||0)-dt;
@@ -3645,15 +3688,68 @@ const EQUIP={
       },
     },
   },
+
+  /* ---------- 盔甲三件套：同一組矩陣，只換配色 ---------- */
+  helmet:{
+    none:{name:'無頭盔',desc:'風吹得到頭髮',rarity:'common',
+      icon(c){icoArmor(c,'helmet',null);}},
+    lava_helm:{
+      name:'熔岩頭盔', desc:'紅橘色熔金鑄成，面甲縫隙透出餘燼',
+      rarity:'epic', set:'lava', stats:{hp:0.12, atk:0.05},
+      icon(c){icoArmor(c,'helmet','lava');}},
+    shadow_helm:{
+      name:'暗影頭盔', desc:'紫黑曜石，戴上後目光沉入影中',
+      rarity:'epic', set:'shadow', drop:{golem:0.20, king:0.55}, stats:{crit:0.06, spd:0.04},
+      icon(c){icoArmor(c,'helmet','shadow');}},
+  },
+  chestplate:{
+    none:{name:'無胸甲',desc:'只有一件內襯衣',rarity:'common',
+      icon(c){icoArmor(c,'chest',null);}},
+    lava_chest:{
+      name:'熔岩胸甲', desc:'甲片接縫仍在發燙，扛得住正面硬拚',
+      rarity:'epic', set:'lava', stats:{hp:0.25, atk:0.10},
+      icon(c){icoArmor(c,'chest','lava');}},
+    shadow_chest:{
+      name:'暗影胸甲', desc:'輕得不像金屬，代價是薄',
+      rarity:'epic', set:'shadow', drop:{golem:0.16, king:0.55}, stats:{hp:0.12, spd:0.08, cdr:0.10},
+      icon(c){icoArmor(c,'chest','shadow');}},
+  },
+  leggings:{
+    none:{name:'無護腿',desc:'布褲一條',rarity:'common',
+      icon(c){icoArmor(c,'legs',null);}},
+    lava_legs:{
+      name:'熔岩護腿', desc:'踩過的地方會留下焦痕',
+      rarity:'epic', set:'lava', stats:{hp:0.14, spd:0.05},
+      icon(c){icoArmor(c,'legs','lava');}},
+    shadow_legs:{
+      name:'暗影護腿', desc:'落地沒有聲音',
+      rarity:'epic', set:'shadow', drop:{golem:0.20, king:0.55}, stats:{spd:0.12, cdr:0.06},
+      icon(c){icoArmor(c,'legs','shadow');}},
+  },
 };
+
+/* 裝備視窗的盔甲圖示：直接把矩陣放大畫進 28x28 */
+function icoArmor(c,piece,set){
+  const m=ARMOR_MTX[piece];
+  const pal=set?ARMOR_PAL[set]:{'#':'#3A3450','1':'#6A6480','2':'#514C6A','3':'#3E3A54','4':'#2A2640'};
+  const sc=Math.max(1,Math.floor(Math.min(26/m[0].length,26/m.length)));
+  const ox=Math.round((28-m[0].length*sc)/2), oy=Math.round((28-m.length*sc)/2);
+  for(let y=0;y<m.length;y++)for(let x=0;x<m[y].length;x++){
+    const col=pal[m[y][x]];
+    if(!col)continue;
+    c.fillStyle=col;
+    c.fillRect(ox+x*sc,oy+y*sc,sc,sc);
+  }
+}
 
 /* ---------- 裝備屬性 ----------
    等級曲線 statsFor() 保持原樣，裝備只是往上乘一層加成，
    所以原本的成長節奏不會被破壞。 */
 const STAT_LABEL={atk:'攻擊',hp:'體力',mp:'魔力',crit:'爆擊',spd:'移速',cdr:'冷卻'};
+const EQUIP_SLOTS=['weapon','helmet','chestplate','leggings','aura','shoes'];
 function equipStats(){
   const t={atk:0,hp:0,mp:0,crit:0,spd:0,cdr:0};
-  for(const slot of ['weapon','aura','shoes']){
+  for(const slot of EQUIP_SLOTS){
     const st=eq(slot).stats;
     if(!st)continue;
     for(const k in st)t[k]=(t[k]||0)+st[k];
@@ -3697,13 +3793,13 @@ function eq(slot){
    裝備視窗：內容直接從 EQUIP 生出來，
    之後在圖鑑裡加一件裝備，視窗就會自動多一列，不用改 UI。
    ============================================================ */
-const SLOT_LABEL={weapon:'武器',aura:'光環',shoes:'鞋子'};
+const SLOT_LABEL={weapon:'武器',helmet:'頭盔',chestplate:'胸甲',leggings:'護腿',aura:'光環',shoes:'鞋子'};
 let equipWinBuilt=false;
 function buildEquipWin(){
   const box=document.getElementById('ewSlots');
   if(!box)return;
   box.replaceChildren();
-  for(const slot of ['weapon','aura','shoes']){
+  for(const slot of EQUIP_SLOTS){
     const wrap=document.createElement('div');
     wrap.className='ew-slot';
     const t=document.createElement('b');
@@ -3809,33 +3905,16 @@ function equip(slot,id){
   if(typeof refreshEquipWin==='function')refreshEquipWin();
 }
 
-/* ---------- 武器圖層：與角色共用錨點，分開烘焙 ---------- */
-function drawWeaponFrame(c,q,wep,id){
-  if(!wep||!wep.draw)return;
-  if(q.trail&&wep.trail)wep.trail(c,q);      // 軌跡在劍身之下，不旋轉
-  const up=uprightLayer('wep_'+id,cc=>wep.draw(cc,q));
-  blitRot(c,up.img,RW,RH,RPX,RPY,q.armA,4,-13+q.bob);
-}
-function bakeWeaponSheets(){
-  for(const id in EQUIP.weapon){
-    if(id==='none')continue;
-    const wep=EQUIP.weapon[id];
-    for(const clip in HERO_CLIPS){
-      sheetFromFrames(`wep_${id}_${clip}`,HERO_CLIPS[clip].frames,
-        (fc,f)=>drawWeaponFrame(fc,heroPose(clip,f),wep,id));
-    }
-  }
-}
-
 /* ---------- 劍尖的世界座標（給粒子用） ---------- */
 function heroWeaponTip(){
   const def=HERO_CLIPS[HeroAnim.clip];
   const q=heroPose(HeroAnim.clip,clamp(HeroAnim.frame,0,def.frames-1));
-  const L=eq('weapon').len||0;
+  const L=(eq('weapon').len||0)+6;
+  const a=heroArmAngle();
   const z=zoomNow()/PIXEL;
   const S=Math.max(1,Math.round(AU*z))/z;
-  const lx=4+Math.cos(q.armA)*L;
-  const ly=(-13+q.bob)+Math.sin(q.armA)*L;
+  const lx=SHOULDER_X+Math.cos(a)*L;
+  const ly=(SHOULDER_Y+q.bob)+Math.sin(a)*L;
   return{x:P.x+lx*S*P.face, y:P.y+ly*S};
 }
 
@@ -4146,30 +4225,6 @@ makeBoomSheet('boomBlood',['#FFFFFF','#FFC0B0','#FF4A3A','#A00818'],37);
 makeBoomSheet('boomVoid' ,['#FFFFFF','#F0C8FF','#B858F0','#5A18A0'],53);
 
 /* --- 斬擊：新月形掃過 --- */
-Sprites.defineSheet('slashArc',{fw:56,fh:56,frames:6,draw(c,i,n,fw,fh){
-  const cx=fw*.18, cy=fh/2, k=i/(n-1);
-  const R=fh*.46*(.7+k*.42);
-  const spread=1.05*(1-k*.35);
-  const mid=-0.1+k*0.5;
-  const cols=['#FFFFFF','#CFF6FF','#59D6F0'];
-  for(let L=0;L<3;L++){
-    const rr0=R-(3-L)*3, rr1=R-(2-L)*3;
-    c.fillStyle=cols[L];
-    for(let a=mid-spread;a<mid+spread;a+=0.045){
-      for(let r=rr0;r<rr1;r+=1){
-        c.fillRect(Math.round(cx+Math.cos(a)*r),Math.round(cy+Math.sin(a)*r),1,1);
-      }
-    }
-  }
-  const rnd=seeded(71+i*13);
-  for(let d=0;d<8;d++){
-    const a=mid+(rnd()*2-1)*spread, r=R*(1+rnd()*.25);
-    c.fillStyle='#FFFFFF';
-    c.fillRect(Math.round(cx+Math.cos(a)*r),Math.round(cy+Math.sin(a)*r),1,1);
-  }
-}});
-
-/* --- 命中火花 --- */
 Sprites.defineSheet('hitSpark',{fw:24,fh:24,frames:5,draw(c,i,n,fw,fh){
   const cx=fw/2, cy=fh/2, k=i/(n-1);
   const R=fh*.5*(.2+k*.8);
@@ -5075,7 +5130,7 @@ function frame(now){
 function boot(saved){
   resize();
   bakeHeroSheets();
-  bakeWeaponSheets();
+  bakeArmorSheets();
   newGame(saved&&saved.keep?saved.keep:null);
   if(saved&&saved.keep){
     // 熱更新後把玩家放回原處
