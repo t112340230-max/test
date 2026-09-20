@@ -224,6 +224,11 @@ body{
 .ew-item canvas{width:28px;height:28px;flex:none}
 .ew-item .nm{font-family:var(--f-cjk);font-weight:700;font-size:12px;color:#F4EEDC;line-height:1.2}
 .ew-item .ds{font-family:var(--f-cjk);font-size:10px;color:#A89878;line-height:1.2}
+.ew-item .st{font-family:var(--f-cjk);font-size:10px;color:#7AE86A;line-height:1.2}
+.ew-item.locked .st{color:#6A7858}
+#ewTotals{margin:0 0 7px;padding:4px 6px;background:var(--slate-dk);
+  border:2px solid var(--wood-ink);box-shadow:inset 1px 1px 0 rgba(255,255,255,.14);
+  font-family:var(--f-mono);font-size:10px;color:#FFE08A;line-height:1.5}
 .ew-item.on{box-shadow:inset 1px 1px 0 rgba(255,240,160,.5),0 0 0 1px #FFC83C}
 .ew-item.locked{filter:grayscale(1) brightness(.55);cursor:not-allowed}
 .ew-item .tx{min-width:0}
@@ -395,7 +400,8 @@ body.touch #uibar{height:92px}
     <div id="equipwin" class="bevel" hidden>
       <div class="ew-t"><span>EQUIPMENT 裝備</span><span class="ew-x" id="ewClose">[X]</span></div>
       <div class="ew-body">
-        <p class="ew-tip">點一下就換上，外觀與特效會立刻改變。</p>
+        <p class="ew-tip">點一下就換上，外觀、特效與屬性會立刻改變。</p>
+        <div id="ewTotals"></div>
         <div id="ewSlots"></div>
       </div>
     </div>
@@ -978,6 +984,7 @@ function newPlayer(keep){
     lastDir:null,lastDirT:-9,jumpBuf:0,downHold:0,
     chain:0,chainT:0,trail:[],
     equipment:{weapon:'flame_sword', aura:'thunder_ring', shoes:'none'},
+    critBonus:0, spdMul:1, cdrMul:1,
     cds:{atk1:0,atk2:0,atk3:0,atk4:0},
     inv:0,hurtT:0,noDmgT:0,walkPhase:0,blink:rand(1,4),
     dead:false,
@@ -1013,6 +1020,7 @@ function newGame(keep){
   };
   P=newPlayer(keep);
   if(typeof PixelFX!=='undefined')PixelFX.clear();
+  recalcStats(false);   // 把裝備加成算進初始數值
   for(let i=0;i<SPAWNS.length;i++)spawnFromDef(i);
   for(let i=0;i<46;i++)G.leaves.push(newLeaf(true));
   camSnap();
@@ -1380,7 +1388,7 @@ function updatePlayer(dt){
   }
 
   /* --- 水平移動 --- */
-  const target=mv*RUN*(hasBuff('swift')?1.18:1);
+  const target=mv*RUN*(hasBuff('swift')?1.18:1)*(P.spdMul||1);
   if(mv!==0){
     const step=ACC*dt;
     p.vx+=clamp(target-p.vx,-step,step);
@@ -1474,7 +1482,7 @@ function tryCast(s){
   if(P.cds[s.id]>0)return;
   if(P.mp<s.mp){toast('魔力不足','NOT ENOUGH MP');return;}
   P.mp-=s.mp;
-  P.cds[s.id]=s.cd;
+  P.cds[s.id]=s.cd*(P.cdrMul||1);
   flashSlot(s.id);
   if(s.id==='atk1')castSlash(s);
   else if(s.id==='atk2')castFire(s);
@@ -1507,7 +1515,7 @@ function doAttacks(dt){
 /* 連擊越高，爆擊率與傷害一起往上疊 */
 function rollDmg(mul,style){
   const n=G.combo.n;
-  const crit=chance(0.26+Math.min(n,40)*0.003);
+  const crit=chance(0.26+(P.critBonus||0)+Math.min(n,40)*0.003);
   const base=P.atk*mul*(1+Math.min(n,60)*0.005)*rand(0.88,1.12);
   return{amt:Math.round(base*(crit?2.3:1)),crit,style};
 }
@@ -1672,9 +1680,7 @@ function gainExp(v){
   while(P.exp>=expNeed(P.lv)){
     P.exp-=expNeed(P.lv);
     P.lv++;
-    const s=statsFor(P.lv);
-    Object.assign(P,s);
-    P.hp=s.maxHp; P.mp=s.maxMp;
+    recalcStats(false);        // 升級全滿，並重新套用裝備加成
     up=true;
   }
   if(up){
@@ -2954,6 +2960,7 @@ const EQUIP={
       icon(c){c.fillStyle='#E0A277';c.fillRect(9,11,10,9);c.fillStyle='#FFD9A8';c.fillRect(9,11,10,4);c.fillStyle='#E0A277';c.fillRect(11,20,6,4);}},
     basic_sword:{
       name:'旅人之劍', desc:'樸素可靠，青白色斬擊軌跡', rarity:'common', len:31,
+      stats:{atk:0.10},
       icon(c){icoBlade(c,['#241B3A','#A6DCF2','#EAF6FF','#FFC83C']);},
       draw(c){
         B(c, 4,-1,4,2,C_GRIP);
@@ -2977,6 +2984,7 @@ const EQUIP={
     },
     flame_sword:{
       name:'烈焰劍', desc:'劍尖常燃，揮砍噴出大量火星', rarity:'rare', len:38,
+      stats:{atk:0.30, crit:0.05},
       icon(c){icoBlade(c,['#3A0E04','#FF6A1E','#FFC83C','#FFC83C'],'#FFF3A0');},
       draw(c){
         // 握把與火焰護手
@@ -3053,6 +3061,7 @@ const EQUIP={
     },
     frost_edge:{
       name:'冰霜之刃', desc:'揮砍散出冰晶，碎片會墜落', rarity:'rare', drop:{bat:0.07}, len:34,
+      stats:{atk:0.24, cdr:0.12},
       icon(c){icoBlade(c,['#123A5A','#7AC8FF','#EAFBFF','#9FD8F0'],'#DFFFFF');},
       draw(c){
         B(c, 3,-1,5,3,'#2A4A6A');
@@ -3101,6 +3110,7 @@ const EQUIP={
     },
     verdant_blade:{
       name:'翠葉刃', desc:'揮砍捲起葉片，落地化為草屑', len:33,
+      stats:{atk:0.22, hp:0.10},
       rarity:'rare', drop:{slime:0.05, mush:0.05},
       icon(c){icoBlade(c,['#123A18','#4FB33A','#A8F06A','#78D45A'],'#DFFFC8');},
       draw(c){
@@ -3145,6 +3155,7 @@ const EQUIP={
     },
     storm_glaive:{
       name:'雷霆戟', desc:'菇菇王的遺物 — 揮擊時劈出閃電', len:42,
+      stats:{atk:0.55, crit:0.10, cdr:0.08},
       rarity:'legend', drop:{king:1.0},
       icon(c){icoBlade(c,['#2A1050','#B858F0','#F0D8FF','#FFC83C'],'#FFF3A0');},
       draw(c){
@@ -3199,6 +3210,7 @@ const EQUIP={
     none:{name:'無',desc:'不帶光環',rarity:'common',icon(c){c.fillStyle='#8A7A5A';c.fillRect(6,13,16,3);}},
     thunder_ring:{
       name:'雷霆光環', desc:'腳下雷紋陣，周身不斷落雷', rarity:'epic',
+      stats:{atk:0.08, crit:0.08},
       icon(c){icoRing(c,'#FFE04A','#FFF3A0');},
       update(dt,p){
         p.auraT=(p.auraT||0)-dt;
@@ -3264,6 +3276,7 @@ const EQUIP={
     },
     petal_veil:{
       name:'落櫻之環', desc:'櫻瓣環繞飄落，安靜但好看', rarity:'rare', drop:{mush:0.04},
+      stats:{hp:0.15, cdr:0.06},
       icon(c){icoRing(c,'#FF9AC8','#FFD6E8');},
       update(dt,p){
         p.auraT=(p.auraT||0)-dt;
@@ -3296,6 +3309,7 @@ const EQUIP={
     },
     ember_halo:{
       name:'餘燼光環', desc:'腳下火環不滅，餘燼緩緩上升',
+      stats:{atk:0.18, crit:0.04},
       rarity:'epic', drop:{golem:0.12},
       icon(c){icoRing(c,'#FF6A1E','#FFC83C');},
       update(dt,p){
@@ -3337,6 +3351,7 @@ const EQUIP={
     none:{name:'布鞋',desc:'普通的鞋子',rarity:'common',icon(c){icoBoot(c,'#9A5E2A','#C98A48');}},
     gale_boots:{
       name:'疾風之靴', desc:'奔跑與落地揚起風塵', rarity:'rare', drop:{bat:0.05, golem:0.08},
+      stats:{spd:0.18, hp:0.05},
       icon(c){icoBoot(c,'#8FE8FF','#DFFFFF');},
       onStep(p){
         PixelFX.burst(3,()=>({
@@ -3359,6 +3374,47 @@ const EQUIP={
     },
   },
 };
+
+/* ---------- 裝備屬性 ----------
+   等級曲線 statsFor() 保持原樣，裝備只是往上乘一層加成，
+   所以原本的成長節奏不會被破壞。 */
+const STAT_LABEL={atk:'攻擊',hp:'體力',mp:'魔力',crit:'爆擊',spd:'移速',cdr:'冷卻'};
+function equipStats(){
+  const t={atk:0,hp:0,mp:0,crit:0,spd:0,cdr:0};
+  for(const slot of ['weapon','aura','shoes']){
+    const st=eq(slot).stats;
+    if(!st)continue;
+    for(const k in st)t[k]=(t[k]||0)+st[k];
+  }
+  return t;
+}
+/* keepRatio：換裝時保留血量百分比，避免換件裝備就爆血或暴斃 */
+function recalcStats(keepRatio){
+  const base=statsFor(P.lv);
+  const t=equipStats();
+  const hpR=keepRatio&&P.maxHp?P.hp/P.maxHp:1;
+  const mpR=keepRatio&&P.maxMp?P.mp/P.maxMp:1;
+  P.maxHp=Math.round(base.maxHp*(1+t.hp));
+  P.maxMp=Math.round(base.maxMp*(1+t.mp));
+  P.atk  =Math.round(base.atk  *(1+t.atk));
+  P.critBonus=t.crit;
+  P.spdMul=1+t.spd;
+  P.cdrMul=Math.max(0.4,1-t.cdr);
+  if(keepRatio){
+    P.hp=clamp(Math.round(P.maxHp*hpR),1,P.maxHp);
+    P.mp=clamp(Math.round(P.maxMp*mpR),0,P.maxMp);
+  }else{
+    P.hp=P.maxHp; P.mp=P.maxMp;
+  }
+}
+function statText(st){
+  if(!st)return '';
+  return Object.keys(st).map(k=>{
+    const v=st[k];
+    const pct=Math.round(v*100);
+    return `${STAT_LABEL[k]||k} +${pct}%`;
+  }).join('  ');
+}
 
 /* ---------- 讀取目前裝備 ---------- */
 function eq(slot){
@@ -3395,9 +3451,10 @@ function buildEquipWin(){
       if(it.icon)it.icon(cc);
       const tx=document.createElement('div');
       tx.className='tx';
-      tx.innerHTML='<div class="nm"></div><div class="ds"></div>';
+      tx.innerHTML='<div class="nm"></div><div class="st"></div><div class="ds"></div>';
       tx.querySelector('.nm').textContent=it.name||id;
       tx.querySelector('.nm').style.color=rarityOf(it).col;
+      tx.querySelector('.st').textContent=statText(it.stats);
       tx.querySelector('.ds').textContent=it.desc||'';
       el.appendChild(cv); el.appendChild(tx);
       el.addEventListener('pointerdown',e=>{
@@ -3418,6 +3475,16 @@ function buildEquipWin(){
   refreshEquipWin();
 }
 function refreshEquipWin(){
+  const tot=document.getElementById('ewTotals');
+  if(tot){
+    const t=equipStats();
+    tot.textContent=
+      `ATK ${P.atk}  HP ${P.maxHp}  MP ${P.maxMp}\n`+
+      `爆擊 +${Math.round((P.critBonus||0)*100)}%  `+
+      `移速 +${Math.round(((P.spdMul||1)-1)*100)}%  `+
+      `冷卻 -${Math.round((1-(P.cdrMul||1))*100)}%`;
+    tot.style.whiteSpace='pre';
+  }
   document.querySelectorAll('#ewSlots .ew-item').forEach(el=>{
     const slot=el.dataset.slot, id=el.dataset.id;
     const have=G.owned[slot].has(id);
@@ -3463,6 +3530,7 @@ function equip(slot,id){
     return;
   }
   P.equipment[slot]=id;
+  recalcStats(true);           // 保留血量百分比重算
   sysmsg(`裝備變更 — ${EQUIP[slot][id].name||id}`,'item');
   if(typeof refreshEquipWin==='function')refreshEquipWin();
 }
