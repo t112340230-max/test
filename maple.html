@@ -1084,6 +1084,7 @@ const NUMSTYLE={
   hurt :{size:30,life:1.15,top:'#FFC8C8',bot:'#E01010',edge:'#3A0000',spread:0.8},
   heal :{size:25,life:1.15,spread:0.3,top:'#E0FFC8',bot:'#28C838',edge:'#08280A',prefix:'+'},
   mana :{size:25,life:1.15,spread:0.3,top:'#C8ECFF',bot:'#2878E0',edge:'#04203A',prefix:'+'},
+  dot  :{size:19,life:0.85,spread:0.25,top:'#FFE8C0',bot:'#FF7A2A',edge:'#3A1000'},
   exp  :{size:17,life:1.05,spread:0.15,top:'#FFFFFF',bot:'#9AD8FF',edge:'#0A2438',prefix:'+',suffix:' EXP'},
   meso :{size:19,life:1.05,spread:0.2,top:'#FFF7A0',bot:'#E8B000',edge:'#3A2400',prefix:'+'},
 };
@@ -1566,9 +1567,10 @@ function castFire(s){
   p.atkT=p.atkDur=0.26; p.atkKind='cast';
   SFX.cast();
   const d=rollDmg(s.mul,'magic');
+  const el=eq('weapon').element;
   makeProj({x:p.x+p.face*32,y:p.y-PH*0.55,vx:p.face*820,vy:0,r:30,
-    dmg:d,pierce:3,life:1.3,type:'fire'});
-  addBoom(p.x+p.face*40,p.y-PH*0.55,90,30,{spikes:false});
+    dmg:d,pierce:3,life:1.3,type:'fire',el});
+  addBoom(p.x+p.face*40,p.y-PH*0.55,90,ELEM_HUE[el]||30,{spikes:false});
   burst(p.x+p.face*32,p.y-PH*0.55,10,()=>({vx:p.face*rand(60,240),vy:rand(-90,90),c:pick(['#FFD24D','#FF8A1B','#FF4E1B']),size:rand(3,7),life:.32,max:.32,grav:0}));
 }
 function castWhirl(s){
@@ -1601,6 +1603,7 @@ function hurtMob(m,d,fromX,kb){
   }
   addNum(m.x,m.y-m.h-8,d.amt,d.crit?'crit':(d.style||'dmg'));
   SFX.hit(d.crit);
+  applyElement(m,eq('weapon').element,d.amt);
   G.combo.n++; G.combo.t=2.4;
   if(G.combo.n>G.combo.best)G.combo.best=G.combo.n;
   if(G.combo.n%25===0){SFX.levelup();G.flash=Math.max(G.flash,0.3);}
@@ -1718,6 +1721,7 @@ function updateMobs(dt){
       continue;
     }
 
+    updateMobStatus(m,dt);
     if(m.d.boss)bossAI(m,dt);
     else normalAI(m,dt);
 
@@ -1789,7 +1793,7 @@ function normalAI(m,dt){
   }
 
   if(m.stun<=0&&m.wind<=0){
-    const spd=m.d.spd*(m.aggro>0?1.65:1);
+    const spd=m.d.spd*(m.aggro>0?1.65:1)*mobSlow(m);
     if(m.d.fly){
       if(m.mact>0){                     // 俯衝中：直線突進
         m.vy=m.diveVy;
@@ -1991,7 +1995,7 @@ function updateProjs(dt){
           const d=typeof q.dmg==='function'?q.dmg():q.dmg;
           hurtMob(m,d.amt!==undefined?d:{amt:Math.round(d),crit:false},q.x,0.6);
           if(q.type==='meteor'){explodeMeteor(q);done=true;break;}
-          addBoom(q.x,q.y,130,28);
+          addBoom(q.x,q.y,130,ELEM_HUE[q.el]||28);
           G.shake=Math.max(G.shake,7);
           if(q.hit.size>=q.pierce)done=true;
         }
@@ -2770,6 +2774,13 @@ function drawPlayer(){
 }
 
 
+function drawMobBody(c,m,f){
+  if(m.type==='slime')drawSlime(c,m,f);
+  else if(m.type==='mush')drawMush(c,m,f);
+  else if(m.type==='bat')drawBat(c,m,f);
+  else if(m.type==='golem')drawGolem(c,m,f);
+  else drawKing(c,m,f);
+}
 function drawMob(m){
   const c=ctx, f=m.flash, d=m.d;
 
@@ -2802,11 +2813,19 @@ function drawMob(m){
   }
   c.scale(m.face,1);
 
-  if(m.type==='slime')drawSlime(c,m,f);
-  else if(m.type==='mush')drawMush(c,m,f);
-  else if(m.type==='bat')drawBat(c,m,f);
-  else if(m.type==='golem')drawGolem(c,m,f);
-  else drawKing(c,m,f);
+  drawMobBody(c,m,f);
+
+  // 元素狀態：用同一組方塊再畫一次，整個剪影上色
+  if(m.st&&m.st.t>0){
+    const E=ELEMENTS[m.st.el];
+    c.save();
+    c.globalCompositeOperation='lighter';
+    c.globalAlpha=(.3+Math.sin(G.t*11+m.id)*.12)*clamp(m.st.t/m.st.max*2,0,1);
+    MOB_TINT=E.tint;
+    drawMobBody(c,m,0);
+    MOB_TINT=null;
+    c.restore();
+  }
 
   c.restore();
 
@@ -2815,6 +2834,11 @@ function drawMob(m){
     c.fillStyle='rgba(3,4,10,.85)';c.fillRect(x-1,y-1,w+2,4);
     c.fillStyle='#E01030';c.fillRect(x,y,w*clamp(m.hp/m.maxHp,0,1),2);
     c.fillStyle='rgba(255,150,170,.7)';c.fillRect(x,y,w*clamp(m.hp/m.maxHp,0,1),.8);
+    if(m.st&&m.st.t>0){
+      const E=ELEMENTS[m.st.el];
+      c.fillStyle='#241B3A';c.fillRect(x-1,y-7,6,6);
+      c.fillStyle=E.col;   c.fillRect(x,y-6,4,4);
+    }
   }
 }
 
@@ -2829,6 +2853,15 @@ function drawMob(m){
    所有效果純粹是視覺層：傷害、判定、碰撞一律不經過這裡。
    ============================================================ */
 
+/* 元素對應的技能配色與爆炸色相 */
+const ELEM_HUE={fire:28, ice:190, leaf:100, storm:280};
+const ELEM_PROJ={
+  fire :['#FFE07A','#FF8A1B','rgba(255,60,20,0)'],
+  ice  :['#DFF6FF','#5AB8F0','rgba(40,130,220,0)'],
+  leaf :['#DFFFC8','#5FC44A','rgba(40,150,50,0)'],
+  storm:['#F0D8FF','#A84AE8','rgba(120,40,200,0)'],
+};
+
 /* ---------- 輕量像素粒子系統 ---------- */
 const PixelFX={
   list:[], bolts:[], MAX:460,
@@ -2839,6 +2872,8 @@ const PixelFX={
     },o));
   },
   burst(n,fn){for(let i=0;i<n;i++)this.spawn(fn(i));},
+  /* 常駐特效在接近預算時自動讓位給打擊特效 */
+  busy(){return this.list.length>this.MAX*0.75;},
   /* 像素閃電：一條會抖動的折線 */
   bolt(x,y,ang,len,col){
     if(this.bolts.length>20)this.bolts.shift();
@@ -2944,6 +2979,74 @@ function icoBoot(c,col,col2){
   c.fillStyle=col2;c.fillRect(2,10,5,2);c.fillRect(1,14,5,2);
 }
 
+/* ============================================================
+   元素狀態：武器把自己的屬性留在怪物身上
+   ------------------------------------------------------------
+   純粹疊加在既有的 hurtMob 之上，不改變原本的傷害計算與擊退。
+   ============================================================ */
+const ELEMENTS={
+  fire :{name:'燃燒', col:'#FF6A1E', tint:'#FF6A1E', dur:2.4, dps:0.20, slow:0,
+         pcol:['#FFF3A0','#FFC83C','#FF6A1E'], rise:-38},
+  ice  :{name:'凍結', col:'#7AC8FF', tint:'#4FA8FF', dur:2.8, dps:0.05, slow:0.45,
+         pcol:['#FFFFFF','#EAFBFF','#7AC8FF'], rise:26},
+  leaf :{name:'纏繞', col:'#4FB33A', tint:'#4FB33A', dur:2.2, dps:0.10, slow:0.22,
+         pcol:['#DFFFC8','#A8F06A','#4FB33A'], rise:14},
+  storm:{name:'感電', col:'#B858F0', tint:'#B858F0', dur:1.8, dps:0.14, slow:0.10,
+         pcol:['#FFFFFF','#F0D8FF','#B858F0'], rise:-20, chain:true},
+};
+/* 狀態造成的傷害：不走 hurtMob，避免重複觸發連擊與擊退 */
+function statusDamage(m,amt){
+  if(m.dying||m.hp<=0)return;
+  m.hp-=amt;
+  m.flash=Math.max(m.flash,.35);
+  addNum(m.x+rand(-12,12),m.y-m.h-2,Math.max(1,Math.round(amt)),'dot');
+  if(m.hp<=0)killMob(m);
+}
+function applyElement(m,el,power){
+  if(!el||!ELEMENTS[el]||m.dying)return;
+  const E=ELEMENTS[el];
+  m.st={el,t:E.dur,max:E.dur,pow:power,tick:0};
+  if(E.chain&&chance(0.35)){        // 感電：跳到附近另一隻怪身上
+    let best=null,bd=230;
+    for(const o of G.mobs){
+      if(o===m||o.dying)continue;
+      const d=Math.hypot(o.x-m.x,o.y-m.y);
+      if(d<bd){bd=d;best=o;}
+    }
+    if(best){
+      PixelFX.bolt(m.x,m.y-m.h*.5,
+        Math.atan2((best.y-best.h*.5)-(m.y-m.h*.5),best.x-m.x),bd,'#F0D8FF');
+      statusDamage(best,power*0.5);
+      best.st={el,t:E.dur*.6,max:E.dur*.6,pow:power*.5,tick:0};
+    }
+  }
+}
+function mobSlow(m){
+  return (m.st&&m.st.t>0&&!m.d.boss)?(1-ELEMENTS[m.st.el].slow):1;
+}
+function updateMobStatus(m,dt){
+  const st=m.st;
+  if(!st)return;
+  st.t-=dt;
+  if(st.t<=0){m.st=null;return;}
+  const E=ELEMENTS[st.el];
+  st.tick-=dt;
+  if(st.tick<=0){
+    st.tick=0.45;
+    if(E.dps)statusDamage(m,st.pow*E.dps);
+  }
+  // 狀態粒子
+  if(PixelFX.list.length<PixelFX.MAX*0.8&&Math.random()<dt*16){
+    PixelFX.spawn({
+      x:m.x+rand(-m.w*.45,m.w*.45), y:m.y-rand(2,m.h),
+      vx:rand(-18,18), vy:E.rise+rand(-12,12),
+      grav:E.rise<0?-16:40, drag:.7,
+      size:chance(.35)?2:1, col:pick(E.pcol),
+      life:rand(.3,.7), max:.7,
+    });
+  }
+}
+
 /* ---------- 稀有度 ---------- */
 const RARITY={
   common:{name:'普通',col:'#D8D0C0'},
@@ -2985,6 +3088,7 @@ const EQUIP={
     flame_sword:{
       name:'烈焰劍', desc:'劍尖常燃，揮砍噴出大量火星', rarity:'rare', len:38,
       stats:{atk:0.30, crit:0.05},
+      element:'fire',
       icon(c){icoBlade(c,['#3A0E04','#FF6A1E','#FFC83C','#FFC83C'],'#FFF3A0');},
       draw(c){
         // 握把與火焰護手
@@ -3022,7 +3126,7 @@ const EQUIP={
       /* 待機／走路時劍尖飄出火星 */
       ambient(dt,tip,p){
         p.wepT=(p.wepT||0)-dt;
-        if(p.wepT>0)return;
+        if(p.wepT>0||PixelFX.busy())return;
         p.wepT=Math.abs(p.vx)>20?0.05:0.10;
         PixelFX.spawn({
           x:tip.x+rand(-6,6), y:tip.y+rand(-6,6),
@@ -3062,6 +3166,7 @@ const EQUIP={
     frost_edge:{
       name:'冰霜之刃', desc:'揮砍散出冰晶，碎片會墜落', rarity:'rare', drop:{bat:0.07}, len:34,
       stats:{atk:0.24, cdr:0.12},
+      element:'ice',
       icon(c){icoBlade(c,['#123A5A','#7AC8FF','#EAFBFF','#9FD8F0'],'#DFFFFF');},
       draw(c){
         B(c, 3,-1,5,3,'#2A4A6A');
@@ -3086,7 +3191,7 @@ const EQUIP={
       },
       ambient(dt,tip,p){
         p.wepT=(p.wepT||0)-dt;
-        if(p.wepT>0)return;
+        if(p.wepT>0||PixelFX.busy())return;
         p.wepT=0.13;
         PixelFX.spawn({
           x:tip.x+rand(-5,5), y:tip.y+rand(-5,5),
@@ -3111,6 +3216,7 @@ const EQUIP={
     verdant_blade:{
       name:'翠葉刃', desc:'揮砍捲起葉片，落地化為草屑', len:33,
       stats:{atk:0.22, hp:0.10},
+      element:'leaf',
       rarity:'rare', drop:{slime:0.05, mush:0.05},
       icon(c){icoBlade(c,['#123A18','#4FB33A','#A8F06A','#78D45A'],'#DFFFC8');},
       draw(c){
@@ -3136,7 +3242,7 @@ const EQUIP={
       },
       ambient(dt,tip,p){
         p.wepT=(p.wepT||0)-dt;
-        if(p.wepT>0)return;
+        if(p.wepT>0||PixelFX.busy())return;
         p.wepT=0.16;
         PixelFX.spawn({x:tip.x+rand(-5,5),y:tip.y+rand(-5,5),
           vx:rand(-18,18),vy:rand(8,28),grav:14,drag:.9,size:1,
@@ -3156,6 +3262,7 @@ const EQUIP={
     storm_glaive:{
       name:'雷霆戟', desc:'菇菇王的遺物 — 揮擊時劈出閃電', len:42,
       stats:{atk:0.55, crit:0.10, cdr:0.08},
+      element:'storm',
       rarity:'legend', drop:{king:1.0},
       icon(c){icoBlade(c,['#2A1050','#B858F0','#F0D8FF','#FFC83C'],'#FFF3A0');},
       draw(c){
@@ -3183,7 +3290,7 @@ const EQUIP={
       },
       ambient(dt,tip,p){
         p.wepT=(p.wepT||0)-dt;
-        if(p.wepT>0)return;
+        if(p.wepT>0||PixelFX.busy())return;
         p.wepT=0.09;
         PixelFX.spawn({x:tip.x+rand(-7,7),y:tip.y+rand(-7,7),
           vx:rand(-26,26),vy:-rand(20,50),grav:-16,drag:1.2,size:chance(.4)?2:1,
@@ -3280,7 +3387,7 @@ const EQUIP={
       icon(c){icoRing(c,'#FF9AC8','#FFD6E8');},
       update(dt,p){
         p.auraT=(p.auraT||0)-dt;
-        if(p.auraT>0)return;
+        if(p.auraT>0||PixelFX.busy())return;
         p.auraT=0.09;
         PixelFX.spawn({
           x:p.x+rand(-26,26), y:p.y-PH-rand(-6,22),
@@ -3314,7 +3421,7 @@ const EQUIP={
       icon(c){icoRing(c,'#FF6A1E','#FFC83C');},
       update(dt,p){
         p.auraT=(p.auraT||0)-dt;
-        if(p.auraT>0)return;
+        if(p.auraT>0||PixelFX.busy())return;
         p.auraT=0.07;
         PixelFX.spawn({x:p.x+rand(-22,22),y:p.y-rand(0,6),
           vx:rand(-14,14),vy:-rand(28,66),grav:-22,drag:.8,
@@ -3454,7 +3561,9 @@ function buildEquipWin(){
       tx.innerHTML='<div class="nm"></div><div class="st"></div><div class="ds"></div>';
       tx.querySelector('.nm').textContent=it.name||id;
       tx.querySelector('.nm').style.color=rarityOf(it).col;
-      tx.querySelector('.st').textContent=statText(it.stats);
+      const elName=it.element?`【${ELEMENTS[it.element].name}】`:'';
+      tx.querySelector('.st').textContent=elName+statText(it.stats);
+      if(it.element)tx.querySelector('.st').style.color=ELEMENTS[it.element].col;
       tx.querySelector('.ds').textContent=it.desc||'';
       el.appendChild(cv); el.appendChild(tx);
       el.addEventListener('pointerdown',e=>{
@@ -3612,8 +3721,9 @@ function updateEquipVfx(dt){
    全部用方塊堆疊（不用漸層），邊緣自然就是硬的
    ============================================================ */
 const MU=2;
+let MOB_TINT=null;         // 不為 null 時，所有方塊改用這個顏色（元素染色用）
 function mb(c,x,y,w,h,col){
-  c.fillStyle=col;
+  c.fillStyle=MOB_TINT||col;
   c.fillRect(Math.round(x/MU)*MU,Math.round(y/MU)*MU,
              Math.max(MU,Math.round(w/MU)*MU),Math.max(MU,Math.round(h/MU)*MU));
 }
@@ -4164,8 +4274,9 @@ function drawProjs(c){
     c.globalCompositeOperation='lighter';
     if(q.type==='fire'||q.type==='meteor'){
       const R=q.type==='meteor'?q.r*1.5:q.r;
-      c.fillStyle=radGrad(c,'fire',R*2.1,
-        [[0,'#FFFFFF'],[.25,'#FFE07A'],[.55,'#FF8A1B'],[1,'rgba(255,60,20,0)']]);
+      const ep=ELEM_PROJ[q.el]||ELEM_PROJ.fire;
+      c.fillStyle=radGrad(c,'proj'+(q.el||'fire'),R*2.1,
+        [[0,'#FFFFFF'],[.25,ep[0]],[.55,ep[1]],[1,ep[2]]]);
       ell(c,0,0,R*2.1,R*2.1);c.fill();
       c.rotate(q.spin);
       c.fillStyle='#FFF6D0';
