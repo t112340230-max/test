@@ -2342,14 +2342,26 @@ function drawRopes(){
    角色繪製
    ============================================================ */
 /* ============================================================
-   主角：二頭身 Q 版像素小人
+   主角：Sprite Sheet 逐幀動畫系統
    ------------------------------------------------------------
-   全部以「美術像素」為單位繪製，AU = 2 世界單位 = 1 個美術像素。
-   身高共 29 美術像素 = 58 世界單位，與原本的 PH 完全相同，
-   頭部 14 px、身體＋腿 15 px，接近 1:1 的二頭身比例。
-   → 碰撞箱 (PW=34, PH=58) 一格未動，物理與操作手感完全不受影響。
+   幀規格：60x56 美術像素，錨點固定在 (26, 42)。
+   這個錨點就是「角色雙腳之間的地面點」，所有動畫共用同一個錨點，
+   所以從 walk 切到 attack（大劍會讓畫面寬度整個改變）時，
+   角色的腳不會位移一格 —— 這是 2D 像素遊戲最容易出包的地方。
+
+   幀框留白是照最誇張的姿勢算出來的：
+     揮劍到底時劍尖在 x≈+32、y≈+1；舉劍過肩時劍尖在 x≈-18、y≈-35
+   所以左邊留 26、右邊留 34、上面留 42、下面留 14，全部裝得下。
+
+   目前用程序化色塊烘焙成 sheet；日後拿到真的圖檔，
+   只要把 bakeHeroSheets() 換成
+     Sprites.defineSheet('hero_walk',{fw:60,fh:56,frames:4,src:'hero/walk.png'});
+   其餘播放、狀態切換、翻轉邏輯完全不用動。
    ============================================================ */
-const AU=2;
+const AU=2;                       // 1 美術像素 = 2 世界單位
+const CH_FW=60, CH_FH=56;         // 單幀尺寸（美術像素）
+const CH_AX=26, CH_AY=42;         // 錨點：底部中心
+
 const C_SKIN='#FFD9A8', C_SKIN_SH='#E0A277', C_BLUSH='#FF9BA8';
 const C_HAT='#2BB8C4',  C_HAT_LT='#7DEDEE',  C_HAT_DK='#166E82';
 const C_HAIR='#FFE07A', C_HAIR_DK='#D8A93C';
@@ -2360,155 +2372,289 @@ const C_LINE='#241B3A';
 const C_BLADE='#EAF6FF',C_BLADE_SH='#A6DCF2',C_HILT='#FFC83C', C_GRIP='#7A4A28';
 const C_EYE='#2A2238';
 
-/* 以美術像素填一個方塊 */
+/* 烘焙時 context 就是 1:1 的美術像素，所以這裡直接填原始單位 */
 function B(c,x,y,w,h,col){
   c.fillStyle=col;
-  c.fillRect(x*AU,y*AU,w*AU,h*AU);
+  c.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h));
 }
 
-function drawPlayer(){
-  const c=ctx, p=P;
-  if(p.inv>0&&Math.floor(p.inv*22)%2===0&&p.hurtT<=0)return;
-
-  const fl=p.hurtT>0?p.hurtT/0.4*0.85:0;
-  const F=col=>flashify(col,fl);
-  const moving=Math.abs(p.vx)>20&&p.onGround;
-  const air=!p.onGround&&!p.climb;
-  const t=G.t;
-
-  /* 呼吸／走路浮動：刻意量化成整數美術像素，才像真正的像素動畫 */
-  let bob=0;
-  if(!air&&!p.climb){
-    bob = moving
-      ? -Math.round(Math.abs(Math.sin(p.walkPhase*2))*1.5)
-      : -Math.round((Math.sin(t*2.4)*0.5+0.5)*1.3);
+/* ---------- 每個動作、每一幀的姿勢表 ---------- */
+const HERO_CLIPS={
+  idle  :{frames:3,frameMs:200,pingpong:true},   // 呼吸起伏，來回播放
+  walk  :{frames:4,frameMs:120},                 // 跨步 → 收腿 → 跨步 → 收腿
+  jump  :{frames:2,manual:true},                 // 0 上升伸展 / 1 下墜微縮
+  attack:{frames:4,frameMs:80,manual:true},      // 前搖 → 揮砍 → 揮砍 → 收招
+  climb :{frames:2,frameMs:180},
+};
+function heroPose(clip,f){
+  const base={bob:0,step:0,armA:-0.30,air:false,tuck:0,cape:0,trail:0,mouth:'idle',climb:false};
+  switch(clip){
+    case 'idle':
+      return{...base, bob:[0,-1,-2][f], cape:[0,1,1][f], armA:-0.30-[0,.03,.06][f]};
+    case 'walk':
+      return{...base,
+        step:[2,0,-2,0][f], bob:[0,-1,0,-1][f],
+        armA:-0.30+[0.14,0,-0.14,0][f], cape:[1,0,-1,0][f]};
+    case 'jump':
+      return f===0
+        ? {...base, air:true, bob:-1, tuck:1, armA:-1.15, cape:3}
+        : {...base, air:true, bob: 1, tuck:2, armA:-0.65, cape:2};
+    case 'attack':
+      return{...base,
+        armA:[-2.35,-1.00,0.45,0.15][f],
+        trail:[0,1,2,0][f],
+        bob:[0,-1,1,0][f], step:[-1,0,2,1][f], cape:[2,1,-1,0][f],
+        mouth:f===0?'idle':'open'};
+    case 'climb':
+      return{...base, climb:true, armA:-1.5, step:f===0?1:-1, cape:0};
   }
-  const step = moving ? Math.round(Math.sin(p.walkPhase*2)*1.7) : 0;
+  return base;
+}
 
-  /* 影子（貼在真正的落點上） */
+/* ---------- 單幀繪製：雙腳之間 = (0,0) ---------- */
+function drawHeroFrame(c,q){
+  const step=q.step, bob=q.bob;
+
+  /* 腿：站在地上時不跟著呼吸浮動，雙腳必須黏住地面 */
   c.save();
-  c.translate(p.x,p.y);
-  if(!p.climb){
-    const fy=findFloorY(p.x,p.y-2)-p.y;
-    const fade=clamp(1-Math.abs(fy)/320,0.15,1);
-    c.globalAlpha=.3*fade;
-    c.fillStyle='#2A1A38';
-    const sw=Math.round(9*fade);
-    c.fillRect(-sw*AU,fy-AU,sw*2*AU,2*AU);
-    c.globalAlpha=1;
-  }
-  c.scale(p.face,1);
-  c.translate(0,bob*AU);
-
-  /* ---- 披風（在身體後面） ---- */
-  const sway=Math.round((air?2:0)+Math.sin(t*3)*0.9-p.vx*0.004);
-  B(c,-9-sway,-17,2,12,F(C_CAPE_DK));
-  B(c,-7-sway,-18,3,13,F(C_CAPE));
-  B(c,-7-sway,-18,3,3,F('#FF8A70'));
-
-  /* ---- 腿 ---- */
-  if(air){
-    B(c,-4,-7,3,5,F(C_PANT));
-    B(c, 1,-8,3,5,F(C_PANT));
-    B(c,-5,-3,4,2,F(C_BOOT));
-    B(c, 1,-4,4,2,F(C_BOOT));
+  if(q.air)c.translate(0,bob);
+  if(q.air){
+    const t=q.tuck;
+    B(c,-4,-7+t,3,5,C_PANT);
+    B(c, 1,-8+t,3,5,C_PANT);
+    B(c,-5,-3+t,4,2,C_BOOT);
+    B(c, 1,-4+t,4,2,C_BOOT);
   }else{
-    B(c,-4+step,-7,3,6,F(C_PANT));
-    B(c, 1-step,-7,3,6,F(C_PANT));
-    B(c,-5+step,-2,4,2,F(C_BOOT));
-    B(c, 1-step,-2,4,2,F(C_BOOT));
-    B(c,-5+step,-2,4,1,F(C_BOOT_LT));
-    B(c, 1-step,-2,4,1,F(C_BOOT_LT));
+    B(c,-4+step,-7,3,6,C_PANT);
+    B(c, 1-step,-7,3,6,C_PANT);
+    B(c,-5+step,-2,4,2,C_BOOT);
+    B(c, 1-step,-2,4,2,C_BOOT);
+    B(c,-5+step,-2,4,1,C_BOOT_LT);
+    B(c, 1-step,-2,4,1,C_BOOT_LT);
   }
+  c.restore();
 
-  /* ---- 後手 ---- */
-  B(c,-7,-15,2,6,F(C_ARM_DK));
-  B(c,-7,-10,2,2,F(C_SKIN_SH));
+  c.save();
+  c.translate(0,bob);
 
-  /* ---- 身體（短小） ---- */
-  B(c,-6,-17,12,11,F(C_LINE));      // 外框
-  B(c,-5,-16,10,9,F(C_ARM));
-  B(c,-5,-16,10,2,F(C_ARM_LT));     // 肩線亮部
-  B(c,-5,-9,10,2,F(C_ARM_DK));      // 腰帶
-  B(c,-1,-15,2,5,F('#FFE9A8'));     // 胸前徽記
-  B(c,-1,-15,2,2,F('#FFFFFF'));
+  /* 披風 */
+  const sway=q.cape;
+  B(c,-9-sway,-17,2,12,C_CAPE_DK);
+  B(c,-7-sway,-18,3,13,C_CAPE);
+  B(c,-7-sway,-18,3,3,'#FF8A70');
 
-  /* ---- 大頭 ---- */
-  const hy=-31;                     // 頭頂
-  // 臉：用三段堆疊做出圓潤的方頭
-  B(c,-6,hy+1,12,2,F(C_LINE));
-  B(c,-8,hy+3,16,11,F(C_LINE));
-  B(c,-6,hy+14,12,2,F(C_LINE));
-  B(c,-5,hy+2,10,2,F(C_SKIN));
-  B(c,-7,hy+4,14,10,F(C_SKIN));
-  B(c,-5,hy+14,10,1,F(C_SKIN));
-  B(c,-7,hy+12,14,2,F(C_SKIN_SH));  // 下巴陰影
+  /* 後手 */
+  B(c,-7,-15,2,6,C_ARM_DK);
+  B(c,-7,-10,2,2,C_SKIN_SH);
 
+  /* 身體 */
+  B(c,-6,-17,12,11,C_LINE);
+  B(c,-5,-16,10,9,C_ARM);
+  B(c,-5,-16,10,2,C_ARM_LT);
+  B(c,-5,-9,10,2,C_ARM_DK);
+  B(c,-1,-15,2,5,'#FFE9A8');
+  B(c,-1,-15,2,2,'#FFFFFF');
+
+  /* 大頭 */
+  const hy=-31;
+  B(c,-6,hy+1,12,2,C_LINE);
+  B(c,-8,hy+3,16,11,C_LINE);
+  B(c,-6,hy+14,12,2,C_LINE);
+  B(c,-5,hy+2,10,2,C_SKIN);
+  B(c,-7,hy+4,14,10,C_SKIN);
+  B(c,-5,hy+14,10,1,C_SKIN);
+  B(c,-7,hy+12,14,2,C_SKIN_SH);
   // 帽子
-  B(c,-7,hy,14,2,F(C_HAT_DK));
-  B(c,-6,hy+1,12,4,F(C_HAT));
-  B(c,-6,hy+1,12,1,F(C_HAT_LT));
-  B(c,-10,hy+5,20,2,F(C_HAT_DK));   // 帽簷
-  B(c,-10,hy+5,20,1,F(C_HAT));
-  B(c,3,hy-2,3,3,F('#FFE07A'));     // 帽上羽飾
-  B(c,4,hy-3,2,2,F('#FFF3C0'));
-
+  B(c,-7,hy,14,2,C_HAT_DK);
+  B(c,-6,hy+1,12,4,C_HAT);
+  B(c,-6,hy+1,12,1,C_HAT_LT);
+  B(c,-10,hy+5,20,2,C_HAT_DK);
+  B(c,-10,hy+5,20,1,C_HAT);
+  B(c,3,hy-2,3,3,'#FFE07A');
+  B(c,4,hy-3,2,2,'#FFF3C0');
   // 瀏海
-  B(c,-8,hy+7,2,4,F(C_HAIR));
-  B(c, 6,hy+7,2,4,F(C_HAIR));
-  B(c,-8,hy+10,2,1,F(C_HAIR_DK));
-  B(c, 6,hy+10,2,1,F(C_HAIR_DK));
+  B(c,-8,hy+7,2,4,C_HAIR);
+  B(c, 6,hy+7,2,4,C_HAIR);
+  B(c,-8,hy+10,2,1,C_HAIR_DK);
+  B(c, 6,hy+10,2,1,C_HAIR_DK);
+  // 眼睛（眨眼是即時疊上去的，不烘進 sheet）
+  B(c,-5,hy+8,4,4,C_EYE);
+  B(c, 1,hy+8,4,4,C_EYE);
+  B(c,-5,hy+8,2,2,'#FFFFFF');
+  B(c, 1,hy+8,2,2,'#FFFFFF');
+  // 腮紅與嘴
+  B(c,-7,hy+12,2,1,C_BLUSH);
+  B(c, 5,hy+12,2,1,C_BLUSH);
+  if(q.mouth==='open')B(c,-1,hy+12,3,2,'#B8564E');
+  else                B(c, 0,hy+12,2,1,'#C4665A');
 
-  // 眼睛（像素點眼）
-  const blinking=p.blink<0;
-  if(blinking){
-    B(c,-5,hy+10,4,1,F(C_EYE));
-    B(c, 1,hy+10,4,1,F(C_EYE));
-  }else{
-    B(c,-5,hy+8,4,4,F(C_EYE));
-    B(c, 1,hy+8,4,4,F(C_EYE));
-    B(c,-5,hy+8,2,2,F('#FFFFFF'));
-    B(c, 1,hy+8,2,2,F('#FFFFFF'));
-    if(p.hurtT>0){                   // 受傷瞇眼
-      B(c,-5,hy+8,4,2,F(C_SKIN));
-      B(c, 1,hy+8,4,2,F(C_SKIN));
+  /* 誇張的劍軌跡（只在揮砍幀出現） */
+  if(q.trail){
+    const a1=q.armA, a0=a1-1.15;
+    const R=[0,26,31][q.trail];
+    for(let i=0;i<11;i++){
+      const a=a0+(a1-a0)*(i/10);
+      const rr=R-(10-i)*0.7;
+      const s=2+((i>4)?1:0)+((i>8)?1:0);
+      B(c,4+Math.cos(a)*rr-s/2,-13+Math.sin(a)*rr-s/2,s,s,
+        i>7?'#FFFFFF':i>3?'#CFF6FF':'#7FD8F0');
     }
   }
-  // 腮紅與嘴
-  B(c,-7,hy+12,2,1,F(C_BLUSH));
-  B(c, 5,hy+12,2,1,F(C_BLUSH));
-  if(p.atkT>0)      B(c,-1,hy+12,3,2,F('#B8564E'));   // 出招張嘴
-  else if(p.hurtT>0)B(c,-1,hy+12,3,1,F('#B8564E'));
-  else              B(c, 0,hy+12,2,1,F('#C4665A'));
 
-  /* ---- 前手 + 誇張的大劍 ---- */
-  let armA;
-  if(p.atkT>0&&(p.atkKind==='slash'||p.atkKind==='cast')){
-    const a=1-p.atkT/p.atkDur;
-    const e=a<.32?(a/.32)*(a/.32):1-Math.pow(1-(a-.32)/.68,2);
-    armA=p.atkKind==='slash'?lerp(-2.5,0.9,e):lerp(-0.4,-1.5,e);
-  }else if(p.whirlT>0)armA=(0.70-p.whirlT)*26;
-  else if(p.climb)armA=-1.5;
-  else if(air)armA=-1.0;
-  else armA=-0.30+Math.sin(t*2.4)*.06+step*.05;
+  /* 前手 + 大劍 */
+  c.save();
+  c.translate(4,-13);
+  c.rotate(q.armA);
+  B(c,-1,-2,4,4,C_ARM);
+  B(c, 2,-1,3,3,C_SKIN);
+  B(c, 4,-1,4,2,C_GRIP);
+  B(c, 8,-4,2,8,C_HILT);
+  B(c,10,-3,18,6,C_LINE);
+  B(c,11,-2,17,4,C_BLADE_SH);
+  B(c,11,-2,17,2,C_BLADE);
+  B(c,28,-2,3,4,C_LINE);
+  B(c,28,-1,3,2,C_BLADE);
+  c.restore();
+
+  c.restore();
+}
+
+/* ---------- 烘焙：把所有姿勢畫成 sprite sheet ---------- */
+function bakeHeroSheets(){
+  for(const name in HERO_CLIPS){
+    const n=HERO_CLIPS[name].frames;
+    const cv=document.createElement('canvas');
+    cv.width=CH_FW*n; cv.height=CH_FH;
+    const c=cv.getContext('2d');
+    c.imageSmoothingEnabled=false;
+    for(let f=0;f<n;f++){
+      c.save();
+      c.beginPath();c.rect(f*CH_FW,0,CH_FW,CH_FH);c.clip();
+      c.translate(f*CH_FW+CH_AX,CH_AY);      // ← 錨點：底部中心
+      drawHeroFrame(c,heroPose(name,f));
+      c.restore();
+    }
+    Sprites.defineSheet('hero_'+name,{fw:CH_FW,fh:CH_FH,frames:n,cv});
+    // 受擊白閃：同一組幀，用 source-atop 把不透明處全部塗白
+    const fv=document.createElement('canvas');
+    fv.width=cv.width; fv.height=cv.height;
+    const fc=fv.getContext('2d');
+    fc.imageSmoothingEnabled=false;
+    fc.drawImage(cv,0,0);
+    fc.globalCompositeOperation='source-atop';
+    fc.fillStyle='#FFFFFF';
+    fc.fillRect(0,0,fv.width,fv.height);
+    Sprites.defineSheet('hero_'+name+'_flash',{fw:CH_FW,fh:CH_FH,frames:n,cv:fv});
+  }
+}
+
+/* ============================================================
+   動畫狀態機 + 獨立幀率計時器
+   幀的推進完全由自己的毫秒累加器決定，不跟著 60fps 走，
+   所以動作會有老遊戲那種一格一格的重量感。
+   ============================================================ */
+const HeroAnim={
+  clip:'idle', frame:0, acc:0, dir:1,
+  set(clip){
+    if(clip===this.clip)return;
+    this.clip=clip; this.frame=0; this.acc=0; this.dir=1;
+  },
+  tick(dt){
+    const def=HERO_CLIPS[this.clip];
+    if(!def||def.manual)return;
+    this.acc+=dt*1000;
+    while(this.acc>=def.frameMs){
+      this.acc-=def.frameMs;
+      if(def.pingpong){
+        this.frame+=this.dir;
+        if(this.frame>=def.frames-1){this.frame=def.frames-1;this.dir=-1;}
+        else if(this.frame<=0){this.frame=0;this.dir=1;}
+      }else{
+        this.frame=(this.frame+1)%def.frames;
+      }
+    }
+  },
+};
+function updateHeroAnim(dt){
+  const p=P;
+  let clip='idle', manual=-1;
+  if(p.dashT>0){
+    clip='jump'; manual=0;                       // 衝刺借用伸展的那一幀
+  }else if(p.atkT>0&&(p.atkKind==='slash'||p.atkKind==='cast')){
+    clip='attack';
+    // 依出招進度挑幀，4 幀剛好鋪滿一次揮砍（約每幀 80ms）
+    manual=clamp(Math.floor((1-p.atkT/p.atkDur)*4),0,3);
+  }else if(p.whirlT>0){
+    clip='attack';
+    manual=Math.floor(G.t/0.08)%4;               // 旋風斬：快速循環揮砍幀
+  }else if(p.climb){
+    clip='climb';
+  }else if(!p.onGround){
+    clip='jump'; manual=p.vy<0?0:1;              // 上升用 0、下墜用 1
+  }else if(Math.abs(p.vx)>20){
+    clip='walk';
+  }
+  HeroAnim.set(clip);
+  if(manual>=0)HeroAnim.frame=manual;
+  else HeroAnim.tick(dt);
+}
+
+/* ---------- 繪製 ---------- */
+function drawPlayer(){
+  const p=P;
+  if(p.inv>0&&Math.floor(p.inv*22)%2===0&&p.hurtT<=0)return;
+  const c=ctx;
+  const sh=Sprites.get('hero_'+HeroAnim.clip);
+  if(!sh||!sh.ready)return;
+  const f=clamp(HeroAnim.frame,0,sh.frames-1);
+
+  // 讓 1 個美術像素剛好等於整數個緩衝像素，並把落點對齊到像素格
+  const z=zoomNow()/PIXEL;
+  const S=Math.max(1,Math.round(AU*z))/z;
+  const dx=Math.round((p.x-G.cam.x)*z)/z+G.cam.x;
+  const dy=Math.round((p.y-G.cam.y)*z)/z+G.cam.y;
 
   c.save();
-  c.translate(4*AU,-13*AU);
-  c.rotate(armA);
-  B(c,-1,-2,4,4,F(C_ARM));          // 肩
-  B(c, 2,-1,3,3,F(C_SKIN));         // 手
-  B(c, 4,-1,4,2,F(C_GRIP));         // 握把
-  B(c, 8,-4,2,8,F(C_HILT));         // 護手
-  B(c,10,-3,18,6,F(C_LINE));        // 劍身外框
-  B(c,11,-2,17,4,F(C_BLADE_SH));    // 劍身
-  B(c,11,-2,17,2,F(C_BLADE));       // 劍脊反光
-  B(c,28,-2,3,4,F(C_LINE));
-  B(c,28,-1,3,2,F(C_BLADE));        // 劍尖
+  // 影子畫在世界座標，不跟著角色翻轉
+  if(!p.climb){
+    const fy=findFloorY(p.x,p.y-2);
+    const fade=clamp(1-Math.abs(fy-p.y)/320,0.15,1);
+    c.globalAlpha=.3*fade;
+    c.fillStyle='#2A1A38';
+    const sw=Math.round(9*fade)*S;
+    c.fillRect(dx-sw,fy-S,sw*2,S*2);
+    c.globalAlpha=1;
+  }
+  c.translate(dx,dy);
+  c.scale(p.face,1);                 // ← 只畫朝右的圖，靠這裡翻面
+  c.imageSmoothingEnabled=false;
+  const src=sh.img||sh.cv;
+  c.drawImage(src,f*CH_FW,0,CH_FW,CH_FH,
+              -CH_AX*S,-CH_AY*S,CH_FW*S,CH_FH*S);
+
+  // 眨眼：即時蓋一層，不必為了眨眼多烘一整組幀
+  if(p.blink<0&&!p.climb){
+    const hy=-31;
+    c.fillStyle=C_SKIN;
+    c.fillRect(-5*S,(hy+8)*S,4*S,3*S);
+    c.fillRect( 1*S,(hy+8)*S,4*S,3*S);
+    c.fillStyle=C_EYE;
+    c.fillRect(-5*S,(hy+10)*S,4*S,S);
+    c.fillRect( 1*S,(hy+10)*S,4*S,S);
+  }
+  // 受擊白閃
+  if(p.hurtT>0){
+    const fsh=Sprites.get('hero_'+HeroAnim.clip+'_flash');
+    if(fsh&&fsh.ready){
+      c.globalAlpha=clamp(p.hurtT/0.4,0,1)*0.85;
+      c.drawImage(fsh.cv,f*CH_FW,0,CH_FW,CH_FH,
+                  -CH_AX*S,-CH_AY*S,CH_FW*S,CH_FH*S);
+      c.globalAlpha=1;
+    }
+  }
   c.restore();
 
-  c.restore();
-
-  /* ---- 旋風斬 ---- */
+  /* 旋風斬的環狀特效維持即時繪製 */
   if(p.whirlT>0){
     c.save();
     c.translate(p.x,p.y-PH/2);
@@ -2526,7 +2672,6 @@ function drawPlayer(){
 }
 
 
-/* ---------- 怪物 ---------- */
 function drawMob(m){
   const c=ctx, f=m.flash, d=m.d;
 
@@ -2767,6 +2912,11 @@ const Sprites={
   sheets:{},
   defineSheet(name,cfg){
     const sh={name,fw:cfg.fw,fh:cfg.fh,frames:cfg.frames,cv:null,img:null,ready:false};
+    if(cfg.cv){
+      sh.cv=cfg.cv; sh.ready=true;
+      this.sheets[name]=sh;
+      return sh;
+    }
     if(cfg.src){
       const img=new Image();
       img.onload=()=>{sh.img=img;sh.ready=true;};
@@ -3720,6 +3870,7 @@ function frame(now){
       G.freeze-=dt;
     }else{
       updatePlayer(dt);
+      updateHeroAnim(dt);
       updateMobs(dt);
       updateProjs(dt);
       updateDrops(dt);
@@ -3746,6 +3897,7 @@ function frame(now){
 /* ---------- 啟動 ---------- */
 function boot(saved){
   resize();
+  bakeHeroSheets();
   newGame(saved&&saved.keep?saved.keep:null);
   if(saved&&saved.keep){
     // 熱更新後把玩家放回原處
