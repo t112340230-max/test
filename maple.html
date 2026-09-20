@@ -195,6 +195,51 @@ body{
 .qslot.flash{animation:qpop .2s steps(2,end)}
 @keyframes qpop{0%{box-shadow:inset 0 0 0 2px #FFF0A0}100%{box-shadow:none}}
 
+/* ===== 裝備視窗 ===== */
+#equipwin{position:absolute;left:14px;
+  top:calc(132px + env(safe-area-inset-top,0px));
+  bottom:calc(118px + env(safe-area-inset-bottom,0px));
+  width:300px;pointer-events:auto;z-index:7;
+  display:flex;flex-direction:column}
+#equipwin[hidden]{display:none!important}
+#equipwin .ew-t{display:flex;justify-content:space-between;align-items:center;
+  padding:5px 7px 4px;font-family:var(--f-px);font-size:8px;color:#3A2410;
+  border-bottom:2px solid var(--wood-dk);
+  background:linear-gradient(180deg,var(--wood-lt),var(--wood))}
+#equipwin .ew-x{cursor:pointer;padding:0 3px;font-family:var(--f-px);font-size:9px;color:#8A2A00}
+#equipwin .ew-x:hover{color:#D01000}
+#equipwin .ew-body{padding:7px;overflow-y:auto;flex:1}
+#equipwin .ew-tip{font-family:var(--f-cjk);font-size:11px;color:#6A5230;
+  margin:0 0 7px;line-height:1.4}
+.ew-slot{margin-bottom:8px}
+.ew-slot>b{display:block;font-family:var(--f-cjk);font-weight:700;font-size:12px;
+  color:#3A2410;margin-bottom:4px;letter-spacing:1px}
+.ew-items{display:flex;flex-direction:column;gap:3px}
+.ew-item{display:flex;align-items:center;gap:7px;padding:3px 5px;cursor:pointer;
+  background:var(--slate-dk);border:2px solid var(--wood-ink);
+  box-shadow:inset 1px 1px 0 rgba(255,255,255,.14)}
+.ew-item:hover{background:#39456A}
+.ew-item.on{background:#5A4418;border-color:#FFC83C;
+  box-shadow:inset 1px 1px 0 rgba(255,240,160,.5)}
+.ew-item canvas{width:28px;height:28px;flex:none}
+.ew-item .nm{font-family:var(--f-cjk);font-weight:700;font-size:12px;color:#F4EEDC;line-height:1.2}
+.ew-item .ds{font-family:var(--f-cjk);font-size:10px;color:#A89878;line-height:1.2}
+.ew-item.on .nm{color:#FFF0A0}
+.ew-item .tx{min-width:0}
+/* 底部欄的開啟鍵 */
+#equipbtn{flex:none;width:44px;height:44px;cursor:pointer;padding:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  font-family:var(--f-cjk);font-weight:700;font-size:12px;color:#3A2410;
+  background:var(--wood);border:2px solid var(--wood-ink);
+  box-shadow:inset 2px 2px 0 var(--wood-lt),inset -2px -2px 0 var(--wood-dk)}
+#equipbtn span{font-family:var(--f-px);font-size:7px;color:#6A5230}
+#equipbtn:hover{background:var(--wood-lt)}
+#equipbtn.on{background:#FFE08A}
+@media (max-width:1000px){
+  #equipwin{width:240px;left:8px}
+  .ew-item .ds{display:none}
+}
+
 /* ===== 其餘 ===== */
 #helpbar{position:absolute;left:50%;transform:translateX(-50%);bottom:116px;
   display:flex;flex-wrap:wrap;justify-content:center;gap:3px 12px;max-width:min(900px,94vw);
@@ -346,6 +391,14 @@ body.touch #uibar{height:92px}
       <div class="bc-line"></div>
     </div>
 
+    <div id="equipwin" class="bevel" hidden>
+      <div class="ew-t"><span>EQUIPMENT 裝備</span><span class="ew-x" id="ewClose">[X]</span></div>
+      <div class="ew-body">
+        <p class="ew-tip">點一下就換上，外觀與特效會立刻改變。</p>
+        <div id="ewSlots"></div>
+      </div>
+    </div>
+
     <div id="toasts"></div>
 
     <div id="helpbar">
@@ -355,6 +408,7 @@ body.touch #uibar{height:92px}
       <span><kbd>↑</kbd>攀繩</span>
       <span><kbd>Z X C V</kbd>技能</span>
       <span><kbd>1 2</kbd>藥水</span>
+      <span><kbd>E</kbd>裝備</span>
       <span><kbd>H</kbd>收合</span>
     </div>
 
@@ -375,6 +429,8 @@ body.touch #uibar{height:92px}
           <div class="g exp"><i id="expfill"></i><span id="exptext">EXP 0.00%</span></div>
         </div>
       </div>
+
+        <button id="equipbtn" title="裝備欄">裝<span>E</span></button>
 
       <div id="quick" class="bevel">
         <div class="qrow" id="qrow1"></div>
@@ -610,7 +666,7 @@ const ACTIONS={
   up:['arrowup','w'], down:['arrowdown','s'],
   jump:[' ','space'],
   atk1:['z','j'], atk2:['x','k'], atk3:['c','l'], atk4:['v','u'],
-  dash:['shift','f'], help:['h'], pot1:['1'], pot2:['2'],
+  dash:['shift','f'], help:['h'], pot1:['1'], pot2:['2'], gear:['e'],
   pause:['p','escape'], mute:['m'],
 };
 const KEY2ACT={};
@@ -1245,6 +1301,7 @@ function contextHints(){
     const b=platUnder(p.x-PW/2,p.x+PW/2,p.y,p.y+4,true);
     if(b&&!b.solid)showHint('drop','長按 ↓  從平台落下');
   }
+  if(G.runT>9)showHint('gear','E  開啟裝備欄，換武器與光環');
   if(!p.attacked){
     for(const m of G.mobs){
       if(!m.dying&&Math.abs(m.x-p.x)<240&&Math.abs(m.y-p.y)<120){showHint('atk','Z  斬擊（X 火球 · C 旋風 · V 大絕）');break;}
@@ -2812,12 +2869,47 @@ const PixelFX={
   clear(){this.list.length=0;this.bolts.length=0;},
 };
 
+/* ---------- 圖示：28x28 的小像素圖，畫在裝備視窗裡 ---------- */
+function icoBlade(c,cols,glow){
+  // 斜放的劍，從左下到右上
+  for(let i=0;i<13;i++){
+    const x=5+i, y=21-i;
+    c.fillStyle=cols[0];c.fillRect(x-1,y-1,4,4);
+    c.fillStyle=cols[1];c.fillRect(x,y,3,3);
+    if(i>2){c.fillStyle=cols[2];c.fillRect(x,y,2,2);}
+  }
+  c.fillStyle='#3A2410';c.fillRect(3,19,6,6);   // 握把
+  c.fillStyle='#8A5A2A';c.fillRect(4,20,4,4);
+  c.fillStyle=cols[3];c.fillRect(7,16,7,3);     // 護手
+  if(glow){c.fillStyle=glow;c.fillRect(17,7,3,3);c.fillRect(20,4,2,2);}
+}
+function icoRing(c,col,col2){
+  const n=10;
+  for(let i=0;i<n;i++){
+    const a=i*TAU/n;
+    c.fillStyle=col;
+    c.fillRect(Math.round(14+Math.cos(a)*9)-1,Math.round(17+Math.sin(a)*4)-1,3,3);
+  }
+  c.fillStyle=col2;
+  c.fillRect(13,4,3,7);c.fillRect(11,8,3,3);c.fillRect(15,9,3,5);
+}
+function icoBoot(c,col,col2){
+  c.fillStyle='#3A2410';c.fillRect(8,7,10,16);
+  c.fillStyle=col;c.fillRect(9,8,8,12);
+  c.fillStyle=col2;c.fillRect(9,8,8,4);
+  c.fillStyle='#3A2410';c.fillRect(6,19,14,5);
+  c.fillStyle=col;c.fillRect(7,20,12,3);
+  c.fillStyle=col2;c.fillRect(2,10,5,2);c.fillRect(1,14,5,2);
+}
+
 /* ---------- 裝備圖鑑 ---------- */
 const EQUIP={
   weapon:{
-    none:{name:'空手',len:0,draw(){},trail(){}},
+    none:{name:'空手',desc:'沒有武器，只剩拳頭',len:0,draw(){},trail(){},
+      icon(c){c.fillStyle='#E0A277';c.fillRect(9,11,10,9);c.fillStyle='#FFD9A8';c.fillRect(9,11,10,4);c.fillStyle='#E0A277';c.fillRect(11,20,6,4);}},
     basic_sword:{
-      name:'旅人之劍', len:31,
+      name:'旅人之劍', desc:'樸素可靠，青白色斬擊軌跡', len:31,
+      icon(c){icoBlade(c,['#241B3A','#A6DCF2','#EAF6FF','#FFC83C']);},
       draw(c){
         B(c, 4,-1,4,2,C_GRIP);
         B(c, 8,-4,2,8,C_HILT);
@@ -2839,7 +2931,8 @@ const EQUIP={
       },
     },
     flame_sword:{
-      name:'烈焰劍', len:38,
+      name:'烈焰劍', desc:'劍尖常燃，揮砍噴出大量火星', len:38,
+      icon(c){icoBlade(c,['#3A0E04','#FF6A1E','#FFC83C','#FFC83C'],'#FFF3A0');},
       draw(c){
         // 握把與火焰護手
         B(c, 3,-1,5,3,'#5A2A10');
@@ -2913,12 +3006,61 @@ const EQUIP={
         });
       },
     },
+    frost_edge:{
+      name:'冰霜之刃', desc:'揮砍散出冰晶，碎片會墜落', len:34,
+      icon(c){icoBlade(c,['#123A5A','#7AC8FF','#EAFBFF','#9FD8F0'],'#DFFFFF');},
+      draw(c){
+        B(c, 3,-1,5,3,'#2A4A6A');
+        B(c, 7,-5,3,10,'#123A5A');
+        B(c, 8,-4,2,8,'#9FD8F0');
+        B(c,10,-4,24,8,'#123A5A');
+        B(c,11,-3,23,6,'#2E7FC8');
+        B(c,11,-3,23,4,'#7AC8FF');
+        B(c,11,-3,23,2,'#EAFBFF');
+        B(c,32,-3,3,6,'#123A5A');
+        B(c,32,-2,3,4,'#7AC8FF');
+      },
+      trail(c,q){
+        const a1=q.armA, a0=a1-1.3, R=[0,27,32][q.trail];
+        for(let i=0;i<13;i++){
+          const a=a0+(a1-a0)*(i/12);
+          const rr=R-(12-i)*0.7;
+          const sz=2+((i>6)?1:0)+((i>10)?1:0);
+          B(c,4+Math.cos(a)*rr-sz/2,-13+Math.sin(a)*rr-sz/2,sz,sz,
+            i>10?'#FFFFFF':i>7?'#EAFBFF':i>3?'#7AC8FF':'#2E7FC8');
+        }
+      },
+      ambient(dt,tip,p){
+        p.wepT=(p.wepT||0)-dt;
+        if(p.wepT>0)return;
+        p.wepT=0.13;
+        PixelFX.spawn({
+          x:tip.x+rand(-5,5), y:tip.y+rand(-5,5),
+          vx:rand(-10,10), vy:rand(14,40), grav:30, drag:.6,
+          size:1, col:pick(['#EAFBFF','#7AC8FF']),
+          life:rand(.4,.8), max:.8,
+        });
+      },
+      onSwing(p,tip,fin){
+        PixelFX.burst(fin?28:18,()=>{
+          const a=rand(-1.2,0.6), sp=rand(140,fin?420:300);
+          return{
+            x:tip.x+rand(-8,8), y:tip.y+rand(-8,8),
+            vx:Math.cos(a)*sp*p.face, vy:Math.sin(a)*sp-rand(20,70),
+            grav:260, drag:1.1, size:chance(.5)?2:1,
+            col:pick(['#FFFFFF','#EAFBFF','#7AC8FF','#2E7FC8']),
+            life:rand(.4,.85), max:.85,
+          };
+        });
+      },
+    },
   },
 
   aura:{
-    none:{},
+    none:{name:'無',desc:'不帶光環',icon(c){c.fillStyle='#8A7A5A';c.fillRect(6,13,16,3);}},
     thunder_ring:{
-      name:'雷霆光環',
+      name:'雷霆光環', desc:'腳下雷紋陣，周身不斷落雷',
+      icon(c){icoRing(c,'#FFE04A','#FFF3A0');},
       update(dt,p){
         p.auraT=(p.auraT||0)-dt;
         if(p.auraT>0)return;
@@ -2981,12 +3123,45 @@ const EQUIP={
         c.restore();
       },
     },
+    petal_veil:{
+      name:'落櫻之環', desc:'櫻瓣環繞飄落，安靜但好看',
+      icon(c){icoRing(c,'#FF9AC8','#FFD6E8');},
+      update(dt,p){
+        p.auraT=(p.auraT||0)-dt;
+        if(p.auraT>0)return;
+        p.auraT=0.09;
+        PixelFX.spawn({
+          x:p.x+rand(-26,26), y:p.y-PH-rand(-6,22),
+          vx:rand(-22,22), vy:rand(16,42), grav:-6, drag:.4,
+          size:chance(.4)?2:1,
+          col:pick(['#FF9AC8','#FFD6E8','#FFFFFF','#FFB0D8']),
+          life:rand(.7,1.3), max:1.3,
+        });
+      },
+      under(c,p){
+        const z=zoomNow()/PIXEL;
+        const S=Math.max(1,Math.round(AU*z))/z;
+        const snap=(v,cv)=>Math.floor((v-cv)*z)/z+cv;
+        const t=G.t;
+        c.save();
+        for(let i=0;i<9;i++){
+          const a=t*0.8+i*TAU/9;
+          const rad=(20+Math.sin(t*2+i)*3)*S;
+          const x=snap(p.x+Math.cos(a)*rad,G.cam.x);
+          const y=snap(p.y-2*S+Math.sin(a)*rad*0.42,G.cam.y);
+          c.fillStyle='rgba(60,20,40,.4)';c.fillRect(x,y+S,S*2,S*2);
+          c.fillStyle=i%2?'#FF9AC8':'#FFD6E8';c.fillRect(x,y,S*2,S*2);
+        }
+        c.restore();
+      },
+    },
   },
 
   shoes:{
-    none:{},
+    none:{name:'布鞋',desc:'普通的鞋子',icon(c){icoBoot(c,'#9A5E2A','#C98A48');}},
     gale_boots:{
-      name:'疾風之靴',
+      name:'疾風之靴', desc:'奔跑與落地揚起風塵',
+      icon(c){icoBoot(c,'#8FE8FF','#DFFFFF');},
       onStep(p){
         PixelFX.burst(3,()=>({
           x:p.x+rand(-8,8), y:p.y-2,
@@ -3014,11 +3189,75 @@ function eq(slot){
   const id=(P.equipment&&P.equipment[slot])||'none';
   return EQUIP[slot][id]||EQUIP[slot].none||{};
 }
-/* 主控台可直接呼叫：equip('weapon','basic_sword') */
+/* ============================================================
+   裝備視窗：內容直接從 EQUIP 生出來，
+   之後在圖鑑裡加一件裝備，視窗就會自動多一列，不用改 UI。
+   ============================================================ */
+const SLOT_LABEL={weapon:'武器',aura:'光環',shoes:'鞋子'};
+let equipWinBuilt=false;
+function buildEquipWin(){
+  const box=document.getElementById('ewSlots');
+  if(!box)return;
+  box.replaceChildren();
+  for(const slot of ['weapon','aura','shoes']){
+    const wrap=document.createElement('div');
+    wrap.className='ew-slot';
+    const t=document.createElement('b');
+    t.textContent=SLOT_LABEL[slot]||slot;
+    wrap.appendChild(t);
+    const list=document.createElement('div');
+    list.className='ew-items';
+    for(const id in EQUIP[slot]){
+      const it=EQUIP[slot][id];
+      const el=document.createElement('div');
+      el.className='ew-item';
+      el.dataset.slot=slot; el.dataset.id=id;
+      const cv=document.createElement('canvas');
+      cv.width=28;cv.height=28;
+      const cc=cv.getContext('2d');
+      cc.imageSmoothingEnabled=false;
+      if(it.icon)it.icon(cc);
+      const tx=document.createElement('div');
+      tx.className='tx';
+      tx.innerHTML='<div class="nm"></div><div class="ds"></div>';
+      tx.querySelector('.nm').textContent=it.name||id;
+      tx.querySelector('.ds').textContent=it.desc||'';
+      el.appendChild(cv); el.appendChild(tx);
+      el.addEventListener('pointerdown',e=>{
+        e.preventDefault();
+        equip(slot,id);
+        refreshEquipWin();
+      });
+      list.appendChild(el);
+    }
+    wrap.appendChild(list);
+    box.appendChild(wrap);
+  }
+  equipWinBuilt=true;
+  refreshEquipWin();
+}
+function refreshEquipWin(){
+  document.querySelectorAll('#ewSlots .ew-item').forEach(el=>{
+    el.classList.toggle('on',P.equipment[el.dataset.slot]===el.dataset.id);
+  });
+}
+function toggleEquipWin(force){
+  const w=document.getElementById('equipwin');
+  const btn=document.getElementById('equipbtn');
+  if(!w)return;
+  const open=force!==undefined?force:w.hidden;
+  if(open&&!equipWinBuilt)buildEquipWin();
+  w.hidden=!open;
+  if(btn)btn.classList.toggle('on',open);
+  if(open)refreshEquipWin();
+}
+
+/* 主控台也可直接呼叫：equip('weapon','basic_sword') */
 function equip(slot,id){
   if(!EQUIP[slot]||!EQUIP[slot][id]){console.warn('沒有這件裝備：',slot,id);return;}
   P.equipment[slot]=id;
   sysmsg(`裝備變更 — ${EQUIP[slot][id].name||id}`,'item');
+  if(typeof refreshEquipWin==='function')refreshEquipWin();
 }
 
 /* ---------- 武器圖層：與角色共用錨點，分開烘焙 ---------- */
@@ -4137,6 +4376,7 @@ function startGame(){
   setScreen(null);
   toast('楓葉平原','往東深入，討伐菇菇王');
   sysmsg('進入 楓葉平原 · 深處 — 限時 20 分鐘','sys');
+  sysmsg('按 E 開啟裝備欄，可更換武器與光環特效','item');
 }
 function dieGame(timeout){
   P.dead=true;
@@ -4189,6 +4429,8 @@ function nextRound(){
   setScreen(null);
   toast(`第 ${G.tier} 層`,'蝕痕更深了');
 }
+document.getElementById('equipbtn').addEventListener('click',()=>toggleEquipWin());
+document.getElementById('ewClose').addEventListener('click',()=>toggleEquipWin(false));
 $('startbtn').addEventListener('click',startGame);
 $('resumebtn').addEventListener('click',()=>{G.state='play';setScreen(null);});
 $('revivebtn').addEventListener('click',revive);
@@ -4210,6 +4452,7 @@ function frame(now){
   // 全域快捷鍵
   if(tapped.mute)Audio0.toggle();
   if(tapped.help)$('helpbar').classList.toggle('off');
+  if(tapped.gear)toggleEquipWin();
   if(tapped.pause){
     if(G.state==='play'){G.state='pause';setScreen('pause');}
     else if(G.state==='pause'){G.state='play';setScreen(null);}
@@ -4294,6 +4537,7 @@ try{
 if(window.claude?.hot?.ready)window.claude.hot.ready(boot);
 else boot(window.claude?.hot?.data??null);
 </script>
+
 
 </body>
 </html>
