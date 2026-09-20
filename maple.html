@@ -117,6 +117,9 @@ body{
 #qlist li.done{color:#6A5230}
 #qlist li i{font-style:normal;font-family:var(--f-px);font-size:7px;color:#8A2A00}
 #qlist li.done i{color:#1A6A2A}
+#qlist li.sec{margin-top:4px;padding-top:4px;border-top:2px solid var(--wood-dk);
+  font-weight:700;color:#8A2A00}
+#qlist li.sec i{color:#6A5230}
 
 /* ===== BOSS 血條 ===== */
 #bossbar{position:absolute;left:50%;transform:translateX(-50%);
@@ -240,6 +243,42 @@ body{
 .ew-item.on{box-shadow:inset 1px 1px 0 rgba(255,240,160,.5),0 0 0 1px #FFC83C}
 .ew-item.locked{filter:grayscale(1) brightness(.55);cursor:not-allowed}
 .ew-item .tx{min-width:0}
+/* 背包 */
+#bagwin{position:absolute;right:14px;
+  top:calc(132px + env(safe-area-inset-top,0px));
+  bottom:calc(118px + env(safe-area-inset-bottom,0px));
+  width:344px;pointer-events:auto;z-index:8;
+  display:flex;flex-direction:column}
+#bagwin[hidden]{display:none!important}
+#bagwin .ew-body{padding:7px;overflow-y:auto;flex:1}
+.bg-item{display:flex;align-items:center;gap:7px;padding:4px 5px;margin-bottom:3px;
+  background:var(--slate-dk);border:2px solid var(--wood-ink);
+  box-shadow:inset 1px 1px 0 rgba(255,255,255,.14)}
+.bg-ico{flex:none;width:28px;height:28px;border:2px solid var(--wood-ink);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--f-cjk);font-weight:700;font-size:13px;color:#1B1428}
+.bg-item .tx{flex:1;min-width:0}
+.bg-item .nm{font-family:var(--f-cjk);font-weight:700;font-size:12px;line-height:1.25}
+.bg-item .ds{font-family:var(--f-cjk);font-size:10px;color:#A89878;line-height:1.25}
+.bg-item .qt{flex:none;font-family:var(--f-px);font-size:10px;color:#FFE08A;min-width:28px;text-align:right}
+.bg-item .ac{flex:none;display:flex;gap:3px}
+.bg-item button{cursor:pointer;padding:4px 8px;
+  font-family:var(--f-cjk);font-weight:700;font-size:11px;color:#3A2410;
+  background:var(--wood);border:2px solid var(--wood-ink);
+  box-shadow:inset 1px 1px 0 var(--wood-lt),inset -1px -1px 0 var(--wood-dk)}
+.bg-item button:hover{background:var(--wood-lt)}
+.bg-pick{margin:4px 0 8px;padding:5px;background:#1E2436;
+  border:2px solid var(--gold)}
+.bg-pick>b{display:block;font-family:var(--f-cjk);font-weight:700;font-size:11px;
+  color:#FFE08A;margin-bottom:4px}
+.bg-slot{display:flex;align-items:center;gap:6px;padding:3px 5px;margin-bottom:2px;cursor:pointer;
+  background:var(--slate-dk);border:2px solid var(--wood-ink)}
+.bg-slot:hover{background:#39456A}
+.bg-slot .sl{flex:none;width:34px;font-family:var(--f-cjk);font-size:11px;color:#A89878}
+.bg-slot .nn{flex:1;min-width:0;font-family:var(--f-cjk);font-size:11px;color:#F4EEDC}
+.bg-slot .sc{flex:none;font-family:var(--f-px);font-size:8px;color:#8AE86A}
+.bg-empty{font-family:var(--f-cjk);font-size:12px;color:#6A5230;padding:10px 2px}
+
 /* 角色視窗 */
 #statwin{position:absolute;left:14px;
   top:calc(132px + env(safe-area-inset-top,0px));
@@ -517,13 +556,27 @@ body.touch #uibar{height:92px}
     <div id="shopwin" class="bevel" hidden>
       <div class="ew-t"><span id="swName">SHOP 商店</span><span class="ew-x" id="swClose">[X]</span></div>
       <div class="sw-tabs">
-        <button class="sw-tab on" data-tab="weapon">武器 / 轉職</button>
+        <button class="sw-tab on" data-tab="weapon">武器</button>
         <button class="sw-tab" data-tab="skill">技能</button>
+        <button class="sw-tab" data-tab="item">道具</button>
+        <button class="sw-tab" data-tab="sell">賣出</button>
       </div>
       <div class="ew-body">
         <p class="ew-tip" id="swTip"></p>
         <div id="swPurse"></div>
         <div id="swList"></div>
+      </div>
+    </div>
+
+    <div id="bagwin" class="bevel" hidden>
+      <div class="ew-t"><span>INVENTORY 背包</span><span class="ew-x" id="bgClose">[X]</span></div>
+      <div class="sw-tabs" id="bgTabs">
+        <button class="sw-tab on" data-bag="use">消耗 / 卷軸</button>
+        <button class="sw-tab" data-bag="etc">雜物</button>
+      </div>
+      <div class="ew-body">
+        <p class="ew-tip" id="bgTip"></p>
+        <div id="bgList"></div>
       </div>
     </div>
 
@@ -561,6 +614,7 @@ body.touch #uibar{height:92px}
       <span><kbd>E</kbd>裝備</span>
       <span><kbd>F</kbd>對話</span>
       <span><kbd>K</kbd>角色</span>
+      <span><kbd>I</kbd>背包</span>
       <span><kbd>H</kbd>收合</span>
     </div>
 
@@ -621,6 +675,8 @@ body.touch #uibar{height:92px}
         <div class="krow"><kbd>F</kbd><span>找商人買武器與技能</span></div>
         <div class="krow"><kbd>E</kbd><span>裝備欄</span></div>
         <div class="krow"><kbd>K</kbd><span>能力值與技能點</span></div>
+        <div class="krow"><kbd>I</kbd><span>背包 · 卷軸強化</span></div>
+        <div class="krow"><kbd>滑鼠</kbd><span>點擊即攻擊</span></div>
       </div>
       <button class="btn" id="startbtn">進入楓林</button>
       <p class="hint">敵人出手前會亮起紅光 —— 那是你衝刺閃避的時機<br>金色錢幣招牌下站著商人，按 F 交易</p>
@@ -842,7 +898,7 @@ const ACTIONS={
   up:['arrowup','w'], down:['arrowdown','s'],
   jump:[' ','space'],
   atk1:['z','j'], atk2:['x','k'], atk3:['c','l'], atk4:['v','u'],
-  dash:['shift'], help:['h'], pot1:['1'], pot2:['2'], gear:['e'], shop:['f'], stat:['k'],
+  dash:['shift'], help:['h'], pot1:['1'], pot2:['2'], gear:['e'], shop:['f'], stat:['k'], bag:['i'],
   pause:['p','escape'], mute:['m'],
 };
 const KEY2ACT={};
@@ -1134,6 +1190,12 @@ const MAPS={
       {id:'q1',x:520,y:1250,kind:'quest',name:'村長 · 阿蒙',
        pal:{'H':'#2A6AE0','h':'#1A4098','R':'#7AA8E8','r':'#3A5A9A'},
        line:'孢子從地穴滲出來，平原上的綠水靈全瘋了。'},
+      {id:'d1',x:760,y:1250,kind:'daily',name:'委託板',
+       pal:{'H':'#3A8A4A','h':'#256030','R':'#8A6A3E','r':'#5A4426','F':'#C8B8A0'},
+       line:'每天三件委託，隔天換一批。做完回來蓋章。'},
+      {id:'g1',x:980,y:1250,kind:'guild',name:'傭兵公會 · 蘿拉',
+       pal:{'H':'#8A2A50','h':'#5A1030','R':'#C86BFF','r':'#7A3ED0'},
+       line:'一個人打太慢了吧？花點錢，我幫你找伴。'},
       {id:'m2',x:2200,y:1085,kind:'shop',name:'高台補給商',
        line:'打到這裡了？該換新流派試試看了。'},
     ],
@@ -1454,6 +1516,454 @@ function activeSkills(){
 }
 
 /* ============================================================
+   道具
+   除了楓幣與裝備，怪物還會掉卷軸、方塊與雜物。
+   雜物只能賣，卷軸拿來強化，方塊拿來重抽潛能。
+   ============================================================ */
+const ITEM_DB={
+  /* --- 強化卷軸：成功率越低，加成越猛 --- */
+  scr_atk60:{name:'攻擊卷軸 60%',kind:'scroll',rate:0.60,stat:'atk',amt:0.035,price:1600,
+    col:'#FF8A4C',desc:'六成機率替裝備加 3.5% 攻擊，失敗只損失一格。'},
+  scr_atk10:{name:'攻擊卷軸 10%',kind:'scroll',rate:0.10,stat:'atk',amt:0.16,price:6800,
+    col:'#FF4C2A',desc:'一成機率，但一次加 16% 攻擊。賭徒的選擇。'},
+  scr_hp60 :{name:'體力卷軸 60%',kind:'scroll',rate:0.60,stat:'hp', amt:0.05,price:1400,
+    col:'#FF6A7C',desc:'六成機率替裝備加 5% 體力。'},
+  scr_crit60:{name:'爆擊卷軸 60%',kind:'scroll',rate:0.60,stat:'crit',amt:0.012,price:2200,
+    col:'#FFD24D',desc:'六成機率替裝備加 1.2% 爆擊率。'},
+  scr_spd60:{name:'移速卷軸 60%',kind:'scroll',rate:0.60,stat:'spd',amt:0.02,price:1500,
+    col:'#8AE86A',desc:'六成機率替裝備加 2% 移速。'},
+  cube     :{name:'重生方塊',kind:'cube',price:8800,
+    col:'#C86BFF',desc:'把一件裝備的潛能全部重抽。運氣好就發財。'},
+  /* --- 消耗 --- */
+  elixir   :{name:'萬能藥',kind:'heal',price:1200,col:'#FFF3A0',
+    desc:'立刻回滿體力與魔力。'},
+  /* --- 雜物：唯一用途是賣掉 --- */
+  slime_gel :{name:'史萊姆凝膠',kind:'etc',price:140, col:'#5FD44A',desc:'黏答答的，商人倒是收。'},
+  mush_spore:{name:'菇菇孢子',  kind:'etc',price:300, col:'#FF7A3C',desc:'還在微微發光。'},
+  bat_wing  :{name:'蝙蝠翅膀',  kind:'etc',price:520, col:'#9A6BE0',desc:'薄得透光。'},
+  stone_core:{name:'石核',      kind:'etc',price:1100,col:'#9AA8B8',desc:'沉得不像話。'},
+  king_crown:{name:'菇菇王冠',  kind:'etc',price:7000,col:'#E8402A',desc:'掉下來的時候還是熱的。'},
+};
+for(const id in ITEM_DB)ITEM_DB[id].id=id;
+const ITEM_KIND_LABEL={scroll:'卷軸',cube:'方塊',heal:'消耗',etc:'雜物'};
+
+/* 每種怪掉什麼 */
+const MOB_LOOT={
+  slime:[['slime_gel',0.55],['scr_hp60',0.05],['scr_spd60',0.04]],
+  mush :[['mush_spore',0.55],['scr_atk60',0.07],['scr_crit60',0.05],['elixir',0.04]],
+  bat  :[['bat_wing',0.55],['scr_atk60',0.09],['scr_spd60',0.07],['cube',0.015]],
+  golem:[['stone_core',0.55],['scr_atk60',0.12],['scr_hp60',0.10],['scr_atk10',0.02],['cube',0.03]],
+  king :[['king_crown',1],['scr_atk10',0.9],['cube',0.8],['scr_atk60',1]],
+};
+
+/* ---------- 背包 ---------- */
+function bagAdd(id,n){
+  n=n||1;
+  G.bag[id]=(G.bag[id]||0)+n;
+  const it=ITEM_DB[id];
+  sysmsg(`獲得 ${it.name} x${n}`,'item');
+  if(typeof refreshBag==='function')refreshBag();
+}
+function bagTake(id,n){
+  n=n||1;
+  if((G.bag[id]||0)<n)return false;
+  G.bag[id]-=n;
+  if(G.bag[id]<=0)delete G.bag[id];
+  if(typeof refreshBag==='function')refreshBag();
+  return true;
+}
+function bagCount(id){return G.bag[id]||0;}
+
+/* ---------- 每件裝備自己的強化狀態 ---------- */
+const UP_SLOTS={common:3,rare:5,epic:7,legend:9};
+const POT_LINES={common:0,rare:1,epic:2,legend:3};
+const POT_POOL=[
+  {k:'atk', label:'攻擊', lo:0.02,hi:0.09},
+  {k:'hp',  label:'體力', lo:0.03,hi:0.12},
+  {k:'mp',  label:'魔力', lo:0.04,hi:0.15},
+  {k:'crit',label:'爆擊', lo:0.008,hi:0.035},
+  {k:'spd', label:'移速', lo:0.015,hi:0.06},
+  {k:'cdr', label:'冷卻', lo:0.012,hi:0.05},
+];
+function rollPotential(rarity){
+  const n=POT_LINES[rarity||'common']||0;
+  const out=[];
+  for(let i=0;i<n;i++){
+    const d=pick(POT_POOL);
+    out.push({k:d.k,label:d.label,v:+rand(d.lo,d.hi).toFixed(4)});
+  }
+  return out;
+}
+function gearState(slot,id){
+  if(!G.gear)G.gear={};
+  if(!G.gear[slot])G.gear[slot]={};
+  let g=G.gear[slot][id];
+  if(!g){
+    const it=(EQUIP[slot]&&EQUIP[slot][id])||{};
+    const r=it.rarity||'common';
+    g=G.gear[slot][id]={up:0,slots:UP_SLOTS[r]||3,upStats:{},pot:rollPotential(r)};
+  }
+  return g;
+}
+function gearLabel(slot,id){
+  const g=gearState(slot,id);
+  return g.up>0?`+${g.up}`:'';
+}
+function potText(g){
+  if(!g.pot.length)return '';
+  return g.pot.map(l=>`${l.label} +${(l.v*100).toFixed(1)}%`).join(' / ');
+}
+function upText(g){
+  const ks=Object.keys(g.upStats);
+  if(!ks.length)return '';
+  return ks.map(k=>`${STAT_LABEL[k]||k} +${Math.round(g.upStats[k]*100)}%`).join(' ');
+}
+/* 用卷軸：成功加屬性，失敗只少一格 —— 兩種結果都會消耗一格 */
+function useScroll(itemId,slot){
+  const sc=ITEM_DB[itemId];
+  const id=P.equipment[slot];
+  if(!id||id==='none'){toast('這個欄位沒有裝備','換上裝備再強化');return;}
+  const g=gearState(slot,id);
+  if(g.slots<=0){toast('沒有強化格了',EQUIP[slot][id].name);SFX.warn();return;}
+  if(!bagTake(itemId,1))return;
+  g.slots--;
+  const ok=chance(sc.rate);
+  if(ok){
+    g.up++;
+    g.upStats[sc.stat]=(g.upStats[sc.stat]||0)+sc.amt;
+    recalcStats(true);
+    SFX.levelup();
+    G.flash=Math.max(G.flash,0.3);
+    toast('強化成功！',`${EQUIP[slot][id].name} +${g.up}`);
+    sysmsg(`【強化成功】${EQUIP[slot][id].name} +${g.up}（剩 ${g.slots} 格）`,'qst');
+    burst(P.x,P.y-PH*0.6,30,()=>({vx:rand(-260,260),vy:-rand(80,420),
+      c:pick(['#FFF3A0','#FFD24D','#FFFFFF']),size:rand(3,8),life:.8,max:.8,grav:360}));
+  }else{
+    SFX.hurt();
+    G.shake=Math.max(G.shake,8);
+    toast('強化失敗','剩 '+g.slots+' 格');
+    sysmsg(`【強化失敗】${EQUIP[slot][id].name}（剩 ${g.slots} 格）`,'warn');
+    burst(P.x,P.y-PH*0.6,18,()=>({vx:rand(-200,200),vy:-rand(40,240),
+      c:'#6A6480',size:rand(3,7),life:.6,max:.6,grav:380}));
+  }
+  refreshBag(); refreshEquipWin();
+}
+function useCube(slot){
+  const id=P.equipment[slot];
+  if(!id||id==='none'){toast('這個欄位沒有裝備','換上裝備再重抽');return;}
+  const it=EQUIP[slot][id];
+  const g=gearState(slot,id);
+  if(!POT_LINES[it.rarity||'common']){
+    toast('普通裝備沒有潛能','拿稀有以上的裝備來');SFX.warn();return;
+  }
+  if(!bagTake('cube',1))return;
+  const before=potText(g);
+  g.pot=rollPotential(it.rarity||'common');
+  recalcStats(true);
+  SFX.cast();
+  G.flash=Math.max(G.flash,0.25);
+  toast('潛能重抽',potText(g));
+  sysmsg(`【重抽】${it.name}：${before} → ${potText(g)}`,'item');
+  addRing(P.x,P.y-PH/2,{max:220,life:.5,t:.5,c:'#C86BFF',lw:10});
+  refreshBag(); refreshEquipWin();
+}
+function useItem(id){
+  const it=ITEM_DB[id];
+  if(!it)return;
+  if(it.kind==='heal'){
+    if(!bagTake(id,1))return;
+    P.hp=P.maxHp; P.mp=P.maxMp;
+    addNum(P.x,P.y-PH-12,'滿','heal');
+    SFX.potion();
+    toast('萬能藥','體力與魔力全滿');
+  }
+}
+function sellItem(id,n){
+  const it=ITEM_DB[id];
+  n=Math.min(n||1,bagCount(id));
+  if(!n)return;
+  bagTake(id,n);
+  const got=it.price*n;
+  G.meso+=got;
+  SFX.coin();
+  sysmsg(`賣出 ${it.name} x${n} — ${got.toLocaleString()} 楓幣`,'item');
+}
+
+/* ============================================================
+   組隊
+   單機沒有別的玩家，所以楓之谷的「組隊」在這裡是僱傭兵：
+   在傭兵公會花楓幣請人，他們會跟著你跑圖、自己找怪打。
+   傷害跟著你的攻擊力走，所以隊友不會中期就變成裝飾品。
+   ============================================================ */
+const PARTY_MAX=2;
+const PARTY_DB={
+  ally_warrior:{
+    name:'劍士 · 戴爾', cls:'warrior', weapon:'flame_sword', set:'lava',
+    cost:9000, mul:0.86, reach:130, rate:0.70, spd:330,
+    blurb:'衝最前面那個。近身輸出穩，會幫你分散仇恨。'},
+  ally_ranger:{
+    name:'弓手 · 琳', cls:'ranger', weapon:'hunter_bow', set:'shadow',
+    cost:13000, mul:0.64, reach:380, rate:0.78, spd:300, ranged:'leaf',
+    blurb:'站在後面放箭。射程蓋過大部分怪的攻擊距離。'},
+  ally_mage:{
+    name:'法師 · 艾莉', cls:'mage', weapon:'apprentice_staff', set:'shadow',
+    cost:16000, mul:0.76, reach:440, rate:0.95, spd:275, ranged:'fire',
+    blurb:'隔著半個畫面丟魔彈，穿透力強，清一排特別好用。'},
+};
+const PARTY_IDS=Object.keys(PARTY_DB);
+function hireAlly(id){
+  if(G.party.length>=PARTY_MAX){toast('隊伍滿了','最多 '+PARTY_MAX+' 名隊友');SFX.warn();return;}
+  if(G.party.some(a=>a.id===id))return;
+  const d=PARTY_DB[id];
+  if(G.meso<d.cost){toast('楓幣不足',priceText(d.cost));SFX.warn();return;}
+  G.meso-=d.cost;
+  G.party.push({
+    id, d, x:P.x-P.face*60, y:P.y, vx:0, vy:0, face:P.face,
+    onGround:false, cd:rand(0,.5), atkT:0, t:rand(0,9), clip:'idle', frame:0, acc:0,
+  });
+  SFX.levelup();
+  G.flash=Math.max(G.flash,0.25);
+  toast('隊友加入',d.name);
+  sysmsg(`${d.name} 加入隊伍（-${d.cost.toLocaleString()} 楓幣）`,'qst');
+}
+function dismissAlly(id){
+  const i=G.party.findIndex(a=>a.id===id);
+  if(i<0)return;
+  sysmsg(`${G.party[i].d.name} 離開了隊伍`,'warn');
+  G.party.splice(i,1);
+  SFX.coin();
+}
+function allyDmg(a){
+  const crit=chance(0.22+(P.critBonus||0)*0.5);
+  const base=P.atk*(1+buffStat('atk'))*a.d.mul*rand(0.86,1.14);
+  return{amt:Math.max(1,Math.round(base*(crit?2.0:1))),crit,style:crit?'crit':'dmg'};
+}
+function updateParty(dt){
+  if(!G.party)return;
+  G.party.forEach((a,idx)=>{
+    a.t+=dt;
+    if(a.atkT>0)a.atkT-=dt;
+    a.cd-=dt;
+
+    // 找目標：優先打離自己最近、且在攻擊範圍內的
+    let tgt=null,bd=a.d.reach*1.6;
+    for(const m of G.mobs){
+      if(m.dying)continue;
+      const dx=Math.abs(m.x-a.x);
+      if(dx<bd&&Math.abs((m.y-m.h/2)-(a.y-PH/2))<150){bd=dx;tgt=m;}
+    }
+    // 沒目標就跟在玩家身後；有目標就走到自己的射程邊緣
+    const follow=P.x-P.face*(64+idx*44);
+    let goal=follow;
+    if(tgt){
+      const want=a.d.reach*0.62;
+      goal=tgt.x-Math.sign(tgt.x-a.x||1)*want;
+      if(Math.abs(goal-P.x)>460)goal=follow;   // 不要為了追怪離隊太遠
+    }
+    const dx=goal-a.x;
+    const spd=a.d.spd*(1+buffStat('spd')*0.5);
+    a.vx=Math.abs(dx)>16?clamp(dx*4.2,-spd,spd):a.vx*0.82;
+    a.x=clamp(a.x+a.vx*dt,20,WORLD.w-20);
+
+    // 重力與落地；卡在牆邊或落後太多就跳一下
+    const prevY=a.y;
+    a.vy=Math.min(MAXFALL,a.vy+GRAV*dt);
+    a.y+=a.vy*dt;
+    const pl=platUnder(a.x-12,a.x+12,prevY,a.y,true);
+    if(pl&&a.vy>0){a.y=pl.y;a.vy=0;a.onGround=true;}
+    else a.onGround=false;
+    const goalY=(tgt?tgt.y:P.y);
+    if(a.onGround&&goalY<a.y-70&&Math.abs(dx)<220)a.vy=JUMP_V*0.92;
+    if(a.y>WORLD.h+200||Math.hypot(a.x-P.x,a.y-P.y)>900){
+      a.x=P.x-P.face*60;a.y=P.y;a.vx=a.vy=0;
+    }
+
+    if(Math.abs(a.vx)>24)a.face=Math.sign(a.vx);
+    if(tgt&&Math.abs(tgt.x-a.x)<a.d.reach)a.face=Math.sign(tgt.x-a.x)||a.face;
+
+    // 出手
+    if(tgt&&a.cd<=0&&Math.abs(tgt.x-a.x)<a.d.reach){
+      a.cd=a.d.rate*(P.cdrMul||1);
+      a.atkT=0.3;
+      if(a.d.ranged){
+        makeProj({x:a.x+a.face*28,y:a.y-PH*0.55,vx:a.face*900,vy:0,r:20,
+          dmg:allyDmg(a),pierce:2,life:1.1,type:'fire',el:a.d.ranged});
+        SFX.cast();
+      }else{
+        let hit=0;
+        for(const m of G.mobs){
+          if(m.dying)continue;
+          const rx=(m.x-a.x)*a.face, ry=(m.y-m.h/2)-(a.y-PH/2);
+          if(rx>-28&&rx<a.d.reach&&Math.abs(ry)<86){hurtMob(m,allyDmg(a),a.x,0.7);hit++;}
+        }
+        if(hit)SFX.slash(false);
+      }
+    }
+
+    // 動畫狀態
+    const clip=a.atkT>0?'attack':!a.onGround?'jump':Math.abs(a.vx)>24?'walk':'idle';
+    if(clip!==a.clip){a.clip=clip;a.frame=0;a.acc=0;}
+    const def=HERO_CLIPS[clip];
+    if(clip==='attack')a.frame=clamp(Math.floor((1-a.atkT/0.3)*4),0,3);
+    else if(clip==='jump')a.frame=a.vy<0?0:1;
+    else{
+      a.acc+=dt*1000;
+      while(a.acc>=(def.frameMs||150)){a.acc-=(def.frameMs||150);a.frame=(a.frame+1)%def.frames;}
+    }
+  });
+}
+/* 隊友沿用主角那套精靈圖與盔甲圖層，只換配色與武器 */
+function drawParty(){
+  if(!G.party)return;
+  const c=ctx;
+  const z=zoomNow()/PIXEL;
+  const S=Math.max(1,Math.round(AU*z))/z;
+  for(const a of G.party){
+    if(!onScreen(a.x,a.y,260))continue;
+    const sh=Sprites.get('hero_'+a.clip);
+    if(!sh||!sh.ready)continue;
+    const f=clamp(a.frame,0,sh.frames-1);
+    const dx=Math.round((a.x-G.cam.x)*z)/z+G.cam.x;
+    const dy=Math.round((a.y-G.cam.y)*z)/z+G.cam.y;
+    c.save();
+    const fy=findFloorY(a.x,a.y-2);
+    c.globalAlpha=.26*clamp(1-Math.abs(fy-a.y)/320,0.15,1);
+    c.fillStyle='#2A1A38';
+    c.fillRect(dx-8*S,fy-S,16*S,2*S);
+    c.globalAlpha=1;
+    c.translate(dx,dy);
+    c.scale(a.face,1);
+    c.imageSmoothingEnabled=false;
+    const blit=cv2=>c.drawImage(cv2,f*CH_FW,0,CH_FW,CH_FH,-CH_AX*S,-CH_AY*S,CH_FW*S,CH_FH*S);
+    blit(sh.img||sh.cv);
+    for(const piece of ['chestplate','leggings','helmet']){
+      const s2=Sprites.get(`arm_${a.d.set}_${piece}_${a.clip}`);
+      if(s2&&s2.ready)blit(s2.cv);
+    }
+    const q=heroPose(a.clip,f);
+    const cd=CLASSES[a.d.cls]||CLASSES.warrior;
+    let ang=cd.rest;
+    if(a.atkT>0){
+      const t=clamp(1-a.atkT/0.3,0,1);
+      ang=t<0.16?cd.rest+(cd.up-cd.rest)*(t/0.16)
+                :cd.up+(cd.down-cd.up)*clamp((t-0.16)/0.68,0,1);
+    }
+    c.save();
+    c.translate(SHOULDER_X*S,(SHOULDER_Y+q.bob)*S);
+    c.rotate(ang);
+    c.imageSmoothingEnabled=false;
+    c.drawImage(armWeaponCanvas(a.d.weapon,a.d.set,false),-RPX*S,-RPY*S,RW*S,RH*S);
+    c.restore();
+    c.restore();
+    // 名牌
+    c.save();
+    c.font='bold 11px "Noto Sans TC",sans-serif';
+    c.textAlign='center';c.textBaseline='bottom';
+    const lw=c.measureText(a.d.name).width+8;
+    c.fillStyle='rgba(3,4,10,.72)';
+    c.fillRect(dx-lw/2,dy-PH-26,lw,13);
+    c.fillStyle=(CLASSES[a.d.cls]||CLASSES.warrior).col;
+    c.fillText(a.d.name,dx,dy-PH-15);
+    c.textAlign='left';c.textBaseline='alphabetic';
+    c.restore();
+  }
+}
+
+/* ============================================================
+   每日委託
+   每天三件，隔天換一批。進度存在瀏覽器裡，關掉再開還在。
+   ============================================================ */
+const DAILY_POOL=[
+  {id:'d_slime', kind:'kill', mob:'slime', need:30, text:'清掉 30 隻綠水靈',
+   reward:{meso:3200, item:'scr_hp60'}},
+  {id:'d_mush',  kind:'kill', mob:'mush',  need:20, text:'清掉 20 隻菇菇寶貝',
+   reward:{meso:4200, item:'scr_atk60'}},
+  {id:'d_bat',   kind:'kill', mob:'bat',   need:16, text:'清掉 16 隻紫蝙蝠',
+   reward:{meso:5200, item:'scr_spd60'}},
+  {id:'d_golem', kind:'kill', mob:'golem', need:10, text:'清掉 10 隻石頭人',
+   reward:{meso:7000, item:'scr_crit60'}},
+  {id:'d_elite', kind:'elite',            need:5,  text:'擊倒 5 隻菁英怪',
+   reward:{meso:9000, item:'cube'}},
+  {id:'d_rune',  kind:'rune',             need:4,  text:'吸收 4 個符文',
+   reward:{meso:5000, item:'scr_atk60'}},
+  {id:'d_meso',  kind:'meso',             need:30000,text:'賺到 30,000 楓幣',
+   reward:{meso:6000, item:'elixir'}},
+  {id:'d_cave',  kind:'map', map:'cavern',need:1,  text:'進入螢光地穴',
+   reward:{meso:2600, item:'elixir'}},
+  {id:'d_keep',  kind:'map', map:'keep',  need:1,  text:'抵達菇菇王城',
+   reward:{meso:8000, item:'scr_atk10'}},
+  {id:'d_boss',  kind:'kill', mob:'king',  need:1, text:'擊倒菇菇王',
+   reward:{meso:22000, item:'cube'}},
+];
+const DAILY_KEY='maple.daily.v1';
+const dailyDef=id=>DAILY_POOL.find(d=>d.id===id);
+function todayKey(){
+  const d=new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+/* 用日期當種子挑今天的三件，同一天重開會拿到同一批 */
+function rollDaily(dateKey){
+  let h=0;
+  for(let i=0;i<dateKey.length;i++)h=(h*31+dateKey.charCodeAt(i))>>>0;
+  const rnd=seeded(h%100000);
+  const pool=DAILY_POOL.slice();
+  const out=[];
+  for(let i=0;i<3&&pool.length;i++)
+    out.push({id:pool.splice(Math.floor(rnd()*pool.length),1)[0].id,got:0,claimed:false});
+  return out;
+}
+function loadDaily(){
+  const key=todayKey();
+  let d=null;
+  try{ d=JSON.parse(localStorage.getItem(DAILY_KEY)||'null'); }catch(e){}
+  if(!d||d.date!==key)d={date:key,tasks:rollDaily(key)};
+  // 池子改過之後舊存檔可能有不存在的委託
+  d.tasks=d.tasks.filter(t=>dailyDef(t.id));
+  if(d.tasks.length<3)d=({date:key,tasks:rollDaily(key)});
+  return d;
+}
+function saveDaily(){
+  try{ localStorage.setItem(DAILY_KEY,JSON.stringify(G.daily)); }catch(e){}
+}
+function dailyProgress(kind,n,meta){
+  if(!G.daily)return;
+  let changed=false;
+  for(const t of G.daily.tasks){
+    if(t.claimed)continue;
+    const d=dailyDef(t.id);
+    if(d.kind!==kind)continue;
+    if(d.mob&&d.mob!==meta)continue;
+    if(d.map&&d.map!==meta)continue;
+    if(t.got>=d.need)continue;
+    t.got=Math.min(d.need,t.got+n);
+    changed=true;
+    if(t.got>=d.need){
+      toast('委託達成',d.text);
+      sysmsg(`【每日委託】${d.text} — 可回報`,'qst');
+      SFX.levelup();
+    }
+  }
+  if(changed)saveDaily();
+}
+function claimDaily(id){
+  const t=G.daily.tasks.find(v=>v.id===id);
+  const d=dailyDef(id);
+  if(!t||t.claimed||t.got<d.need)return;
+  t.claimed=true;
+  saveDaily();
+  G.meso+=Math.round(d.reward.meso*gainMul());
+  addNum(P.x,P.y-PH-26,d.reward.meso,'meso');
+  if(d.reward.item)bagAdd(d.reward.item,1);
+  SFX.levelup();
+  G.flash=Math.max(G.flash,0.3);
+  toast('委託完成',`${d.reward.meso.toLocaleString()} 楓幣 · ${ITEM_DB[d.reward.item].name}`);
+}
+function dailyLeft(){
+  if(!G.daily)return 0;
+  return G.daily.tasks.filter(t=>!t.claimed).length;
+}
+
+/* ============================================================
    商人
    站在地圖上的實體 NPC，走近按 F 開店。
    ============================================================ */
@@ -1550,6 +2060,13 @@ function newGame(keep){
     kills:keep?keep.kills:0, meso:keep?keep.meso:0,
     tier:keep?keep.tier:1,
     map:'field', mapFade:0, runes:[],
+    bag:keep&&keep.bag?{...keep.bag}:{},
+    daily:loadDaily(),
+    party:(keep&&keep.party?keep.party:[]).filter(id=>PARTY_DB[id]).map(id=>({
+      id, d:PARTY_DB[id], x:140, y:1250, vx:0, vy:0, face:1,
+      onGround:false, cd:rand(0,.5), atkT:0, t:rand(0,9), clip:'idle', frame:0, acc:0,
+    })),
+    gear:keep&&keep.gear?JSON.parse(JSON.stringify(keep.gear)):{},
     ap:keep&&keep.ap!==undefined?keep.ap:0,
     sp:keep&&keep.sp!==undefined?keep.sp:0,
     abil:keep&&keep.abil?{...keep.abil}:{str:0,dex:0,int:0,luk:0},
@@ -1596,6 +2113,7 @@ function loadMap(id,atPortal){
   P.x=pt?pt.x:(MAPDEF.start||140);
   P.y=pt?pt.y:WORLD.groundY;
   P.vx=P.vy=0; P.climb=null; P.inv=Math.max(P.inv,1.4); P.dashT=0;
+  for(const a of (G.party||[])){a.x=P.x-P.face*60;a.y=P.y;a.vx=a.vy=0;a.cd=rand(.2,.8);}
   camSnap();
   const chip=$('mapchip');
   if(chip)chip.querySelector('b').textContent=MAPDEF.name;
@@ -1604,6 +2122,7 @@ function loadMap(id,atPortal){
     toast(MAPDEF.name,'MAP '+(MAP_ORDER.indexOf(id)+1)+' / '+MAP_ORDER.length);
     sysmsg('進入 '+MAPDEF.name,'sys');
     if(id==='keep')questProgress(null);
+    dailyProgress('map',1,id);
   }
 }
 /* 走到傳送門上按 ↑ 就換圖 */
@@ -2366,6 +2885,8 @@ function killMob(m){
   m.dying=0.42; m.hp=0; m.vy=-280; m.vx=rand(-120,120);
   G.kills++;
   questProgress(m.type);
+  dailyProgress('kill',1,m.type);
+  if(m.elite)dailyProgress('elite',1);
   SFX.die();
   G.zoomK=Math.min(1.09,G.zoomK+(m.d.boss?0.12:0.035));
   G.flash=Math.max(G.flash,m.d.boss?0.8:0.18);
@@ -2399,6 +2920,12 @@ function killMob(m){
       break;
     }
     if(dropped)break;
+  }
+  for(const [iid,rate] of (MOB_LOOT[m.type]||[])){   // 道具掉落
+    if(!chance(rate*(m.elite?2.2:1)))continue;
+    G.drops.push({x:m.x+rand(-m.w*.4,m.w*.4),y:m.y-m.h*0.5,
+      vx:rand(-170,170),vy:-rand(300,440),
+      type:'item',id:iid,life:24,t:0,ground:false});
   }
   if(chance(m.d.boss?1:0.2))
     G.drops.push({x:m.x,y:m.y-m.h*0.5,vx:rand(-120,120),vy:-400,type:chance(.55)?'hp':'mp',val:0.3,life:16,t:0,ground:false});
@@ -2820,7 +3347,8 @@ function updateDrops(dt){
     }
     if(dist<34&&d.t>0.3){
       if(d.type==='meso'){
-        G.meso+=Math.round(d.val*gainMul()); SFX.coin();
+        const got=Math.round(d.val*gainMul());
+        G.meso+=got; dailyProgress('meso',got); SFX.coin();
         addNum(d.x,d.y-10,d.val,'meso');
       }else if(d.type==='gear'){
         const it=EQUIP[d.slot][d.id];
@@ -2836,12 +3364,19 @@ function updateDrops(dt){
           grav:240,drag:1.1,size:chance(.4)?2:1,
           col:chance(.5)?r.col:'#FFFFFF',life:rand(.4,.9),max:.9}));
         if(typeof refreshEquipWin==='function')refreshEquipWin();
+      }else if(d.type==='item'){
+        bagAdd(d.id,1);
+        SFX.coin();
+        const it=ITEM_DB[d.id];
+        if(it.kind!=='etc')toast(it.name,ITEM_KIND_LABEL[it.kind]||'道具');
       }else{
         G.inv[d.type]++;
         SFX.coin();
         sysmsg(`獲得 ${d.type==='hp'?'紅':'藍'}藥水 x1`,'item');
       }
-      burst(d.x,d.y,7,()=>({vx:rand(-120,120),vy:rand(-160,-20),c:d.type==='meso'?'#FFD84D':d.type==='hp'?'#FF6B76':'#6BC4FF',size:rand(2,5),life:.32,max:.32}));
+      burst(d.x,d.y,7,()=>({vx:rand(-120,120),vy:rand(-160,-20),
+        c:d.type==='meso'?'#FFD84D':d.type==='item'?ITEM_DB[d.id].col:d.type==='hp'?'#FF6B76':'#6BC4FF',
+        size:rand(2,5),life:.32,max:.32}));
       G.drops.splice(i,1);
       continue;
     }
@@ -4724,6 +5259,13 @@ function equipStats(){
     if(!st)continue;
     for(const k in st)t[k]=(t[k]||0)+st[k];
   }
+  for(const slot of EQUIP_SLOTS){     // 每件裝備自己的強化與潛能
+    const id=P.equipment&&P.equipment[slot];
+    if(!id||id==='none')continue;
+    const g=gearState(slot,id);
+    for(const k in g.upStats)t[k]=(t[k]||0)+g.upStats[k];
+    for(const l of g.pot)t[l.k]=(t[l.k]||0)+l.v;
+  }
   const cm=classDef().mods;           // 流派被動
   for(const k in cm)t[k]=(t[k]||0)+cm[k];
   const main=CLASS_MAIN[weaponClass()]||'str';
@@ -4799,10 +5341,12 @@ function buildEquipWin(){
       const tx=document.createElement('div');
       tx.className='tx';
       tx.innerHTML='<div class="nm"></div><div class="st"></div><div class="ds"></div>';
-      tx.querySelector('.nm').textContent=it.name||id;
+      const g=(id!=='none')?gearState(slot,id):null;
+      tx.querySelector('.nm').textContent=(it.name||id)+(g&&g.up?` +${g.up}`:'');
       tx.querySelector('.nm').style.color=rarityOf(it).col;
       const elName=it.element?`【${ELEMENTS[it.element].name}】`:'';
-      tx.querySelector('.st').textContent=elName+statText(it.stats);
+      const extra=g?[upText(g),potText(g)].filter(Boolean).join('　'):'';
+      tx.querySelector('.st').textContent=elName+statText(it.stats)+(extra?'　'+extra:'');
       if(it.element)tx.querySelector('.st').style.color=ELEMENTS[it.element].col;
       tx.querySelector('.ds').textContent=it.desc||'';
       el.appendChild(cv); el.appendChild(tx);
@@ -4839,12 +5383,104 @@ function buildEquipWin(){
    升級拿到的 AP 點能力值、SP 升技能等級 —— 同一把武器，
    點法不同就會長成不同的角色。
    ============================================================ */
+/* ============================================================
+   背包
+   卷軸與方塊在這裡對著身上的裝備用；雜物只能賣。
+   ============================================================ */
+let bagTab='use', bagPick=null;
+function toggleBagWin(force){
+  const w=$('bagwin');
+  if(!w)return;
+  const open=force!==undefined?force:w.hidden;
+  if(open){closeShop();closeDialog();toggleEquipWin(false);toggleStatWin(false);}
+  w.hidden=!open;
+  bagPick=null;
+  if(open)refreshBag();
+}
+function bagIsOpen(){return !$('bagwin').hidden;}
+function refreshBag(){
+  const box=$('bgList');
+  if(!box||$('bagwin').hidden)return;
+  document.querySelectorAll('#bgTabs .sw-tab').forEach(t=>t.classList.toggle('on',t.dataset.bag===bagTab));
+  $('bgTip').textContent=bagTab==='use'
+    ? '卷軸與方塊要對著「身上穿的」裝備用。失敗只會少一格，不會消失。'
+    : '雜物沒有其他用途 —— 在商人旁邊按賣出換楓幣。';
+  box.replaceChildren();
+  const near=!!nearestNpc();
+  const ids=Object.keys(G.bag).filter(id=>{
+    const k=ITEM_DB[id].kind;
+    return bagTab==='use' ? k!=='etc' : k==='etc';
+  });
+  if(!ids.length){
+    const e=document.createElement('div');
+    e.className='bg-empty';
+    e.textContent=bagTab==='use'?'還沒有卷軸或消耗品 —— 打怪會掉。':'還沒有雜物。';
+    box.appendChild(e);
+    return;
+  }
+  for(const id of ids){
+    const it=ITEM_DB[id];
+    const el=document.createElement('div');
+    el.className='bg-item';
+    el.innerHTML='<span class="bg-ico"></span>'+
+      '<span class="tx"><span class="nm"></span><span class="ds"></span></span>'+
+      '<span class="qt"></span><span class="ac"></span>';
+    const ico=el.querySelector('.bg-ico');
+    ico.style.background=it.col;
+    ico.textContent=it.kind==='scroll'?'卷':it.kind==='cube'?'方':it.kind==='heal'?'藥':'雜';
+    const nm=el.querySelector('.nm');
+    nm.textContent=it.name; nm.style.color=it.col;
+    el.querySelector('.ds').textContent=it.desc;
+    el.querySelector('.qt').textContent='x'+bagCount(id);
+    const ac=el.querySelector('.ac');
+    const mk=(label,fn)=>{const b=document.createElement('button');b.textContent=label;
+      b.addEventListener('click',fn);ac.appendChild(b);return b;};
+    if(it.kind==='scroll'||it.kind==='cube')
+      mk('使用',()=>{bagPick=bagPick===id?null:id;refreshBag();});
+    else if(it.kind==='heal')
+      mk('使用',()=>{useItem(id);refreshBag();});
+    const sb=mk('賣出',()=>{sellItem(id,1);refreshBag();});
+    sb.title=near?'':'要站在商人旁邊';
+    if(!near){sb.disabled=true;sb.style.opacity=.4;}
+    box.appendChild(el);
+    if(bagPick===id)box.appendChild(bagSlotPicker(id));
+  }
+}
+function bagSlotPicker(itemId){
+  const it=ITEM_DB[itemId];
+  const wrap=document.createElement('div');
+  wrap.className='bg-pick';
+  const t=document.createElement('b');
+  t.textContent=it.kind==='cube'?'要對哪一件重抽潛能？':'要強化哪一件？（成功率 '+Math.round(it.rate*100)+'%）';
+  wrap.appendChild(t);
+  for(const slot of EQUIP_SLOTS){
+    const id=P.equipment[slot];
+    if(!id||id==='none')continue;
+    const gi=EQUIP[slot][id];
+    const g=gearState(slot,id);
+    const row=document.createElement('div');
+    row.className='bg-slot';
+    row.innerHTML='<span class="sl"></span><span class="nn"></span><span class="sc"></span>';
+    row.querySelector('.sl').textContent=SLOT_LABEL[slot]||slot;
+    row.querySelector('.nn').textContent=gi.name+(g.up?` +${g.up}`:'');
+    row.querySelector('.sc').textContent=it.kind==='cube'
+      ? (potText(g)||'無潛能')
+      : `剩 ${g.slots} 格`;
+    row.addEventListener('click',()=>{
+      if(it.kind==='cube')useCube(slot); else useScroll(itemId,slot);
+      bagPick=null; refreshBag();
+    });
+    wrap.appendChild(row);
+  }
+  return wrap;
+}
+
 let statWinOn=false;
 function toggleStatWin(force){
   const w=$('statwin');
   if(!w)return;
   const open=force!==undefined?force:w.hidden;
-  if(open){closeShop();closeDialog();toggleEquipWin(false);}
+  if(open){closeShop();closeDialog();toggleEquipWin(false);toggleBagWin(false);}
   w.hidden=!open;
   statWinOn=open;
   if(open)renderStatWin();
@@ -4931,6 +5567,7 @@ function drawNpcFace(npc){
 function openDialog(npc){
   dlgNpc=npc;
   toggleStatWin(false);
+  toggleBagWin(false);
   $('helpbar').classList.add('off');
   closeShop();
   toggleEquipWin(false);
@@ -4966,6 +5603,31 @@ function dialogRoot(){
       btns.push({label:`回報：${def.text} <em>✓</em>`,hot:true,go(){dlgQuest(def,'done');}});
     else if(st.state==='active')
       btns.push({label:`進度：${def.text}（${st.got}/${def.need}）`,go(){dlgQuest(def,'wait');}});
+  }
+  if(npc.kind==='daily'){
+    for(const t of G.daily.tasks){
+      const d=dailyDef(t.id);
+      if(t.claimed)btns.push({label:`✓ ${d.text}`,go(){dlgSay('這件今天已經蓋過章了。',[{label:'好',go(){dialogRoot();}}]);}});
+      else if(t.got>=d.need)btns.push({label:`回報：${d.text} <em>✓</em>`,hot:true,
+        go(){claimDaily(t.id);dialogRoot();}});
+      else btns.push({label:`${d.text}（${t.got}/${d.need}）`,
+        go(){dlgSay(`還差 ${d.need-t.got}。完成後回來蓋章，可拿 ${d.reward.meso.toLocaleString()} 楓幣與 ${ITEM_DB[d.reward.item].name}。`,
+          [{label:'知道了',go(){dialogRoot();}}]);}});
+    }
+  }
+  if(npc.kind==='guild'){
+    for(const id of PARTY_IDS){
+      const d=PARTY_DB[id];
+      const hired=G.party.some(a=>a.id===id);
+      if(hired)btns.push({label:`解僱：${d.name}`,go(){dismissAlly(id);dialogRoot();}});
+      else btns.push({label:`僱用：${d.name} <em>${d.cost.toLocaleString()}</em>`,hot:G.meso>=d.cost,
+        go(){dlgSay(d.blurb,[
+          {label:`付 ${d.cost.toLocaleString()} 楓幣`,hot:true,go(){hireAlly(id);dialogRoot();}},
+          {label:'再想想',go(){dialogRoot();}}]);}});
+    }
+    btns.push({label:`目前隊伍 ${G.party.length}/${PARTY_MAX}`,go(){
+      dlgSay(G.party.length?('隊上有：'+G.party.map(a=>a.d.name).join('、')):'你現在是一個人。',
+        [{label:'知道了',go(){dialogRoot();}}]);}});
   }
   if(npc.kind==='shop')
     btns.push({label:'我要交易',hot:true,go(){closeDialog();openShop(npc);}});
@@ -5018,7 +5680,80 @@ function renderShop(){
   box.replaceChildren();
   document.querySelectorAll('.sw-tab').forEach(t=>t.classList.toggle('on',t.dataset.tab===shopTab));
   if(shopTab==='weapon')renderShopWeapons(box);
-  else renderShopSkills(box);
+  else if(shopTab==='skill')renderShopSkills(box);
+  else if(shopTab==='item')renderShopItems(box);
+  else renderShopSell(box);
+}
+function itemIcon(it){
+  return cc=>{
+    cc.fillStyle='#241B3A';cc.fillRect(0,0,28,28);
+    cc.fillStyle=it.col;cc.fillRect(2,2,24,24);
+    cc.fillStyle='#1E2436';cc.fillRect(5,5,18,18);
+    cc.fillStyle=it.col;
+    if(it.kind==='scroll'){cc.fillRect(8,8,12,3);cc.fillRect(8,13,12,3);cc.fillRect(8,18,8,3);}
+    else if(it.kind==='cube'){cc.fillRect(9,9,10,10);cc.fillStyle='#FFF';cc.fillRect(10,10,3,3);}
+    else cc.fillRect(9,9,10,10);
+  };
+}
+function renderShopItems(box){
+  const g=document.createElement('div');
+  g.className='sw-group';
+  const t=document.createElement('b');
+  t.style.color='#FFD24D';
+  t.innerHTML='<span>強化與消耗</span><i>卷軸在背包（I）裡對著身上的裝備用</i>';
+  g.appendChild(t);
+  for(const id in ITEM_DB){
+    const it=ITEM_DB[id];
+    if(it.kind==='etc')continue;
+    const poor=G.meso<it.price;
+    g.appendChild(shopRow({
+      icon:itemIcon(it), name:it.name, col:it.col,
+      stat:it.kind==='scroll'?`成功率 ${Math.round(it.rate*100)}%　${STAT_LABEL[it.stat]} +${(it.amt*100).toFixed(1)}%`
+          :ITEM_KIND_LABEL[it.kind],
+      desc:it.desc, poor,
+      price:priceText(it.price),
+      action:poor?'楓幣不足':`購買（持有 ${bagCount(id)}）`,
+      onClick(){
+        if(G.meso<it.price){buyFx(false);toast('楓幣不足',priceText(it.price));return;}
+        G.meso-=it.price;
+        bagAdd(id,1);
+        buyFx(true);
+        renderShop();
+      },
+    }));
+  }
+  box.appendChild(g);
+}
+function renderShopSell(box){
+  const ids=Object.keys(G.bag).filter(id=>bagCount(id)>0);
+  const g=document.createElement('div');
+  g.className='sw-group';
+  const t=document.createElement('b');
+  t.style.color='#8AE86A';
+  t.innerHTML='<span>賣出</span><i>點一下賣一個，按住 Shift 全賣</i>';
+  g.appendChild(t);
+  if(!ids.length){
+    const e=document.createElement('div');
+    e.className='bg-empty';
+    e.textContent='背包是空的。';
+    g.appendChild(e);
+  }
+  for(const id of ids){
+    const it=ITEM_DB[id];
+    const n=bagCount(id);
+    g.appendChild(shopRow({
+      icon:itemIcon(it), name:`${it.name} x${n}`, col:it.col,
+      stat:`單價 ${it.price.toLocaleString()} 楓幣　全部 ${(it.price*n).toLocaleString()}`,
+      desc:it.desc,
+      price:priceText(it.price),
+      action:'賣出',
+      onClick(e){
+        sellItem(id, held.dash?n:1);
+        renderShop();
+      },
+    }));
+  }
+  box.appendChild(g);
 }
 function shopRow(opt){
   const el=document.createElement('div');
@@ -5039,7 +5774,7 @@ function shopRow(opt){
   pr.className='pr';
   pr.innerHTML=`${opt.price}<em>${opt.action}</em>`;
   el.appendChild(cv);el.appendChild(tx);el.appendChild(pr);
-  el.addEventListener('pointerdown',e=>{e.preventDefault();opt.onClick();});
+  el.addEventListener('pointerdown',e=>{e.preventDefault();opt.onClick(e);});
   return el;
 }
 function renderShopWeapons(box){
@@ -5172,7 +5907,7 @@ function toggleEquipWin(force){
   const btn=document.getElementById('equipbtn');
   if(!w)return;
   const open=force!==undefined?force:w.hidden;
-  if(open){closeShop();closeDialog();toggleStatWin(false);if(!equipWinBuilt)buildEquipWin();}
+  if(open){closeShop();closeDialog();toggleStatWin(false);toggleBagWin(false);if(!equipWinBuilt)buildEquipWin();}
   w.hidden=!open;
   if(btn)btn.classList.toggle('on',open);
   if(open)refreshEquipWin();
@@ -5653,6 +6388,7 @@ function updateRunes(dt){
     if(Math.abs(r.x-P.x)<40&&Math.abs(r.y-P.y)<86){
       const d=RUNES[r.type];
       addBuff('rune',d.dur,d.glyph,d.col,d.stats);
+      dailyProgress('rune',1);
       SFX.levelup();
       G.flash=Math.max(G.flash,0.34);
       G.shake=Math.max(G.shake,7);
@@ -6095,6 +6831,32 @@ function drawDrops(){
       c.fillStyle='#1E2436';c.fillRect(-box/2+S,-box+S,box-S*2,box-S*2);
       c.imageSmoothingEnabled=false;
       c.drawImage(gearIcon(d.slot,d.id),0,0,28,28,-box/2+S,-box+S,box-S*2,box-S*2);
+    }else if(d.type==='item'){
+      const it=ITEM_DB[d.id];
+      const z=zoomNow()/PIXEL;
+      const S=Math.max(1,Math.round(AU*z))/z;
+      const box=16*S;
+      if(it.kind!=='etc'){
+        c.globalAlpha=(.20+Math.sin(d.t*4)*.08)*fade;
+        c.fillStyle=it.col;
+        c.fillRect(-box*.5,-box*2.2,box,box*2.2);
+        c.globalAlpha=fade;
+      }
+      c.fillStyle='#241B3A';c.fillRect(-box/2-S,-box-S,box+S*2,box+S*2);
+      c.fillStyle=it.col;   c.fillRect(-box/2,-box,box,box);
+      c.fillStyle='#1E2436';c.fillRect(-box/2+S,-box+S,box-S*2,box-S*2);
+      c.fillStyle=it.col;
+      if(it.kind==='scroll'){                 // 卷軸：一捲紙
+        c.fillRect(-box/2+S*2,-box+S*3,box-S*4,S*2);
+        c.fillRect(-box/2+S*2,-box+S*6,box-S*4,S*2);
+        c.fillRect(-box/2+S*2,-box+S*9,box-S*6,S*2);
+      }else if(it.kind==='cube'){             // 方塊：一顆立方體
+        c.fillRect(-box/2+S*3,-box+S*3,box-S*6,box-S*6);
+        c.fillStyle='#FFFFFF';
+        c.fillRect(-box/2+S*4,-box+S*4,S*2,S*2);
+      }else{                                  // 雜物／消耗：一顆圓點
+        c.fillRect(-box/2+S*4,-box+S*4,box-S*8,box-S*8);
+      }
     }else if(d.type==='meso'){
       const sw=Math.abs(Math.cos(d.t*3.4));
       c.save();c.scale(clamp(sw,.25,1),1);
@@ -6220,6 +6982,7 @@ function render(){
   drawRings();
   drawGhosts();
   drawPlayerAura();
+  drawParty();
   drawPet();
   drawPlayer();
   PixelFX.draw();
@@ -6375,8 +7138,10 @@ function renderBuffs(){
 function renderQuests(){
   const ul=$('qlist');
   if(!ul)return;
-  if(ul.children.length!==G.quests.length){
-    ul.replaceChildren(...G.quests.map(()=>{
+  const dl=G.daily?G.daily.tasks:[];
+  const rows=G.quests.length+(dl.length?dl.length+1:0);
+  if(ul.children.length!==rows){
+    ul.replaceChildren(...Array.from({length:rows},()=>{
       const li=document.createElement('li');
       li.innerHTML='<span></span><i></i>';
       return li;
@@ -6392,6 +7157,18 @@ function renderQuests(){
       : q.state==='ready' ? '可回報'
       : `${q.got}/${d.need}`;
   });
+  if(dl.length){
+    const hd=ul.children[G.quests.length];
+    hd.classList.add('sec');
+    hd.firstChild.textContent='每日委託';
+    hd.lastChild.textContent=G.daily.date.slice(5);
+    dl.forEach((t,i)=>{
+      const li=ul.children[G.quests.length+1+i], d=dailyDef(t.id);
+      li.classList.toggle('done',t.claimed);
+      li.firstChild.textContent=d.text;
+      li.lastChild.textContent=t.claimed?'已領取':t.got>=d.need?'可回報':`${t.got}/${d.need}`;
+    });
+  }
   $('qprog').textContent=questsDone()+'/'+G.quests.length;
 }
 function flashSlot(id){
@@ -6701,6 +7478,8 @@ function nextRound(){
   const keep={lv:P.lv,exp:P.exp,meso:G.meso,kills:G.kills,tier:G.tier+1,best:G.combo.best,
     learned:[...G.learned], ap:G.ap, sp:G.sp,
     abil:{...G.abil}, skillLv:{...G.skillLv},
+    bag:{...G.bag}, gear:JSON.parse(JSON.stringify(G.gear||{})),
+    party:G.party.map(a=>a.id),
     deaths:G.deaths,invHp:G.inv.hp,invMp:G.inv.mp,owned:G.owned};
   newGame(keep);
   G.state='play';
@@ -6714,6 +7493,10 @@ document.getElementById('ewClose').addEventListener('click',()=>toggleEquipWin(f
 document.getElementById('swClose').addEventListener('click',()=>{closeShop();if(shopNpc)openDialog(shopNpc);});
 document.getElementById('dlgX').addEventListener('click',()=>closeDialog());
 document.getElementById('stClose').addEventListener('click',()=>toggleStatWin(false));
+document.getElementById('bgClose').addEventListener('click',()=>toggleBagWin(false));
+document.querySelectorAll('#bgTabs .sw-tab').forEach(t=>{
+  t.addEventListener('click',()=>{bagTab=t.dataset.bag;bagPick=null;refreshBag();});
+});
 document.querySelectorAll('.sw-tab').forEach(t=>{
   t.addEventListener('click',()=>{shopTab=t.dataset.tab;renderShop();});
 });
@@ -6741,6 +7524,7 @@ function frame(now){
   if(tapped.gear)toggleEquipWin();
   if(tapped.shop)talkToNpc();
   if(tapped.stat)toggleStatWin();
+  if(tapped.bag)toggleBagWin();
   if(tapped.pause){
     if(G.state==='play'){G.state='pause';setScreen('pause');}
     else if(G.state==='pause'){G.state='play';setScreen(null);}
@@ -6780,6 +7564,7 @@ function frame(now){
       updateNpcHint();
       updateRunes(dt);
       updatePet(dt);
+      updateParty(dt);
       PixelFX.update(dt);
       updateMobs(dt);
       updateProjs(dt);
@@ -6824,7 +7609,9 @@ try{
   window.claude?.hot?.snapshot?.(()=>({
     keep:{lv:P.lv,exp:P.exp,meso:G.meso,kills:G.kills,tier:G.tier,best:G.combo.best,
       learned:[...G.learned], ap:G.ap, sp:G.sp,
-      abil:{...G.abil}, skillLv:{...G.skillLv}},
+      abil:{...G.abil}, skillLv:{...G.skillLv},
+      bag:{...G.bag}, gear:JSON.parse(JSON.stringify(G.gear||{})),
+      party:G.party.map(a=>a.id)},
     x:P.x,y:P.y,hp:P.hp,mp:P.mp,state:G.state,
   }));
 }catch(e){}
