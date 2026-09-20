@@ -2495,8 +2495,7 @@ const M_HEAD=padRows([
   ' FFFFFF   ',
   'FFFFFFFF  ',
   'FFSSSSSFF ',
-  'FSSSSSSSF ',
-  'FSEESEESS ',
+  'FSEESEESF ',
   'FSSSSSSSS ',
   ' SSSSSSS  ',
   ' sSSSSSs  ',
@@ -2511,21 +2510,23 @@ const M_TORSO=padRows([
   ' TTTTTT ',
   ' tTTTTt ',
   ' tTTTTt ',
-  ' tTTTTt ',
   '  tttt  ',
-  '  ssss  ',
+  '  BBBB  ',
 ]);
-/* 單腿（左右各畫一次，靠 step 位移做出跨步） */
+/* 單腿（左右各畫一次，靠 step 位移做出跨步）—— 泰拉瑞亞的腿佔全身近一半 */
 const M_LEG=padRows([
   'PPP',
   'PPP',
   'PPP',
   'PPP',
+  'PPP',
   'ppp',
   'ppp',
+  'ppp',
   'BBB',
   'BBB',
   'BBB',
+  'bbb',
   'bbb',
 ]);
 /* 手臂（後臂固定、前臂跟著武器旋轉） */
@@ -2541,72 +2542,74 @@ const M_ARM=padRows([
 
 /* 前方手臂：橫向姿勢，與武器合成後整塊繞肩膀旋轉 */
 const M_ARM_H=padRows([
-  'AAAAHHH',
-  'AAAAHHH',
-  'aaaahhh',
+  'BBBBBHH',
+  'AAAAAHH',
+  'aaaaahh',
 ]);
-const ARM_PAL_BASE={'A':PX_PAL.T,'a':PX_PAL.t,'H':PX_PAL.S,'h':PX_PAL.s};
+const ARM_PAL_BASE={'B':'#6AA6F0','A':PX_PAL.T,'a':PX_PAL.t,'H':PX_PAL.S,'h':PX_PAL.s};
 
-/* ---------- 盔甲：矩陣自己帶 '#' 描邊 ---------- */
+/* ---------- 盔甲 ----------
+   盔甲比它包覆的部位大一圈，而且各自跑一次 outlinePass，
+   所以每一片金屬都有自己的深色輪廓 —— 這正是泰拉瑞亞
+   看得出「頭盔不是頭髮、肩甲不是袖子」的關鍵。
+   矩陣只寫明暗（1 亮 → 4 最深），描邊交給程式算。 */
 const ARMOR_MTX={
-  /* 頭盔：整顆頭包住，只留一道橫向面甲縫給眼睛 */
+  /* 頭盔：整顆頭罩住還外擴 1px，中間開一道露出雙眼的面甲窗 */
   helmet:padRows([
-    '  ######  ',
-    ' #222222# ',
-    '#21111122#',
-    '#22222222#',
-    '#222222222',
-    '#2       2',
-    '#3#     3#',
-    '#33#  #33#',
-    ' #3#  #3# ',
-    '  ##  ##  ',
+    '    111    ',
+    '  1122222  ',
+    ' 112222221 ',
+    '12222222221',
+    '13333333331',
+    '12SEESEES21',
+    '12SSSSSSS21',
+    ' 33SSSSS33 ',
   ]),
-  /* 胸甲：肩甲往兩側各多出 2px，腰帶壓深色 */
+  /* 胸甲：肩甲外擴、領口受光、中線與腰帶壓暗 */
   chest:padRows([
-    '  ######  ',
-    '#11111111#',
-    '#12222221#',
-    '#32222223#',
-    ' #122221# ',
-    ' #123321# ',
-    ' #122221# ',
-    ' #333333# ',
-    '  #4444#  ',
-    '   ####   ',
+    '   1111   ',
+    ' 11222211 ',
+    '1222222221',
+    '1222222221',
+    ' 22222222 ',
+    ' 23222232 ',
+    ' 33333333 ',
+    ' 34444443 ',
+    '  444444  ',
   ]),
-  /* 護腿：連靴子一起包，兩側各留 1px 描邊 */
-  /* 後方手臂的護肩袖：蓋掉內襯衣露出來的那一塊 */
+  /* 後方手臂的護肩袖 */
   sleeve:padRows([
-    '222',
-    '222',
-    '333',
+    '112',
+    '223',
+    '233',
   ]),
+  /* 護腿：外側一道高光柱，靴子壓到最深 */
   legs:padRows([
-    '#111#',
-    '#222#',
-    '#222#',
-    '#133#',
-    '#333#',
-    '#333#',
-    '#144#',
-    '#444#',
-    '#####',
+    '112',
+    '222',
+    '222',
+    '222',
+    '223',
+    '233',
+    '333',
+    '333',
+    '122',
+    '234',
+    '444',
+    '444',
+    '444',
   ]),
 };
 const ARMOR_PAL={
-  lava  :{'#':'#2A0A04','1':'#FFE07A','2':'#F2701C','3':'#B52A10','4':'#6E1408'},
-  shadow:{'#':'#0E0520','1':'#CBA6F5','2':'#6E36C4','3':'#3B1C82','4':'#1B0C44'},
+  lava  :{'#':'#2A0A04','1':'#FFB03A','2':'#E85A14','3':'#9E2A0A','4':'#68180A'},
+  shadow:{'#':'#0E0520','1':'#B48CE8','2':'#5A2AA8','3':'#35187A','4':'#20104E'},
   none  :null,
 };
 
 /* 保留舊名稱給頭像、眨眼疊層與武器圖鑑使用 */
-const C_SKIN=PX_PAL.S, C_SKIN_SH=PX_PAL.s, C_BLUSH='#E08A78';
-const C_HAT='#FF6A1E',  C_HAT_LT='#FFD24D',  C_HAT_DK='#C42410';
 const C_HAIR=PX_PAL.F, C_HAIR_DK=PX_PAL.f;
 const C_ARM=PX_PAL.T,  C_ARM_LT='#96C9FF',  C_ARM_DK=PX_PAL.t;
 const C_PANT=PX_PAL.P, C_BOOT=PX_PAL.B,    C_BOOT_LT=PX_PAL.b;
-const C_CAPE='#EE5540', C_CAPE_DK='#A62A18';
 const C_LINE=OUTLINE,  C_EYE=PX_PAL.E;
 const C_BLADE='#EAF6FF', C_BLADE_SH='#A6DCF2', C_HILT='#FFC83C', C_GRIP='#7A4A28';
 
@@ -2618,23 +2621,26 @@ const C_BLADE='#EAF6FF', C_BLADE_SH='#A6DCF2', C_HILT='#FFC83C', C_GRIP='#7A4A28
    換武器 = 換調色盤，形狀邏輯完全共用。
    ============================================================ */
 /* 刃身逐列收窄：中脊最長、上下緣依序縮短，剖面才是菱形而不是方頭 */
-function bladeRows(L,hiltA,hiltB,capA,capB){
-  const R=(ch,n)=>ch.repeat(Math.max(0,n));
-  return padRows([
-    capA,
-    capB,
-    hiltA+R('1',L-5),
-    hiltB+R('2',L-2),
-    hiltB+R('4',L),
-    hiltB+R('2',L-2),
-    hiltA+R('3',L-5),
-    capB,
-    capA,
-  ]);
+function swordMatrix(L,hilt,half){
+  const W=hilt+L, H=9, cy=4;
+  const g=Array.from({length:H},()=>Array(W).fill(' '));
+  g[cy-1][0]='K';g[cy][0]='K';g[cy+1][0]='K';                 // 柄頭
+  for(let x=1;x<hilt-2;x++){g[cy-1][x]='G';g[cy][x]='G';g[cy+1][x]='g';}
+  const gx=hilt-2;                                             // 十字護手
+  for(let y=1;y<H-1;y++){g[y][gx]='U';g[y][gx+1]='u';}
+  g[0][gx]='u';g[H-1][gx]='u';
+  for(let i=0;i<L;i++){                                        // 劍身：往劍尖收窄
+    const t=i/(L-1);
+    const hh=t<0.58?half:t<0.84?half-1:0;
+    const x=hilt+i;
+    for(let dy=-hh;dy<=hh;dy++)
+      g[cy+dy][x]=dy===-hh?'1':dy===hh?'3':(dy===0?'4':'2');
+  }
+  return padRows(g.map(r=>r.join('')));
 }
-const MTX_SWORD =bladeRows(17,'  KGGgUU',' KKGGgUU','      uu','     uUUu');
-const MTX_GLAIVE=bladeRows(24,'  KGGgUUU',' KKGGgUUU','      uUu','     uUUUu');
-const MTX_PIVOT_X=4, MTX_PIVOT_Y=4;   // 握把中心 = 旋轉中心
+const MTX_SWORD =swordMatrix(21,7,2);
+const MTX_GLAIVE=swordMatrix(28,8,2);
+const MTX_PIVOT_X=3, MTX_PIVOT_Y=4;   // 握把中心 = 旋轉中心
 
 const WPAL={
   steel:{K:'#C9A16B',G:'#6A4520',g:'#3E2610',U:'#FFD24D',u:'#8A5A00',
@@ -2727,10 +2733,18 @@ function outlinePass(cv,col){
   c.drawImage(tmp,0,0);
 }
 const RW=64, RH=26, RPX=12, RPY=13;
+/* 頭盔的調色盤 = 盔甲色 + 露在面甲窗裡的膚色與眼睛 */
+const _helmPal=new Map();
+function helmPal(pal){
+  let m=_helmPal.get(pal);
+  if(!m){m={...pal,'S':PX_PAL.S,'s':PX_PAL.s,'E':PX_PAL.E};_helmPal.set(pal,m);}
+  return m;
+}
+
 /* ---------- 單幀：雙腳之間 = (0,0) ---------- */
 function drawTerraLayer(c,q,layer,pal){
   const step=q.step, bob=q.bob;
-  const legY=-10, torsoY=-19, headY=-29;
+  const legY=-13, torsoY=-20, headY=-29;
   if(layer==='base'){
     // 後方手臂
     drawMatrix(c,M_ARM,-5,torsoY+1);
@@ -2749,17 +2763,17 @@ function drawTerraLayer(c,q,layer,pal){
   if(!pal)return;
   if(layer==='leggings'){
     if(q.air){
-      drawMatrix(c,ARMOR_MTX.legs,-4,legY+q.tuck+bob,pal);
-      drawMatrix(c,ARMOR_MTX.legs, 0,legY+q.tuck-1+bob,pal);
+      drawMatrix(c,ARMOR_MTX.legs,-3,legY+q.tuck+bob,pal);
+      drawMatrix(c,ARMOR_MTX.legs, 1,legY+q.tuck-1+bob,pal);
     }else{
-      drawMatrix(c,ARMOR_MTX.legs,-4+step,legY,pal);
-      drawMatrix(c,ARMOR_MTX.legs, 0-step,legY,pal);
+      drawMatrix(c,ARMOR_MTX.legs,-3+step,legY,pal);
+      drawMatrix(c,ARMOR_MTX.legs, 1-step,legY,pal);
     }
   }else if(layer==='chestplate'){
     drawMatrix(c,ARMOR_MTX.sleeve,-5,torsoY+1+bob,pal);
     drawMatrix(c,ARMOR_MTX.chest,-5,torsoY-1+bob,pal);
   }else if(layer==='helmet'){
-    drawMatrix(c,ARMOR_MTX.helmet,-5,headY-1+bob,pal);
+    drawMatrix(c,ARMOR_MTX.helmet,-6,headY-1+bob,helmPal(pal));
   }
 }
 function drawHeroFrame(c,q){ drawTerraLayer(c,q,'base'); }
@@ -2770,8 +2784,8 @@ function drawHeroFrame(c,q){ drawTerraLayer(c,q,'base'); }
    繪製時用 ctx.translate(肩膀) + ctx.rotate(角度) 整塊轉，
    關閉 imageSmoothing 保持硬邊像素感。
    ============================================================ */
-const SHOULDER_X=2, SHOULDER_Y=-17;          // 肩膀（美術像素）
-const A_REST=0.55, A_UP=-2.45, A_DOWN=0.72;  // 收招 / 舉劍 / 劈下
+const SHOULDER_X=2, SHOULDER_Y=-18;          // 肩膀（美術像素）
+const A_REST=0.62, A_UP=-2.45, A_DOWN=0.74;  // 收招 / 舉劍 / 劈下
 const _awCache={};
 function armWeaponCanvas(wepId,armorSet,white){
   const key=wepId+'|'+(armorSet||'-')+(white?'|w':'');
@@ -2783,7 +2797,8 @@ function armWeaponCanvas(wepId,armorSet,white){
   c.imageSmoothingEnabled=false;
   c.save();c.translate(RPX,RPY);
   const ap=armorSet&&ARMOR_PAL[armorSet]
-    ? {'A':ARMOR_PAL[armorSet]['2'],'a':ARMOR_PAL[armorSet]['3'],'H':PX_PAL.S,'h':PX_PAL.s}
+    ? {'B':ARMOR_PAL[armorSet]['1'],'A':ARMOR_PAL[armorSet]['2'],
+       'a':ARMOR_PAL[armorSet]['3'],'H':PX_PAL.S,'h':PX_PAL.s}
     : ARM_PAL_BASE;
   const wep=EQUIP.weapon[wepId];
   if(wep&&wep.draw){c.save();c.translate(8,0);wep.draw(c);c.restore();}
@@ -2824,6 +2839,7 @@ function frameCanvas(){
 }
 function sheetFromFrames(name,n,drawOne,opt){
   const noOutline=opt&&opt.outline===false;
+  const ocol=(opt&&opt.outlineCol)||OUTLINE;
   const cv=document.createElement('canvas');
   cv.width=CH_FW*n; cv.height=CH_FH;
   const c=cv.getContext('2d');
@@ -2834,7 +2850,7 @@ function sheetFromFrames(name,n,drawOne,opt){
     fc.save();fc.translate(CH_AX,CH_AY);
     drawOne(fc,f);
     fc.restore();
-    if(!noOutline)outlinePass(fr,OUTLINE);
+    if(!noOutline)outlinePass(fr,ocol);
     c.drawImage(fr,f*CH_FW,0);
   }
   Sprites.defineSheet(name,{fw:CH_FW,fh:CH_FH,frames:n,cv});
@@ -2863,7 +2879,7 @@ function bakeArmorSheets(){
     for(const piece of ['chestplate','leggings','helmet']){
       for(const clip in HERO_CLIPS){
         sheetFromFrames(`arm_${set}_${piece}_${clip}`,HERO_CLIPS[clip].frames,
-          (fc,f)=>drawTerraLayer(fc,heroPose(clip,f),piece,pal),{outline:false});
+          (fc,f)=>drawTerraLayer(fc,heroPose(clip,f),piece,pal),{outlineCol:pal['#']});
       }
     }
   }
@@ -3009,11 +3025,11 @@ function drawPlayer(){
   if(p.blink<0&&!p.climb&&!(E.helmet&&E.helmet!=='none')){
     const q0=heroPose(HeroAnim.clip,f);
     c.fillStyle=PX_PAL.S;
+    c.fillRect(-3*S,(-29+3+q0.bob)*S,2*S,S);
+    c.fillRect( 0*S,(-29+3+q0.bob)*S,2*S,S);
+    c.fillStyle=OUTLINE;
     c.fillRect(-3*S,(-29+4+q0.bob)*S,2*S,S);
     c.fillRect( 0*S,(-29+4+q0.bob)*S,2*S,S);
-    c.fillStyle=OUTLINE;
-    c.fillRect(-3*S,(-29+5+q0.bob)*S,2*S,S);
-    c.fillRect( 0*S,(-29+5+q0.bob)*S,2*S,S);
   }
 
   /* 前方手臂 + 武器：實體繞著肩膀旋轉（泰拉瑞亞闊劍揮砍） */
@@ -4841,42 +4857,39 @@ function drawPortrait(){
   const c=pfaceCtx;
   c.imageSmoothingEnabled=false;
   c.clearRect(0,0,50,50);
-  c.fillStyle='#2A4A7A';
-  c.fillRect(0,0,50,50);
-  c.fillStyle='#3F6FB0';
-  c.fillRect(0,30,50,20);
+  c.fillStyle='#26324E';c.fillRect(0,0,50,50);
+  c.fillStyle='#3A4E78';c.fillRect(0,32,50,18);
   const hurt=P.hurtT>0?P.hurtT/0.4*0.7:0;
-  const F=col=>flashify(col,hurt);
-  const bob=Math.round(Math.sin(G.t*2.4)*0.5+0.5);
+  const U=4, bob=Math.sin(G.t*2.4)>0?0:1;
+  const gear=slot=>{
+    const id=P.equipment&&P.equipment[slot];
+    return id&&id!=='none'?EQUIP[slot][id]:null;
+  };
+  const hd=gear('helmet'), cd=gear('chestplate');
   c.save();
-  c.translate(25,30+bob);
-  const U=1.6;
-  const b=(x,y,w,h,col)=>{c.fillStyle=col;c.fillRect(Math.round(x*U),Math.round(y*U),Math.round(w*U),Math.round(h*U));};
-  b(-8,-13,16,11,F(C_LINE));
-  b(-6,-15,12,2,F(C_LINE));
-  b(-6,-2,12,2,F(C_LINE));
-  b(-7,-12,14,10,F(C_SKIN));
-  b(-5,-14,10,2,F(C_SKIN));
-  b(-7,-4,14,2,F(C_SKIN_SH));
-  b(-7,-16,14,2,F(C_HAT_DK));
-  b(-6,-15,12,4,F(C_HAT));
-  b(-6,-15,12,1,F(C_HAT_LT));
-  b(-10,-11,20,2,F(C_HAT_DK));
-  b(-10,-11,20,1,F(C_HAT));
-  b(-8,-9,2,4,F(C_HAIR));
-  b( 6,-9,2,4,F(C_HAIR));
-  if(P.blink>=0){
-    b(-5,-8,4,4,F(C_EYE));
-    b( 1,-8,4,4,F(C_EYE));
-    b(-5,-8,2,2,F('#FFFFFF'));
-    b( 1,-8,2,2,F('#FFFFFF'));
-  }else{
-    b(-5,-6,4,1,F(C_EYE));
-    b( 1,-6,4,1,F(C_EYE));
+  c.translate(25,5+bob);
+  const M=(rows,ox,oy,pal)=>{
+    for(let y=0;y<rows.length;y++){
+      const r=rows[y];
+      for(let x=0;x<r.length;x++){
+        const col=(pal||PX_PAL)[r[x]];
+        if(!col)continue;
+        c.fillStyle=flashify(col,hurt);
+        c.fillRect((ox+x)*U,(oy+y)*U,U,U);
+      }
+    }
+  };
+  // 肩線先畫，頭再蓋上去 —— 與遊戲中同一組矩陣，換裝portrait也會跟著變
+  if(cd)M(ARMOR_MTX.chest,-5,8,ARMOR_PAL[cd.set]);
+  else  M(M_TORSO,-4,9,PX_PAL);
+  M(M_HEAD,-5,0,PX_PAL);
+  if(hd)M(ARMOR_MTX.helmet,-6,-1,helmPal(ARMOR_PAL[hd.set]));
+  else if(P.blink<0){
+    c.fillStyle=flashify(PX_PAL.S,hurt);
+    c.fillRect(-3*U,3*U,2*U,U);c.fillRect(0,3*U,2*U,U);
+    c.fillStyle=flashify(OUTLINE,hurt);
+    c.fillRect(-3*U,4*U,2*U,U);c.fillRect(0,4*U,2*U,U);
   }
-  b(-7,-4,2,1,F(C_BLUSH));
-  b( 5,-4,2,1,F(C_BLUSH));
-  b( 0,-4,2,1,F('#C4665A'));
   c.restore();
 }
 const mmCtx=$('mmc').getContext('2d');
