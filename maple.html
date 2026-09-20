@@ -2451,41 +2451,297 @@ function drawRopes(){
    角色繪製
    ============================================================ */
 /* ============================================================
-   主角：Sprite Sheet 逐幀動畫系統
+   主角美術：字串像素矩陣 + 自動描邊
    ------------------------------------------------------------
-   幀規格：60x56 美術像素，錨點固定在 (26, 42)。
-   這個錨點就是「角色雙腳之間的地面點」，所有動畫共用同一個錨點，
-   所以從 walk 切到 attack（大劍會讓畫面寬度整個改變）時，
-   角色的腳不會位移一格 —— 這是 2D 像素遊戲最容易出包的地方。
-
-   幀框留白是照最誇張的姿勢算出來的：
-     揮劍到底時劍尖在 x≈+32、y≈+1；舉劍過肩時劍尖在 x≈-18、y≈-35
-   所以左邊留 26、右邊留 34、上面留 42、下面留 14，全部裝得下。
-
-   目前用程序化色塊烘焙成 sheet；日後拿到真的圖檔，
-   只要把 bakeHeroSheets() 換成
-     Sprites.defineSheet('hero_walk',{fw:60,fh:56,frames:4,src:'hero/walk.png'});
-   其餘播放、狀態切換、翻轉邏輯完全不用動。
+   每個部位是一組等寬字串，字元查 PX_PAL 得到顏色。
+   烘焙流程：
+     1. 各部位矩陣疊進一張「單幀畫布」
+     2. outlinePass() 掃描 alpha，在輪廓外側自動補 1px 深色描邊
+     3. 貼進 sprite sheet
+   武器先在水平姿勢畫進暫存畫布並描邊，再用「反向映射」旋轉貼上，
+   避免 canvas rotate 產生反鋸齒而破壞硬邊像素。
    ============================================================ */
-const AU=2;                       // 1 美術像素 = 2 世界單位
-const CH_FW=72, CH_FH=62;         // 單幀尺寸（美術像素，留白照最誇張的武器算）
-const CH_AX=30, CH_AY=46;         // 錨點：底部中心（所有圖層共用）
+const AU=2;
+const CH_FW=72, CH_FH=62;
+const CH_AX=30, CH_AY=46;
+const OUTLINE='#1B1428';
 
-const C_SKIN='#FFD9A8', C_SKIN_SH='#E0A277', C_BLUSH='#FF9BA8';
-const C_HAT='#2BB8C4',  C_HAT_LT='#7DEDEE',  C_HAT_DK='#166E82';
-const C_HAIR='#FFE07A', C_HAIR_DK='#D8A93C';
-const C_ARM='#4A8CE8',  C_ARM_LT='#96C9FF',  C_ARM_DK='#27509E';
-const C_PANT='#2E4E86', C_BOOT='#9A5E2A',    C_BOOT_LT='#C98A48';
-const C_CAPE='#EE5540', C_CAPE_DK='#A62A18';
-const C_LINE='#241B3A';
-const C_BLADE='#EAF6FF',C_BLADE_SH='#A6DCF2',C_HILT='#FFC83C', C_GRIP='#7A4A28';
-const C_EYE='#2A2238';
+const PX_PAL={
+  '.':null,
+  'D':'#166E82','H':'#2BB8C4','h':'#7DEDEE',      // 帽：暗/主/亮
+  'F':'#FFE07A','f':'#C9932E',                    // 髮：亮/暗
+  'S':'#FFD9A8','s':'#D89468','L':'#FFF0D8',      // 膚：主/陰影/受光
+  'E':'#2A2238','W':'#FFFFFF','R':'#FF8FA0','M':'#B85A50',
+  'A':'#4A8CE8','a':'#27509E','l':'#A8D4FF',      // 上衣：主/暗/受光
+  'G':'#FFE9A8','n':'#1B2F52',                    // 徽記 / 腰帶
+  'p':'#2E4E86','q':'#1D3660',                    // 褲
+  'B':'#9A5E2A','b':'#C98A48',                    // 靴
+  'C':'#EE5540','c':'#A62A18','v':'#FF9A82',      // 披風
+};
 
-/* 烘焙時 context 就是 1:1 的美術像素，所以這裡直接填原始單位 */
+const M_HEAD=[
+  '.....DDDDDD.....',
+  '...DDhhhhhhDD...',
+  '..DhhhhhhhhhhD..',
+  '.DHHHHHHHHHHHHD.',
+  '.DHHHHHHHHHHHHD.',
+  'DDDDDDDDDDDDDDDD',
+  '.fLSSSSSSSSSSLf.',
+  '.fSSSSSSSSSSSSf.',
+  '.FSWEESSSSWEESF.',
+  '.FSEEESSSSEEESF.',
+  '.FSSEESSSSSEESF.',
+  '.fSRRSSMMSSRRSf.',
+  '..sSSSSSSSSSSs..',
+  '...ssssssssss...',
+];
+const M_HEAD_BLINK=[
+  '.FSSSSSSSSSSSSF.',
+  '.FSEEESSSSEEESF.',
+  '.FSSSSSSSSSSSSF.',
+];
+const M_TORSO=[
+  '..AAAAAAAA..',
+  '.lAAAAAAAAl.',
+  '.aAAAAAAAAa.',
+  '.aAAGGGGAAa.',
+  '.aAAGWWGAAa.',
+  '.aAAGGGGAAa.',
+  '.aAAAAAAAAa.',
+  '.aaaaaaaaaa.',
+  '.annnnnnnna.',
+  '..pppppppp..',
+  '..qqqqqqqq..',
+];
+const M_LEG=[
+  'pppp',
+  'pppp',
+  'pppp',
+  'qqqq',
+  'BBBB',
+  'bbbb',
+  'BBBB',
+];
+const M_CAPE=[
+  '..vCCCC',
+  '.vCCCCc',
+  '.CCCCCc',
+  'CCCCCCc',
+  'CCCCCcc',
+  'CCCCCc.',
+  'CCCCcc.',
+  'cCCCcc.',
+  'cCCCc..',
+  'cCCcc..',
+  '.cCCc..',
+  '.ccc...',
+  '..cc...',
+  '..c....',
+];
+const M_ARMB=[
+  'aAa',
+  'aAa',
+  'aAa',
+  'aAa',
+  'aAa',
+  'sSs',
+  'sss',
+];
+const M_ARMF=[
+  '..AAAA..',
+  '.lAAAAl.',
+  '.aAAASSs',
+  '.aAAASSs',
+  '..aaa.s.',
+];
+
+/* 保留舊名稱給頭像、眨眼疊層與武器圖鑑使用 */
+const C_SKIN=PX_PAL.S, C_SKIN_SH=PX_PAL.s, C_BLUSH=PX_PAL.R;
+const C_HAT=PX_PAL.H,  C_HAT_LT=PX_PAL.h,  C_HAT_DK=PX_PAL.D;
+const C_HAIR=PX_PAL.F, C_HAIR_DK=PX_PAL.f;
+const C_ARM=PX_PAL.A,  C_ARM_LT=PX_PAL.l,  C_ARM_DK=PX_PAL.a;
+const C_PANT=PX_PAL.p, C_BOOT=PX_PAL.B,    C_BOOT_LT=PX_PAL.b;
+const C_CAPE=PX_PAL.C, C_CAPE_DK=PX_PAL.c;
+const C_LINE=OUTLINE,  C_EYE=PX_PAL.E;
+const C_BLADE='#EAF6FF', C_BLADE_SH='#A6DCF2', C_HILT='#FFC83C', C_GRIP='#7A4A28';
+
+/* 共用劍形產生器：所有武器都是同一套結構，只換配色與長度，
+   劍身往劍尖收窄，上緣受光、下緣陰影 —— 這是像素刀劍的標準畫法 */
+function bladeShape(c,o){
+  const lt=o.lt, md=o.md, dk=o.dk, gd=o.gd||'#FFC83C';
+  const tip=o.tip, half=o.half||3;
+  // 握把
+  B(c,1,-1,5,3,'#6A4520');
+  B(c,1,-1,5,1,'#9A6A34');
+  B(c,1, 1,5,1,'#3E2610');
+  B(c,0,-2,2,5,'#C9A16B');          // 柄頭
+  // 護手
+  const g=o.guard||3;
+  B(c,6,-g,2,g*2,gd);
+  B(c,6,-g,1,g*2,lt);
+  // 劍身
+  const x0=8, len=Math.max(6,tip-x0-2);
+  for(let i=0;i<len;i++){
+    const t=i/len;
+    const hh=t<0.78?half:Math.max(1,Math.round(half*(1-(t-0.78)/0.22)));
+    B(c,x0+i,-hh,1,hh*2,md);
+    B(c,x0+i,-hh,1,1,lt);
+    B(c,x0+i,hh-1,1,1,dk);
+  }
+  // 劍尖
+  B(c,x0+len,-1,2,2,md);
+  B(c,x0+len,-1,2,1,lt);
+  B(c,x0+len+2,0,1,1,lt);
+}
+
+/* 武器圖鑑仍用方塊描述，單位就是美術像素 */
 function B(c,x,y,w,h,col){
   c.fillStyle=col;
   c.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h));
 }
+function drawMatrix(c,rows,ox,oy){
+  for(let y=0;y<rows.length;y++){
+    const r=rows[y];
+    for(let x=0;x<r.length;x++){
+      const col=PX_PAL[r[x]];
+      if(!col)continue;
+      c.fillStyle=col;
+      c.fillRect(ox+x,oy+y,1,1);
+    }
+  }
+}
+/* 自動描邊：任何「空白但四鄰有色」的格子填深色，再把原圖疊回去 */
+function outlinePass(cv,col){
+  const w=cv.width,h=cv.height;
+  const c=cv.getContext('2d');
+  const src=c.getImageData(0,0,w,h).data;
+  const out=c.createImageData(w,h);
+  const od=out.data;
+  const A=(x,y)=>(x<0||y<0||x>=w||y>=h)?0:src[((y*w+x)<<2)+3];
+  const n=parseInt(col.slice(1),16);
+  const r=(n>>16)&255,g=(n>>8)&255,b=n&255;
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+    const i=(y*w+x)<<2;
+    if(src[i+3]>0)continue;
+    if(A(x-1,y)||A(x+1,y)||A(x,y-1)||A(x,y+1)){
+      od[i]=r;od[i+1]=g;od[i+2]=b;od[i+3]=255;
+    }
+  }
+  const tmp=document.createElement('canvas');
+  tmp.width=w;tmp.height=h;
+  const tc=tmp.getContext('2d');
+  tc.imageSmoothingEnabled=false;
+  tc.putImageData(out,0,0);
+  tc.drawImage(cv,0,0);
+  c.clearRect(0,0,w,h);
+  c.drawImage(tmp,0,0);
+}
+/* 反向映射旋轉貼圖：逐個目的像素回推來源，所以不會有縫也不會糊 */
+function blitRot(dst,imgData,W,H,PX,PY,ang,ax,ay){
+  const d=imgData.data;
+  const R=Math.ceil(Math.hypot(W,H)/2)+2;
+  const ca=Math.cos(-ang), sa=Math.sin(-ang);
+  ax=Math.round(ax); ay=Math.round(ay);
+  for(let dy=-R;dy<=R;dy++){
+    for(let dx=-R;dx<=R;dx++){
+      const lx=dx+0.5, ly=dy+0.5;
+      const sx=Math.floor(lx*ca-ly*sa+PX);
+      const sy=Math.floor(lx*sa+ly*ca+PY);
+      if(sx<0||sy<0||sx>=W||sy>=H)continue;
+      const i=(sy*W+sx)<<2;
+      if(d[i+3]<8)continue;
+      dst.fillStyle=`rgb(${d[i]},${d[i+1]},${d[i+2]})`;
+      dst.fillRect(ax+dx,ay+dy,1,1);
+    }
+  }
+}
+/* 手臂與武器的水平姿勢暫存（含描邊），之後整塊旋轉 */
+const RW=64, RH=26, RPX=12, RPY=13;
+const _uprightCache={};
+function uprightLayer(key,drawFn){
+  let e=_uprightCache[key];
+  if(e)return e;
+  const cv=document.createElement('canvas');
+  cv.width=RW;cv.height=RH;
+  const c=cv.getContext('2d');
+  c.imageSmoothingEnabled=false;
+  c.save();c.translate(RPX,RPY);
+  drawFn(c);
+  c.restore();
+  outlinePass(cv,OUTLINE);
+  e={img:c.getImageData(0,0,RW,RH)};
+  _uprightCache[key]=e;
+  return e;
+}
+
+/* ---------- 單幀：雙腳之間 = (0,0) ---------- */
+function drawHeroFrame(c,q){
+  const step=q.step, bob=q.bob;
+
+  // 腿：站立時不跟著呼吸浮動
+  if(q.air){
+    drawMatrix(c,M_LEG,-4,-7+q.tuck+bob);
+    drawMatrix(c,M_LEG, 1,-8+q.tuck+bob);
+  }else{
+    drawMatrix(c,M_LEG,-4+step,-7);
+    drawMatrix(c,M_LEG, 1-step,-7);
+  }
+
+  c.save();
+  c.translate(0,bob);
+  drawMatrix(c,M_CAPE,-12-q.cape,-19);
+  drawMatrix(c,M_ARMB,-8,-16);
+  drawMatrix(c,M_TORSO,-6,-18);
+  drawMatrix(c,M_HEAD,-8,-32);
+  if(q.mouth==='open'){
+    c.fillStyle=PX_PAL.M;c.fillRect(-2,-21,4,3);
+    c.fillStyle=PX_PAL.s;c.fillRect(-2,-21,4,1);
+  }
+  // 前臂：與武器同一個旋轉中心
+  const arm=uprightLayer('armf',cc=>drawMatrix(cc,M_ARMF,-2,-2));
+  blitRot(c,arm.img,RW,RH,RPX,RPY,q.armA,4,-13);
+  c.restore();
+}
+
+/* ---------- 烘焙 ---------- */
+function frameCanvas(){
+  const cv=document.createElement('canvas');
+  cv.width=CH_FW;cv.height=CH_FH;
+  cv.getContext('2d').imageSmoothingEnabled=false;
+  return cv;
+}
+function sheetFromFrames(name,n,drawOne){
+  const cv=document.createElement('canvas');
+  cv.width=CH_FW*n; cv.height=CH_FH;
+  const c=cv.getContext('2d');
+  c.imageSmoothingEnabled=false;
+  for(let f=0;f<n;f++){
+    const fr=frameCanvas();
+    const fc=fr.getContext('2d');
+    fc.save();fc.translate(CH_AX,CH_AY);
+    drawOne(fc,f);
+    fc.restore();
+    outlinePass(fr,OUTLINE);
+    c.drawImage(fr,f*CH_FW,0);
+  }
+  Sprites.defineSheet(name,{fw:CH_FW,fh:CH_FH,frames:n,cv});
+  const fv=document.createElement('canvas');
+  fv.width=cv.width;fv.height=cv.height;
+  const fc2=fv.getContext('2d');
+  fc2.imageSmoothingEnabled=false;
+  fc2.drawImage(cv,0,0);
+  fc2.globalCompositeOperation='source-atop';
+  fc2.fillStyle='#FFFFFF';
+  fc2.fillRect(0,0,fv.width,fv.height);
+  Sprites.defineSheet(name+'_flash',{fw:CH_FW,fh:CH_FH,frames:n,cv:fv});
+}
+function bakeHeroSheets(){
+  for(const name in HERO_CLIPS){
+    sheetFromFrames('hero_'+name,HERO_CLIPS[name].frames,
+      (fc,f)=>drawHeroFrame(fc,heroPose(name,f)));
+  }
+}
+
 
 /* ---------- 每個動作、每一幀的姿勢表 ---------- */
 const HERO_CLIPS={
@@ -2518,123 +2774,6 @@ function heroPose(clip,f){
       return{...base, climb:true, armA:-1.5, step:f===0?1:-1, cape:0};
   }
   return base;
-}
-
-/* ---------- 單幀繪製：雙腳之間 = (0,0) ---------- */
-function drawHeroFrame(c,q){
-  const step=q.step, bob=q.bob;
-
-  /* 腿：站在地上時不跟著呼吸浮動，雙腳必須黏住地面 */
-  c.save();
-  if(q.air)c.translate(0,bob);
-  if(q.air){
-    const t=q.tuck;
-    B(c,-4,-7+t,3,5,C_PANT);
-    B(c, 1,-8+t,3,5,C_PANT);
-    B(c,-5,-3+t,4,2,C_BOOT);
-    B(c, 1,-4+t,4,2,C_BOOT);
-  }else{
-    B(c,-4+step,-7,3,6,C_PANT);
-    B(c, 1-step,-7,3,6,C_PANT);
-    B(c,-5+step,-2,4,2,C_BOOT);
-    B(c, 1-step,-2,4,2,C_BOOT);
-    B(c,-5+step,-2,4,1,C_BOOT_LT);
-    B(c, 1-step,-2,4,1,C_BOOT_LT);
-  }
-  c.restore();
-
-  c.save();
-  c.translate(0,bob);
-
-  /* 披風 */
-  const sway=q.cape;
-  B(c,-9-sway,-17,2,12,C_CAPE_DK);
-  B(c,-7-sway,-18,3,13,C_CAPE);
-  B(c,-7-sway,-18,3,3,'#FF8A70');
-
-  /* 後手 */
-  B(c,-7,-15,2,6,C_ARM_DK);
-  B(c,-7,-10,2,2,C_SKIN_SH);
-
-  /* 身體 */
-  B(c,-6,-17,12,11,C_LINE);
-  B(c,-5,-16,10,9,C_ARM);
-  B(c,-5,-16,10,2,C_ARM_LT);
-  B(c,-5,-9,10,2,C_ARM_DK);
-  B(c,-1,-15,2,5,'#FFE9A8');
-  B(c,-1,-15,2,2,'#FFFFFF');
-
-  /* 大頭 */
-  const hy=-31;
-  B(c,-6,hy+1,12,2,C_LINE);
-  B(c,-8,hy+3,16,11,C_LINE);
-  B(c,-6,hy+14,12,2,C_LINE);
-  B(c,-5,hy+2,10,2,C_SKIN);
-  B(c,-7,hy+4,14,10,C_SKIN);
-  B(c,-5,hy+14,10,1,C_SKIN);
-  B(c,-7,hy+12,14,2,C_SKIN_SH);
-  // 帽子
-  B(c,-7,hy,14,2,C_HAT_DK);
-  B(c,-6,hy+1,12,4,C_HAT);
-  B(c,-6,hy+1,12,1,C_HAT_LT);
-  B(c,-10,hy+5,20,2,C_HAT_DK);
-  B(c,-10,hy+5,20,1,C_HAT);
-  B(c,3,hy-2,3,3,'#FFE07A');
-  B(c,4,hy-3,2,2,'#FFF3C0');
-  // 瀏海
-  B(c,-8,hy+7,2,4,C_HAIR);
-  B(c, 6,hy+7,2,4,C_HAIR);
-  B(c,-8,hy+10,2,1,C_HAIR_DK);
-  B(c, 6,hy+10,2,1,C_HAIR_DK);
-  // 眼睛（眨眼是即時疊上去的，不烘進 sheet）
-  B(c,-5,hy+8,4,4,C_EYE);
-  B(c, 1,hy+8,4,4,C_EYE);
-  B(c,-5,hy+8,2,2,'#FFFFFF');
-  B(c, 1,hy+8,2,2,'#FFFFFF');
-  // 腮紅與嘴
-  B(c,-7,hy+12,2,1,C_BLUSH);
-  B(c, 5,hy+12,2,1,C_BLUSH);
-  if(q.mouth==='open')B(c,-1,hy+12,3,2,'#B8564E');
-  else                B(c, 0,hy+12,2,1,'#C4665A');
-
-  /* 前手（握把以後的武器是獨立圖層，見 EQUIP） */
-  c.save();
-  c.translate(4,-13);
-  c.rotate(q.armA);
-  B(c,-1,-2,4,4,C_ARM);
-  B(c, 2,-1,3,3,C_SKIN);
-  c.restore();
-
-  c.restore();
-}
-
-/* ---------- 烘焙：把所有姿勢畫成 sprite sheet ---------- */
-function bakeHeroSheets(){
-  for(const name in HERO_CLIPS){
-    const n=HERO_CLIPS[name].frames;
-    const cv=document.createElement('canvas');
-    cv.width=CH_FW*n; cv.height=CH_FH;
-    const c=cv.getContext('2d');
-    c.imageSmoothingEnabled=false;
-    for(let f=0;f<n;f++){
-      c.save();
-      c.beginPath();c.rect(f*CH_FW,0,CH_FW,CH_FH);c.clip();
-      c.translate(f*CH_FW+CH_AX,CH_AY);      // ← 錨點：底部中心
-      drawHeroFrame(c,heroPose(name,f));
-      c.restore();
-    }
-    Sprites.defineSheet('hero_'+name,{fw:CH_FW,fh:CH_FH,frames:n,cv});
-    // 受擊白閃：同一組幀，用 source-atop 把不透明處全部塗白
-    const fv=document.createElement('canvas');
-    fv.width=cv.width; fv.height=cv.height;
-    const fc=fv.getContext('2d');
-    fc.imageSmoothingEnabled=false;
-    fc.drawImage(cv,0,0);
-    fc.globalCompositeOperation='source-atop';
-    fc.fillStyle='#FFFFFF';
-    fc.fillRect(0,0,fv.width,fv.height);
-    Sprites.defineSheet('hero_'+name+'_flash',{fw:CH_FW,fh:CH_FH,frames:n,cv:fv});
-  }
 }
 
 /* ============================================================
@@ -2735,13 +2874,15 @@ function drawPlayer(){
 
   // 眨眼：即時蓋一層，不必為了眨眼多烘一整組幀
   if(p.blink<0&&!p.climb){
-    const hy=-31;
-    c.fillStyle=C_SKIN;
-    c.fillRect(-5*S,(hy+8)*S,4*S,3*S);
-    c.fillRect( 1*S,(hy+8)*S,4*S,3*S);
-    c.fillStyle=C_EYE;
-    c.fillRect(-5*S,(hy+10)*S,4*S,S);
-    c.fillRect( 1*S,(hy+10)*S,4*S,S);
+    for(let y=0;y<M_HEAD_BLINK.length;y++){
+      const row=M_HEAD_BLINK[y];
+      for(let x=0;x<row.length;x++){
+        const col=PX_PAL[row[x]];
+        if(!col)continue;
+        c.fillStyle=col;
+        c.fillRect((-8+x)*S,(-24+y)*S,S,S);
+      }
+    }
   }
   // 受擊白閃
   if(p.hurtT>0){
@@ -3062,20 +3203,14 @@ const EQUIP={
     none:{name:'空手',desc:'沒有武器，只剩拳頭',rarity:'common',len:0,draw(){},trail(){},
       icon(c){c.fillStyle='#E0A277';c.fillRect(9,11,10,9);c.fillStyle='#FFD9A8';c.fillRect(9,11,10,4);c.fillStyle='#E0A277';c.fillRect(11,20,6,4);}},
     basic_sword:{
-      name:'旅人之劍', desc:'樸素可靠，青白色斬擊軌跡', rarity:'common', len:31,
+      name:'旅人之劍', desc:'樸素可靠，青白色斬擊軌跡', rarity:'common', len:24,
       stats:{atk:0.10},
       icon(c){icoBlade(c,['#241B3A','#A6DCF2','#EAF6FF','#FFC83C']);},
       draw(c){
-        B(c, 4,-1,4,2,C_GRIP);
-        B(c, 8,-4,2,8,C_HILT);
-        B(c,10,-3,18,6,C_LINE);
-        B(c,11,-2,17,4,C_BLADE_SH);
-        B(c,11,-2,17,2,C_BLADE);
-        B(c,28,-2,3,4,C_LINE);
-        B(c,28,-1,3,2,C_BLADE);
+        bladeShape(c,{lt:'#EAF6FF',md:'#A6DCF2',dk:'#4E7E9A',gd:'#FFC83C',tip:24,half:2});
       },
       trail(c,q){
-        const a1=q.armA, a0=a1-1.15, R=[0,26,31][q.trail];
+        const a1=q.armA, a0=a1-1.15, R=[0,20,24][q.trail];
         for(let i=0;i<11;i++){
           const a=a0+(a1-a0)*(i/10);
           const rr=R-(10-i)*0.7;
@@ -3086,30 +3221,15 @@ const EQUIP={
       },
     },
     flame_sword:{
-      name:'烈焰劍', desc:'劍尖常燃，揮砍噴出大量火星', rarity:'rare', len:38,
+      name:'烈焰劍', desc:'劍尖常燃，揮砍噴出大量火星', rarity:'rare', len:27,
       stats:{atk:0.30, crit:0.05},
       element:'fire',
       icon(c){icoBlade(c,['#3A0E04','#FF6A1E','#FFC83C','#FFC83C'],'#FFF3A0');},
       draw(c){
-        // 握把與火焰護手
-        B(c, 3,-1,5,3,'#5A2A10');
-        B(c, 7,-6,3,12,'#3A0E04');
-        B(c, 8,-5,2,10,'#FFC83C');
-        B(c, 6,-4,1,8,'#FF8A1E');
-        B(c,10,-5,1,10,'#FF8A1E');
-        // 劍身：外框 → 暗紅 → 橘 → 黃芯
-        B(c,10,-5,26,10,'#3A0E04');
-        B(c,11,-4,25,8,'#C42410');
-        B(c,11,-4,25,5,'#FF6A1E');
-        B(c,11,-4,25,3,'#FFC83C');
-        B(c,12,-3,21,1,'#FFF3A0');
-        // 劍尖
-        B(c,36,-3,2,6,'#3A0E04');
-        B(c,36,-2,2,4,'#FF6A1E');
-        B(c,36,-1,1,2,'#FFC83C');
+        bladeShape(c,{lt:'#FFE07A',md:'#FF6A1E',dk:'#A81808',gd:'#FFC83C',tip:27,half:2});
       },
       trail(c,q){
-        const a1=q.armA, a0=a1-1.35, R=[0,28,34][q.trail];
+        const a1=q.armA, a0=a1-1.35, R=[0,22,26][q.trail];
         for(let i=0;i<15;i++){
           const a=a0+(a1-a0)*(i/14);
           const rr=R-(14-i)*0.75;
@@ -3164,23 +3284,15 @@ const EQUIP={
       },
     },
     frost_edge:{
-      name:'冰霜之刃', desc:'揮砍散出冰晶，碎片會墜落', rarity:'rare', drop:{bat:0.07}, len:34,
+      name:'冰霜之刃', desc:'揮砍散出冰晶，碎片會墜落', rarity:'rare', drop:{bat:0.07}, len:25,
       stats:{atk:0.24, cdr:0.12},
       element:'ice',
       icon(c){icoBlade(c,['#123A5A','#7AC8FF','#EAFBFF','#9FD8F0'],'#DFFFFF');},
       draw(c){
-        B(c, 3,-1,5,3,'#2A4A6A');
-        B(c, 7,-5,3,10,'#123A5A');
-        B(c, 8,-4,2,8,'#9FD8F0');
-        B(c,10,-4,24,8,'#123A5A');
-        B(c,11,-3,23,6,'#2E7FC8');
-        B(c,11,-3,23,4,'#7AC8FF');
-        B(c,11,-3,23,2,'#EAFBFF');
-        B(c,32,-3,3,6,'#123A5A');
-        B(c,32,-2,3,4,'#7AC8FF');
+        bladeShape(c,{lt:'#EAFBFF',md:'#7AC8FF',dk:'#2E6AA8',gd:'#9FD8F0',tip:25,half:2});
       },
       trail(c,q){
-        const a1=q.armA, a0=a1-1.3, R=[0,27,32][q.trail];
+        const a1=q.armA, a0=a1-1.3, R=[0,21,25][q.trail];
         for(let i=0;i<13;i++){
           const a=a0+(a1-a0)*(i/12);
           const rr=R-(12-i)*0.7;
@@ -3214,24 +3326,16 @@ const EQUIP={
       },
     },
     verdant_blade:{
-      name:'翠葉刃', desc:'揮砍捲起葉片，落地化為草屑', len:33,
+      name:'翠葉刃', desc:'揮砍捲起葉片，落地化為草屑', len:24,
       stats:{atk:0.22, hp:0.10},
       element:'leaf',
       rarity:'rare', drop:{slime:0.05, mush:0.05},
       icon(c){icoBlade(c,['#123A18','#4FB33A','#A8F06A','#78D45A'],'#DFFFC8');},
       draw(c){
-        B(c, 3,-1,5,3,'#5A3A18');
-        B(c, 7,-5,3,10,'#123A18');
-        B(c, 8,-4,2,8,'#A8F06A');
-        B(c,10,-4,23,8,'#123A18');
-        B(c,11,-3,22,6,'#2F8A3A');
-        B(c,11,-3,22,4,'#4FB33A');
-        B(c,11,-3,22,2,'#A8F06A');
-        B(c,31,-3,3,6,'#123A18');
-        B(c,31,-2,3,4,'#4FB33A');
+        bladeShape(c,{lt:'#DFFFC8',md:'#6FD44A',dk:'#2F7A2A',gd:'#A8F06A',tip:24,half:2});
       },
       trail(c,q){
-        const a1=q.armA, a0=a1-1.25, R=[0,26,31][q.trail];
+        const a1=q.armA, a0=a1-1.25, R=[0,20,24][q.trail];
         for(let i=0;i<12;i++){
           const a=a0+(a1-a0)*(i/11);
           const rr=R-(11-i)*0.7;
@@ -3260,26 +3364,16 @@ const EQUIP={
       },
     },
     storm_glaive:{
-      name:'雷霆戟', desc:'菇菇王的遺物 — 揮擊時劈出閃電', len:42,
+      name:'雷霆戟', desc:'菇菇王的遺物 — 揮擊時劈出閃電', len:31,
       stats:{atk:0.55, crit:0.10, cdr:0.08},
       element:'storm',
       rarity:'legend', drop:{king:1.0},
       icon(c){icoBlade(c,['#2A1050','#B858F0','#F0D8FF','#FFC83C'],'#FFF3A0');},
       draw(c){
-        B(c, 2,-2,7,4,'#3A2410');
-        B(c, 9,-7,3,14,'#2A1050');
-        B(c,10,-6,2,12,'#FFC83C');
-        B(c,12,-5,26,10,'#2A1050');
-        B(c,13,-4,25,8,'#7A2ED0');
-        B(c,13,-4,25,5,'#B858F0');
-        B(c,13,-4,25,3,'#F0D8FF');
-        B(c,14,-3,20,1,'#FFFFFF');
-        B(c,38,-4,3,8,'#2A1050');
-        B(c,38,-3,3,6,'#B858F0');
-        B(c,38,-1,2,2,'#FFF3A0');
+        bladeShape(c,{lt:'#F0D8FF',md:'#B858F0',dk:'#5A18A0',gd:'#FFC83C',tip:31,half:3,guard:4});
       },
       trail(c,q){
-        const a1=q.armA, a0=a1-1.45, R=[0,30,36][q.trail];
+        const a1=q.armA, a0=a1-1.45, R=[0,24,29][q.trail];
         for(let i=0;i<16;i++){
           const a=a0+(a1-a0)*(i/15);
           const rr=R-(15-i)*0.8;
@@ -3645,42 +3739,19 @@ function equip(slot,id){
 }
 
 /* ---------- 武器圖層：與角色共用錨點，分開烘焙 ---------- */
-function drawWeaponFrame(c,q,wep){
+function drawWeaponFrame(c,q,wep,id){
   if(!wep||!wep.draw)return;
-  if(q.trail&&wep.trail)wep.trail(c,q);      // 軌跡在劍身之下
-  c.save();
-  c.translate(4,-13+q.bob);
-  c.rotate(q.armA);
-  wep.draw(c,q);
-  c.restore();
+  if(q.trail&&wep.trail)wep.trail(c,q);      // 軌跡在劍身之下，不旋轉
+  const up=uprightLayer('wep_'+id,cc=>wep.draw(cc,q));
+  blitRot(c,up.img,RW,RH,RPX,RPY,q.armA,4,-13+q.bob);
 }
 function bakeWeaponSheets(){
   for(const id in EQUIP.weapon){
     if(id==='none')continue;
     const wep=EQUIP.weapon[id];
     for(const clip in HERO_CLIPS){
-      const n=HERO_CLIPS[clip].frames;
-      const cv=document.createElement('canvas');
-      cv.width=CH_FW*n; cv.height=CH_FH;
-      const c=cv.getContext('2d');
-      c.imageSmoothingEnabled=false;
-      for(let f=0;f<n;f++){
-        c.save();
-        c.beginPath();c.rect(f*CH_FW,0,CH_FW,CH_FH);c.clip();
-        c.translate(f*CH_FW+CH_AX,CH_AY);      // ← 與角色同一個錨點
-        drawWeaponFrame(c,heroPose(clip,f),wep);
-        c.restore();
-      }
-      Sprites.defineSheet(`wep_${id}_${clip}`,{fw:CH_FW,fh:CH_FH,frames:n,cv});
-      const fv=document.createElement('canvas');
-      fv.width=cv.width; fv.height=cv.height;
-      const fc=fv.getContext('2d');
-      fc.imageSmoothingEnabled=false;
-      fc.drawImage(cv,0,0);
-      fc.globalCompositeOperation='source-atop';
-      fc.fillStyle='#FFFFFF';
-      fc.fillRect(0,0,fv.width,fv.height);
-      Sprites.defineSheet(`wep_${id}_${clip}_flash`,{fw:CH_FW,fh:CH_FH,frames:n,cv:fv});
+      sheetFromFrames(`wep_${id}_${clip}`,HERO_CLIPS[clip].frames,
+        (fc,f)=>drawWeaponFrame(fc,heroPose(clip,f),wep,id));
     }
   }
 }
