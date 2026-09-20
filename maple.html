@@ -920,6 +920,7 @@ function newPlayer(keep){
     dashT:0,dashCd:0,dashDir:1,ghostT:0,potCd:0,
     lastDir:null,lastDirT:-9,jumpBuf:0,downHold:0,
     chain:0,chainT:0,trail:[],
+    equipment:{weapon:'flame_sword', aura:'thunder_ring', shoes:'none'},
     cds:{atk1:0,atk2:0,atk3:0,atk4:0},
     inv:0,hurtT:0,noDmgT:0,walkPhase:0,blink:rand(1,4),
     dead:false,
@@ -948,6 +949,7 @@ function newGame(keep){
     tier:keep?keep.tier:1,
   };
   P=newPlayer(keep);
+  if(typeof PixelFX!=='undefined')PixelFX.clear();
   for(let i=0;i<SPAWNS.length;i++)spawnFromDef(i);
   for(let i=0;i<46;i++)G.leaves.push(newLeaf(true));
   camSnap();
@@ -1459,6 +1461,10 @@ function castSlash(s){
   p.trail.length=0;
   SFX.slash(fin);
   const ox=p.x+p.face*54, oy=p.y-PH*0.52;
+  {
+    const w=eq('weapon');
+    if(w.onSwing)w.onSwing(p,heroWeaponTip(),fin);
+  }
   playAnim('slashArc',ox,oy,{
     scale:fin?3.0:2.1, flip:p.face, fps:fin?18:22,
     rot:(p.chain===2?0.5:-0.35)+rand(-.1,.1),
@@ -2359,8 +2365,8 @@ function drawRopes(){
    其餘播放、狀態切換、翻轉邏輯完全不用動。
    ============================================================ */
 const AU=2;                       // 1 美術像素 = 2 世界單位
-const CH_FW=60, CH_FH=56;         // 單幀尺寸（美術像素）
-const CH_AX=26, CH_AY=42;         // 錨點：底部中心
+const CH_FW=72, CH_FH=62;         // 單幀尺寸（美術像素，留白照最誇張的武器算）
+const CH_AX=30, CH_AY=46;         // 錨點：底部中心（所有圖層共用）
 
 const C_SKIN='#FFD9A8', C_SKIN_SH='#E0A277', C_BLUSH='#FF9BA8';
 const C_HAT='#2BB8C4',  C_HAT_LT='#7DEDEE',  C_HAT_DK='#166E82';
@@ -2488,32 +2494,12 @@ function drawHeroFrame(c,q){
   if(q.mouth==='open')B(c,-1,hy+12,3,2,'#B8564E');
   else                B(c, 0,hy+12,2,1,'#C4665A');
 
-  /* 誇張的劍軌跡（只在揮砍幀出現） */
-  if(q.trail){
-    const a1=q.armA, a0=a1-1.15;
-    const R=[0,26,31][q.trail];
-    for(let i=0;i<11;i++){
-      const a=a0+(a1-a0)*(i/10);
-      const rr=R-(10-i)*0.7;
-      const s=2+((i>4)?1:0)+((i>8)?1:0);
-      B(c,4+Math.cos(a)*rr-s/2,-13+Math.sin(a)*rr-s/2,s,s,
-        i>7?'#FFFFFF':i>3?'#CFF6FF':'#7FD8F0');
-    }
-  }
-
-  /* 前手 + 大劍 */
+  /* 前手（握把以後的武器是獨立圖層，見 EQUIP） */
   c.save();
   c.translate(4,-13);
   c.rotate(q.armA);
   B(c,-1,-2,4,4,C_ARM);
   B(c, 2,-1,3,3,C_SKIN);
-  B(c, 4,-1,4,2,C_GRIP);
-  B(c, 8,-4,2,8,C_HILT);
-  B(c,10,-3,18,6,C_LINE);
-  B(c,11,-2,17,4,C_BLADE_SH);
-  B(c,11,-2,17,2,C_BLADE);
-  B(c,28,-2,3,4,C_LINE);
-  B(c,28,-1,3,2,C_BLADE);
   c.restore();
 
   c.restore();
@@ -2614,6 +2600,10 @@ function drawPlayer(){
   const dx=Math.round((p.x-G.cam.x)*z)/z+G.cam.x;
   const dy=Math.round((p.y-G.cam.y)*z)/z+G.cam.y;
 
+  // 光環的地面魔法陣畫在角色之下
+  const auraDef=eq('aura');
+  if(auraDef.under)auraDef.under(c,p);
+
   c.save();
   // 影子畫在世界座標，不跟著角色翻轉
   if(!p.climb){
@@ -2632,6 +2622,14 @@ function drawPlayer(){
   c.drawImage(src,f*CH_FW,0,CH_FW,CH_FH,
               -CH_AX*S,-CH_AY*S,CH_FW*S,CH_FH*S);
 
+  // 武器圖層：同一個錨點，直接疊上去
+  const wepId=p.equipment?p.equipment.weapon:'none';
+  const wsh=wepId!=='none'?Sprites.get(`wep_${wepId}_${HeroAnim.clip}`):null;
+  if(wsh&&wsh.ready){
+    c.drawImage(wsh.cv,f*CH_FW,0,CH_FW,CH_FH,
+                -CH_AX*S,-CH_AY*S,CH_FW*S,CH_FH*S);
+  }
+
   // 眨眼：即時蓋一層，不必為了眨眼多烘一整組幀
   if(p.blink<0&&!p.climb){
     const hy=-31;
@@ -2645,12 +2643,13 @@ function drawPlayer(){
   // 受擊白閃
   if(p.hurtT>0){
     const fsh=Sprites.get('hero_'+HeroAnim.clip+'_flash');
-    if(fsh&&fsh.ready){
-      c.globalAlpha=clamp(p.hurtT/0.4,0,1)*0.85;
-      c.drawImage(fsh.cv,f*CH_FW,0,CH_FW,CH_FH,
-                  -CH_AX*S,-CH_AY*S,CH_FW*S,CH_FH*S);
-      c.globalAlpha=1;
-    }
+    const wfsh=wsh?Sprites.get(`wep_${wepId}_${HeroAnim.clip}_flash`):null;
+    c.globalAlpha=clamp(p.hurtT/0.4,0,1)*0.85;
+    if(fsh&&fsh.ready)
+      c.drawImage(fsh.cv,f*CH_FW,0,CH_FW,CH_FH,-CH_AX*S,-CH_AY*S,CH_FW*S,CH_FH*S);
+    if(wfsh&&wfsh.ready)
+      c.drawImage(wfsh.cv,f*CH_FW,0,CH_FW,CH_FH,-CH_AX*S,-CH_AY*S,CH_FW*S,CH_FH*S);
+    c.globalAlpha=1;
   }
   c.restore();
 
@@ -2718,6 +2717,380 @@ function drawMob(m){
     c.fillStyle='#E01030';c.fillRect(x,y,w*clamp(m.hp/m.maxHp,0,1),2);
     c.fillStyle='rgba(255,150,170,.7)';c.fillRect(x,y,w*clamp(m.hp/m.maxHp,0,1),.8);
   }
+}
+
+/* ============================================================
+   裝備系統：外觀與特效都由裝備驅動
+   ------------------------------------------------------------
+   架構重點：武器是「獨立圖層」，不烘進角色 sheet。
+   角色 sheet 只畫到肩膀與握劍的手，武器 sheet 畫握把以後的部分，
+   兩者共用同一個錨點 (CH_AX, CH_AY)，疊起來自然對齊。
+   → 新增一把武器只要多烘一組武器圖，不必重烘整套角色動作。
+
+   所有效果純粹是視覺層：傷害、判定、碰撞一律不經過這裡。
+   ============================================================ */
+
+/* ---------- 輕量像素粒子系統 ---------- */
+const PixelFX={
+  list:[], bolts:[], MAX:460,
+  spawn(o){
+    if(this.list.length>=this.MAX)this.list.shift();
+    this.list.push(Object.assign({
+      x:0,y:0,vx:0,vy:0,grav:0,drag:0,life:.5,max:.5,col:'#FFFFFF',size:1,
+    },o));
+  },
+  burst(n,fn){for(let i=0;i<n;i++)this.spawn(fn(i));},
+  /* 像素閃電：一條會抖動的折線 */
+  bolt(x,y,ang,len,col){
+    if(this.bolts.length>20)this.bolts.shift();
+    const pts=[[x,y]];
+    let px=x,py=y;
+    const segs=5, step=len/segs;
+    for(let i=0;i<segs;i++){
+      px+=Math.cos(ang)*step+rand(-7,7);
+      py+=Math.sin(ang)*step+rand(-7,7);
+      pts.push([px,py]);
+    }
+    this.bolts.push({pts,life:.13,max:.13,col:col||'#FFF3A0'});
+  },
+  update(dt){
+    for(let i=this.list.length-1;i>=0;i--){
+      const p=this.list[i];
+      p.life-=dt;
+      if(p.life<=0){this.list.splice(i,1);continue;}
+      if(p.grav)p.vy+=p.grav*dt;
+      if(p.drag){const k=Math.max(0,1-p.drag*dt);p.vx*=k;p.vy*=k;}
+      p.x+=p.vx*dt; p.y+=p.vy*dt;
+    }
+    for(let i=this.bolts.length-1;i>=0;i--){
+      this.bolts[i].life-=dt;
+      if(this.bolts[i].life<=0)this.bolts.splice(i,1);
+    }
+  },
+  draw(c){
+    c=c||ctx;
+    const z=zoomNow()/PIXEL;
+    const S=Math.max(1,Math.round(AU*z))/z;   // 一個美術像素的世界尺寸
+    const cx=G.cam.x, cy=G.cam.y;
+    // 座標一律取整對齊像素格，不要亞像素滑動
+    const snapX=v=>Math.floor((v-cx)*z)/z+cx;
+    const snapY=v=>Math.floor((v-cy)*z)/z+cy;
+    c.save();
+    for(const p of this.list){
+      const a=clamp(p.life/p.max,0,1);
+      c.globalAlpha=Math.ceil(a*4)/4;         // 透明度量化成 4 階，淡出也是一格一格
+      c.fillStyle=p.col;
+      const s=p.size*S;
+      c.fillRect(snapX(p.x),snapY(p.y),s,s);
+    }
+    for(const b of this.bolts){
+      const a=clamp(b.life/b.max,0,1);
+      c.globalAlpha=a>.5?1:.5;
+      c.fillStyle=b.col;
+      for(let i=1;i<b.pts.length;i++){
+        const [x0,y0]=b.pts[i-1], [x1,y1]=b.pts[i];
+        const d=Math.hypot(x1-x0,y1-y0);
+        const n=Math.max(1,Math.round(d/S));
+        for(let k=0;k<=n;k++){
+          const t=k/n;
+          c.fillRect(snapX(x0+(x1-x0)*t),snapY(y0+(y1-y0)*t),S*2,S*2);
+        }
+      }
+      // 核心亮線
+      c.fillStyle='#FFFFFF';
+      for(let i=1;i<b.pts.length;i++){
+        const [x0,y0]=b.pts[i-1], [x1,y1]=b.pts[i];
+        const n=Math.max(1,Math.round(Math.hypot(x1-x0,y1-y0)/S));
+        for(let k=0;k<=n;k++){
+          const t=k/n;
+          c.fillRect(snapX(x0+(x1-x0)*t),snapY(y0+(y1-y0)*t),S,S);
+        }
+      }
+    }
+    c.restore();
+  },
+  clear(){this.list.length=0;this.bolts.length=0;},
+};
+
+/* ---------- 裝備圖鑑 ---------- */
+const EQUIP={
+  weapon:{
+    none:{name:'空手',len:0,draw(){},trail(){}},
+    basic_sword:{
+      name:'旅人之劍', len:31,
+      draw(c){
+        B(c, 4,-1,4,2,C_GRIP);
+        B(c, 8,-4,2,8,C_HILT);
+        B(c,10,-3,18,6,C_LINE);
+        B(c,11,-2,17,4,C_BLADE_SH);
+        B(c,11,-2,17,2,C_BLADE);
+        B(c,28,-2,3,4,C_LINE);
+        B(c,28,-1,3,2,C_BLADE);
+      },
+      trail(c,q){
+        const a1=q.armA, a0=a1-1.15, R=[0,26,31][q.trail];
+        for(let i=0;i<11;i++){
+          const a=a0+(a1-a0)*(i/10);
+          const rr=R-(10-i)*0.7;
+          const s=2+((i>4)?1:0)+((i>8)?1:0);
+          B(c,4+Math.cos(a)*rr-s/2,-13+Math.sin(a)*rr-s/2,s,s,
+            i>7?'#FFFFFF':i>3?'#CFF6FF':'#7FD8F0');
+        }
+      },
+    },
+    flame_sword:{
+      name:'烈焰劍', len:38,
+      draw(c){
+        // 握把與火焰護手
+        B(c, 3,-1,5,3,'#5A2A10');
+        B(c, 7,-6,3,12,'#3A0E04');
+        B(c, 8,-5,2,10,'#FFC83C');
+        B(c, 6,-4,1,8,'#FF8A1E');
+        B(c,10,-5,1,10,'#FF8A1E');
+        // 劍身：外框 → 暗紅 → 橘 → 黃芯
+        B(c,10,-5,26,10,'#3A0E04');
+        B(c,11,-4,25,8,'#C42410');
+        B(c,11,-4,25,5,'#FF6A1E');
+        B(c,11,-4,25,3,'#FFC83C');
+        B(c,12,-3,21,1,'#FFF3A0');
+        // 劍尖
+        B(c,36,-3,2,6,'#3A0E04');
+        B(c,36,-2,2,4,'#FF6A1E');
+        B(c,36,-1,1,2,'#FFC83C');
+      },
+      trail(c,q){
+        const a1=q.armA, a0=a1-1.35, R=[0,28,34][q.trail];
+        for(let i=0;i<15;i++){
+          const a=a0+(a1-a0)*(i/14);
+          const rr=R-(14-i)*0.75;
+          const s=3+((i>5)?1:0)+((i>10)?1:0);
+          const col=i>11?'#FFF3A0':i>8?'#FFC83C':i>4?'#FF6A1E':'#C42410';
+          B(c,4+Math.cos(a)*rr-s/2,-13+Math.sin(a)*rr-s/2,s,s,col);
+          // 外緣再補一圈暗色，讓火舌更厚
+          if(i>3){
+            const s2=2;
+            B(c,4+Math.cos(a)*(rr+s*0.8)-s2/2,-13+Math.sin(a)*(rr+s*0.8)-s2/2,s2,s2,'#A81808');
+          }
+        }
+      },
+      /* 待機／走路時劍尖飄出火星 */
+      ambient(dt,tip,p){
+        p.wepT=(p.wepT||0)-dt;
+        if(p.wepT>0)return;
+        p.wepT=Math.abs(p.vx)>20?0.05:0.10;
+        PixelFX.spawn({
+          x:tip.x+rand(-6,6), y:tip.y+rand(-6,6),
+          vx:rand(-16,16)-p.vx*0.06, vy:-rand(26,60),
+          grav:-28, drag:1.1, size:chance(.35)?2:1,
+          col:pick(['#FFC83C','#FF6A1E','#FFF3A0']),
+          life:rand(.3,.6), max:.6,
+        });
+      },
+      /* 揮劍瞬間：朝揮擊方向噴大量火星 */
+      onSwing(p,tip,fin){
+        const n=fin?34:20;
+        PixelFX.burst(n,()=>{
+          const a=rand(-1.1,0.5);
+          const sp=rand(120,fin?460:330);
+          return{
+            x:tip.x+rand(-10,10), y:tip.y+rand(-10,10),
+            vx:Math.cos(a)*sp*p.face+p.vx*0.2,
+            vy:Math.sin(a)*sp-rand(30,120),
+            grav:-40, drag:1.6, size:chance(.4)?2:1,
+            col:pick(['#FFF3A0','#FFC83C','#FF6A1E','#C42410']),
+            life:rand(.35,.75), max:.75,
+          };
+        });
+        // 劍尖炸出一圈火環
+        PixelFX.burst(fin?16:10,i=>{
+          const a=i/(fin?16:10)*TAU;
+          return{
+            x:tip.x, y:tip.y,
+            vx:Math.cos(a)*rand(90,190), vy:Math.sin(a)*rand(90,190)-40,
+            grav:-30, drag:2.2, size:2,
+            col:i%2?'#FFC83C':'#FF6A1E', life:rand(.22,.4), max:.4,
+          };
+        });
+      },
+    },
+  },
+
+  aura:{
+    none:{},
+    thunder_ring:{
+      name:'雷霆光環',
+      update(dt,p){
+        p.auraT=(p.auraT||0)-dt;
+        if(p.auraT>0)return;
+        p.auraT=rand(0.22,0.5);
+        // 在角色周圍劈下 1~2 道閃電
+        const n=chance(.35)?2:1;
+        for(let i=0;i<n;i++){
+          const side=chance(.5)?-1:1;
+          const sx=p.x+side*rand(16,42);
+          const sy=p.y-PH-rand(20,54);
+          PixelFX.bolt(sx,sy,Math.PI/2+rand(-.5,.5),rand(34,64),
+            chance(.4)?'#FFFFFF':'#FFE04A');
+        }
+        // 順便彈幾顆電花
+        PixelFX.burst(4,()=>({
+          x:p.x+rand(-20,20), y:p.y-rand(0,PH),
+          vx:rand(-70,70), vy:-rand(40,130),
+          grav:180, drag:.6, size:chance(.5)?2:1,
+          col:chance(.5)?'#FFF3A0':'#8FE8FF',
+          life:rand(.2,.45), max:.45,
+        }));
+      },
+      /* 腳下的像素魔法陣（畫在角色之下） */
+      under(c,p){
+        const z=zoomNow()/PIXEL;
+        const S=Math.max(1,Math.round(AU*z))/z;
+        const snap=(v,cv)=>Math.floor((v-cv)*z)/z+cv;
+        const t=G.t;
+        const pulse=1+Math.sin(t*3.4)*0.08;
+        c.save();
+        for(let ring=0;ring<2;ring++){
+          const n=ring?7:13;
+          const rad=(ring?14:23)*pulse*S;
+          const rot=t*(ring?-1.5:1.0);
+          c.fillStyle=ring?'#FFFFFF':'#FFE04A';
+          c.globalAlpha=ring?.85:.7;
+          for(let i=0;i<n;i++){
+            const a=rot+i*TAU/n;
+            const x=snap(p.x+Math.cos(a)*rad,G.cam.x);
+            const y=snap(p.y-2*S+Math.sin(a)*rad*0.42,G.cam.y);
+            const sz=S*(ring?1:2);
+            const keep=c.fillStyle;
+            c.fillStyle='rgba(40,20,0,.55)';          // 暗底
+            c.fillRect(x,y+S,sz,sz);
+            c.fillStyle=keep;
+            c.fillRect(x,y,sz,sz);
+          }
+        }
+        // 四個方位的短刻痕
+        c.globalAlpha=.55;
+        c.fillStyle='#FFC83C';
+        for(let i=0;i<4;i++){
+          const a=t*1.0+i*TAU/4;
+          for(let k=0;k<3;k++){
+            const rad=(26+k*2)*pulse*S;
+            c.fillRect(snap(p.x+Math.cos(a)*rad,G.cam.x),
+                       snap(p.y-2*S+Math.sin(a)*rad*0.42,G.cam.y),S,S);
+          }
+        }
+        c.restore();
+      },
+    },
+  },
+
+  shoes:{
+    none:{},
+    gale_boots:{
+      name:'疾風之靴',
+      onStep(p){
+        PixelFX.burst(3,()=>({
+          x:p.x+rand(-8,8), y:p.y-2,
+          vx:-p.face*rand(40,130), vy:-rand(10,50),
+          grav:220, drag:1.4, size:1,
+          col:pick(['#DFFFFF','#8FE8FF','#FFFFFF']),
+          life:rand(.2,.4), max:.4,
+        }));
+      },
+      onLand(p){
+        PixelFX.burst(12,i=>({
+          x:p.x+rand(-14,14), y:p.y-2,
+          vx:rand(-190,190), vy:-rand(30,110),
+          grav:300, drag:1.2, size:chance(.4)?2:1,
+          col:pick(['#DFFFFF','#8FE8FF']),
+          life:rand(.25,.5), max:.5,
+        }));
+      },
+    },
+  },
+};
+
+/* ---------- 讀取目前裝備 ---------- */
+function eq(slot){
+  const id=(P.equipment&&P.equipment[slot])||'none';
+  return EQUIP[slot][id]||EQUIP[slot].none||{};
+}
+/* 主控台可直接呼叫：equip('weapon','basic_sword') */
+function equip(slot,id){
+  if(!EQUIP[slot]||!EQUIP[slot][id]){console.warn('沒有這件裝備：',slot,id);return;}
+  P.equipment[slot]=id;
+  sysmsg(`裝備變更 — ${EQUIP[slot][id].name||id}`,'item');
+}
+
+/* ---------- 武器圖層：與角色共用錨點，分開烘焙 ---------- */
+function drawWeaponFrame(c,q,wep){
+  if(!wep||!wep.draw)return;
+  if(q.trail&&wep.trail)wep.trail(c,q);      // 軌跡在劍身之下
+  c.save();
+  c.translate(4,-13+q.bob);
+  c.rotate(q.armA);
+  wep.draw(c,q);
+  c.restore();
+}
+function bakeWeaponSheets(){
+  for(const id in EQUIP.weapon){
+    if(id==='none')continue;
+    const wep=EQUIP.weapon[id];
+    for(const clip in HERO_CLIPS){
+      const n=HERO_CLIPS[clip].frames;
+      const cv=document.createElement('canvas');
+      cv.width=CH_FW*n; cv.height=CH_FH;
+      const c=cv.getContext('2d');
+      c.imageSmoothingEnabled=false;
+      for(let f=0;f<n;f++){
+        c.save();
+        c.beginPath();c.rect(f*CH_FW,0,CH_FW,CH_FH);c.clip();
+        c.translate(f*CH_FW+CH_AX,CH_AY);      // ← 與角色同一個錨點
+        drawWeaponFrame(c,heroPose(clip,f),wep);
+        c.restore();
+      }
+      Sprites.defineSheet(`wep_${id}_${clip}`,{fw:CH_FW,fh:CH_FH,frames:n,cv});
+      const fv=document.createElement('canvas');
+      fv.width=cv.width; fv.height=cv.height;
+      const fc=fv.getContext('2d');
+      fc.imageSmoothingEnabled=false;
+      fc.drawImage(cv,0,0);
+      fc.globalCompositeOperation='source-atop';
+      fc.fillStyle='#FFFFFF';
+      fc.fillRect(0,0,fv.width,fv.height);
+      Sprites.defineSheet(`wep_${id}_${clip}_flash`,{fw:CH_FW,fh:CH_FH,frames:n,cv:fv});
+    }
+  }
+}
+
+/* ---------- 劍尖的世界座標（給粒子用） ---------- */
+function heroWeaponTip(){
+  const def=HERO_CLIPS[HeroAnim.clip];
+  const q=heroPose(HeroAnim.clip,clamp(HeroAnim.frame,0,def.frames-1));
+  const L=eq('weapon').len||0;
+  const z=zoomNow()/PIXEL;
+  const S=Math.max(1,Math.round(AU*z))/z;
+  const lx=4+Math.cos(q.armA)*L;
+  const ly=(-13+q.bob)+Math.sin(q.armA)*L;
+  return{x:P.x+lx*S*P.face, y:P.y+ly*S};
+}
+
+/* ---------- 每幀的裝備特效更新 ---------- */
+function updateEquipVfx(dt){
+  const p=P;
+  if(G.state!=='play')return;
+  const a=eq('aura');
+  if(a.update)a.update(dt,p);
+  const w=eq('weapon');
+  if(w.ambient)w.ambient(dt,heroWeaponTip(),p);
+  const sh=eq('shoes');
+  if(sh.onStep&&p.onGround&&Math.abs(p.vx)>60){
+    p.stepT=(p.stepT||0)-dt;
+    if(p.stepT<=0){p.stepT=0.14;sh.onStep(p);}
+  }
+  if(sh.onLand){
+    if(p.onGround&&p._wasAir)sh.onLand(p);
+    p._wasAir=!p.onGround;
+  }else p._wasAir=!p.onGround;
 }
 
 /* ============================================================
@@ -3424,6 +3797,7 @@ function render(){
   drawGhosts();
   drawPlayerAura();
   drawPlayer();
+  PixelFX.draw();
   drawProjs();
   drawAnims();
   drawParts();
@@ -3871,6 +4245,8 @@ function frame(now){
     }else{
       updatePlayer(dt);
       updateHeroAnim(dt);
+      updateEquipVfx(dt);
+      PixelFX.update(dt);
       updateMobs(dt);
       updateProjs(dt);
       updateDrops(dt);
@@ -3898,6 +4274,7 @@ function frame(now){
 function boot(saved){
   resize();
   bakeHeroSheets();
+  bakeWeaponSheets();
   newGame(saved&&saved.keep?saved.keep:null);
   if(saved&&saved.keep){
     // 熱更新後把玩家放回原處
