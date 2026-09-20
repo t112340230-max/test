@@ -2565,6 +2565,99 @@ const C_CAPE=PX_PAL.C, C_CAPE_DK=PX_PAL.c;
 const C_LINE=OUTLINE,  C_EYE=PX_PAL.E;
 const C_BLADE='#EAF6FF', C_BLADE_SH='#A6DCF2', C_HILT='#FFC83C', C_GRIP='#7A4A28';
 
+/* ============================================================
+   武器：字串矩陣精靈
+   一把劍就是一張字元圖，字元查各自的調色盤：
+     K 柄頭  G 握把  g 握把陰影  U 劍格亮  u 劍格暗
+     1 刃上緣高光   2 刃身   3 刃下緣陰影   4 刃中脊高光
+   換武器 = 換調色盤，形狀邏輯完全共用。
+   ============================================================ */
+function padRows(rows){
+  const w=Math.max(...rows.map(r=>r.length));
+  return rows.map(r=>r+' '.repeat(w-r.length));
+}
+/* 刃身逐列收窄：中脊最長、上下緣依序縮短，剖面才是菱形而不是方頭 */
+function bladeRows(L,hiltA,hiltB,capA,capB){
+  const R=(ch,n)=>ch.repeat(Math.max(0,n));
+  return padRows([
+    capA,
+    capB,
+    hiltA+R('1',L-5),
+    hiltB+R('2',L-2),
+    hiltB+R('4',L),
+    hiltB+R('2',L-2),
+    hiltA+R('3',L-5),
+    capB,
+    capA,
+  ]);
+}
+const MTX_SWORD =bladeRows(22,'  KGGGGgUU',' KKGGGGgUU','        uu','       uUUu');
+const MTX_GLAIVE=bladeRows(30,'  KGGGGgUUU',' KKGGGGgUUU','        uUu','       uUUUu');
+const MTX_PIVOT_X=4, MTX_PIVOT_Y=4;   // 握把中心 = 旋轉中心
+
+const WPAL={
+  steel:{K:'#C9A16B',G:'#6A4520',g:'#3E2610',U:'#FFD24D',u:'#8A5A00',
+         '1':'#FFFFFF','2':'#A6DCF2','3':'#4E7E9A','4':'#EAF6FF'},
+  flame:{K:'#E8C07A',G:'#7A4A22',g:'#3E2610',U:'#FFD24D',u:'#8A3A00',
+         '1':'#FFE898','2':'#FF6A1E','3':'#A81808','4':'#FFC83C'},
+  frost:{K:'#C9D8E8',G:'#3A5A78',g:'#1E3A54',U:'#BFE8FF',u:'#2E6AA8',
+         '1':'#FFFFFF','2':'#7AC8FF','3':'#245A96','4':'#EAFBFF'},
+  leaf :{K:'#D8C89A',G:'#5A3A18',g:'#32200C',U:'#A8F06A',u:'#2F7A2A',
+         '1':'#EFFFD8','2':'#6FD44A','3':'#256A22','4':'#C8FF9A'},
+  storm:{K:'#FFE08A',G:'#4A3060',g:'#241038',U:'#FFD24D',u:'#5A18A0',
+         '1':'#FFFFFF','2':'#B858F0','3':'#4E1290','4':'#F0D8FF'},
+};
+function drawWeaponMatrix(c,mtx,pal){
+  drawMatrix(c,mtx,-MTX_PIVOT_X,-MTX_PIVOT_Y,pal);
+}
+
+/* ============================================================
+   揮砍軌跡：半月形「字串矩陣」
+   由環帶 + 角度範圍逐格判定生成，外緣亮、內緣暗，
+   全部是 1x1 像素格，沒有任何向量線條。
+   ============================================================ */
+const _cres={};
+function crescentMatrix(rOut,thick,a0,a1){
+  const key=rOut+'|'+thick+'|'+a0.toFixed(2)+'|'+a1.toFixed(2);
+  let m=_cres[key];
+  if(m)return m;
+  const size=rOut*2+3, cx=rOut+1, cy=rOut+1;
+  const rows=[];
+  for(let y=0;y<size;y++){
+    let row='';
+    for(let x=0;x<size;x++){
+      const dx=x-cx+0.5, dy=y-cy+0.5;
+      const d=Math.hypot(dx,dy);
+      let ch=' ';
+      if(d<=rOut&&d>=rOut-thick){
+        let a=Math.atan2(dy,dx);
+        while(a<a0)a+=TAU;
+        if(a<=a1){
+          const t=(d-(rOut-thick))/thick;
+          ch=t>0.74?'1':t>0.40?'2':'3';
+        }
+      }
+      row+=ch;
+    }
+    rows.push(row);
+  }
+  m={rows,cx,cy};
+  _cres[key]=m;
+  return m;
+}
+function drawSlashMatrix(c,q,pal,rOut,thick){
+  const a1=q.armA+0.15, a0=a1-1.25;
+  const m=crescentMatrix(rOut,thick,a0,a1);
+  drawMatrix(c,m.rows,4-m.cx,-13-m.cy,pal);
+}
+const SPAL={
+  steel:{'1':'#FFFFFF','2':'#CFF6FF','3':'#5FA8D8'},
+  flame:{'1':'#FFF3A0','2':'#FF8A1E','3':'#C42410'},
+  frost:{'1':'#FFFFFF','2':'#9FDCFF','3':'#2E6AA8'},
+  leaf :{'1':'#EFFFD8','2':'#8AE05A','3':'#2F7A2A'},
+  storm:{'1':'#FFFFFF','2':'#C87AF5','3':'#5A18A0'},
+};
+
 /* 共用劍形產生器：所有武器都是同一套結構，只換配色與長度，
    劍身往劍尖收窄，上緣受光、下緣陰影 —— 這是像素刀劍的標準畫法 */
 function bladeShape(c,o){
@@ -2599,11 +2692,14 @@ function B(c,x,y,w,h,col){
   c.fillStyle=col;
   c.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h));
 }
-function drawMatrix(c,rows,ox,oy){
+function drawMatrix(c,rows,ox,oy,pal){
+  pal=pal||PX_PAL;
   for(let y=0;y<rows.length;y++){
     const r=rows[y];
     for(let x=0;x<r.length;x++){
-      const col=PX_PAL[r[x]];
+      const ch=r[x];
+      if(ch===' '||ch==='.')continue;
+      const col=pal[ch];
       if(!col)continue;
       c.fillStyle=col;
       c.fillRect(ox+x,oy+y,1,1);
@@ -2903,12 +2999,17 @@ function drawPlayer(){
     c.translate(p.x,p.y-PH/2);
     c.globalCompositeOperation='lighter';
     const a=(0.70-p.whirlT)*22;
+    const S=artPx();
+    c.globalAlpha=.75;
     for(let i=0;i<3;i++){
-      c.save();c.rotate(a+i*TAU/3);
-      c.globalAlpha=.7;
       c.fillStyle=i%2?'#FFFFFF':'#7DEDEE';
-      for(let r=44;r<118;r+=AU*2)c.fillRect(r,-3*AU,AU*2,6*AU);
-      c.restore();
+      const base=a+i*TAU/3;
+      for(let r=44;r<116;r+=S){
+        for(let k=-2;k<=2;k++){
+          const ang=base+k*S/r;
+          c.fillRect(Math.floor(Math.cos(ang)*r/S)*S,Math.floor(Math.sin(ang)*r/S)*S,S,S);
+        }
+      }
     }
     c.restore();
   }
@@ -3002,6 +3103,16 @@ const ELEM_PROJ={
   leaf :['#DFFFC8','#5FC44A','rgba(40,150,50,0)'],
   storm:['#F0D8FF','#A84AE8','rgba(120,40,200,0)'],
 };
+
+/* 一個美術像素的世界尺寸，以及對齊格線的方塊蓋印 */
+function artPx(){
+  const z=zoomNow()/PIXEL;
+  return Math.max(1,Math.round(AU*z))/z;
+}
+function stampPx(c,x,y,S){
+  c.fillRect(Math.floor((x-G.cam.x)/S)*S+G.cam.x,
+             Math.floor((y-G.cam.y)/S)*S+G.cam.y,S,S);
+}
 
 /* ---------- 輕量像素粒子系統 ---------- */
 const PixelFX={
@@ -3203,21 +3314,14 @@ const EQUIP={
     none:{name:'空手',desc:'沒有武器，只剩拳頭',rarity:'common',len:0,draw(){},trail(){},
       icon(c){c.fillStyle='#E0A277';c.fillRect(9,11,10,9);c.fillStyle='#FFD9A8';c.fillRect(9,11,10,4);c.fillStyle='#E0A277';c.fillRect(11,20,6,4);}},
     basic_sword:{
-      name:'旅人之劍', desc:'樸素可靠，青白色斬擊軌跡', rarity:'common', len:24,
+      name:'旅人之劍', desc:'樸素可靠，青白色斬擊軌跡', rarity:'common', len:27,
       stats:{atk:0.10},
       icon(c){icoBlade(c,['#241B3A','#A6DCF2','#EAF6FF','#FFC83C']);},
       draw(c){
-        bladeShape(c,{lt:'#EAF6FF',md:'#A6DCF2',dk:'#4E7E9A',gd:'#FFC83C',tip:24,half:2});
+        drawWeaponMatrix(c,MTX_SWORD,WPAL.steel);
       },
       trail(c,q){
-        const a1=q.armA, a0=a1-1.15, R=[0,20,24][q.trail];
-        for(let i=0;i<11;i++){
-          const a=a0+(a1-a0)*(i/10);
-          const rr=R-(10-i)*0.7;
-          const s=2+((i>4)?1:0)+((i>8)?1:0);
-          B(c,4+Math.cos(a)*rr-s/2,-13+Math.sin(a)*rr-s/2,s,s,
-            i>7?'#FFFFFF':i>3?'#CFF6FF':'#7FD8F0');
-        }
+        drawSlashMatrix(c,q,SPAL.steel,q.trail>1?20:16,5);
       },
     },
     flame_sword:{
@@ -3226,22 +3330,10 @@ const EQUIP={
       element:'fire',
       icon(c){icoBlade(c,['#3A0E04','#FF6A1E','#FFC83C','#FFC83C'],'#FFF3A0');},
       draw(c){
-        bladeShape(c,{lt:'#FFE07A',md:'#FF6A1E',dk:'#A81808',gd:'#FFC83C',tip:27,half:2});
+        drawWeaponMatrix(c,MTX_SWORD,WPAL.flame);
       },
       trail(c,q){
-        const a1=q.armA, a0=a1-1.35, R=[0,22,26][q.trail];
-        for(let i=0;i<15;i++){
-          const a=a0+(a1-a0)*(i/14);
-          const rr=R-(14-i)*0.75;
-          const s=3+((i>5)?1:0)+((i>10)?1:0);
-          const col=i>11?'#FFF3A0':i>8?'#FFC83C':i>4?'#FF6A1E':'#C42410';
-          B(c,4+Math.cos(a)*rr-s/2,-13+Math.sin(a)*rr-s/2,s,s,col);
-          // 外緣再補一圈暗色，讓火舌更厚
-          if(i>3){
-            const s2=2;
-            B(c,4+Math.cos(a)*(rr+s*0.8)-s2/2,-13+Math.sin(a)*(rr+s*0.8)-s2/2,s2,s2,'#A81808');
-          }
-        }
+        drawSlashMatrix(c,q,SPAL.flame,q.trail>1?22:18,7);
       },
       /* 待機／走路時劍尖飄出火星 */
       ambient(dt,tip,p){
@@ -3284,22 +3376,15 @@ const EQUIP={
       },
     },
     frost_edge:{
-      name:'冰霜之刃', desc:'揮砍散出冰晶，碎片會墜落', rarity:'rare', drop:{bat:0.07}, len:25,
+      name:'冰霜之刃', desc:'揮砍散出冰晶，碎片會墜落', rarity:'rare', drop:{bat:0.07}, len:27,
       stats:{atk:0.24, cdr:0.12},
       element:'ice',
       icon(c){icoBlade(c,['#123A5A','#7AC8FF','#EAFBFF','#9FD8F0'],'#DFFFFF');},
       draw(c){
-        bladeShape(c,{lt:'#EAFBFF',md:'#7AC8FF',dk:'#2E6AA8',gd:'#9FD8F0',tip:25,half:2});
+        drawWeaponMatrix(c,MTX_SWORD,WPAL.frost);
       },
       trail(c,q){
-        const a1=q.armA, a0=a1-1.3, R=[0,21,25][q.trail];
-        for(let i=0;i<13;i++){
-          const a=a0+(a1-a0)*(i/12);
-          const rr=R-(12-i)*0.7;
-          const sz=2+((i>6)?1:0)+((i>10)?1:0);
-          B(c,4+Math.cos(a)*rr-sz/2,-13+Math.sin(a)*rr-sz/2,sz,sz,
-            i>10?'#FFFFFF':i>7?'#EAFBFF':i>3?'#7AC8FF':'#2E7FC8');
-        }
+        drawSlashMatrix(c,q,SPAL.frost,q.trail>1?21:17,6);
       },
       ambient(dt,tip,p){
         p.wepT=(p.wepT||0)-dt;
@@ -3326,23 +3411,16 @@ const EQUIP={
       },
     },
     verdant_blade:{
-      name:'翠葉刃', desc:'揮砍捲起葉片，落地化為草屑', len:24,
+      name:'翠葉刃', desc:'揮砍捲起葉片，落地化為草屑', len:27,
       stats:{atk:0.22, hp:0.10},
       element:'leaf',
       rarity:'rare', drop:{slime:0.05, mush:0.05},
       icon(c){icoBlade(c,['#123A18','#4FB33A','#A8F06A','#78D45A'],'#DFFFC8');},
       draw(c){
-        bladeShape(c,{lt:'#DFFFC8',md:'#6FD44A',dk:'#2F7A2A',gd:'#A8F06A',tip:24,half:2});
+        drawWeaponMatrix(c,MTX_SWORD,WPAL.leaf);
       },
       trail(c,q){
-        const a1=q.armA, a0=a1-1.25, R=[0,20,24][q.trail];
-        for(let i=0;i<12;i++){
-          const a=a0+(a1-a0)*(i/11);
-          const rr=R-(11-i)*0.7;
-          const sz=2+((i>6)?1:0)+((i>9)?1:0);
-          B(c,4+Math.cos(a)*rr-sz/2,-13+Math.sin(a)*rr-sz/2,sz,sz,
-            i>9?'#DFFFC8':i>6?'#A8F06A':i>3?'#4FB33A':'#2F8A3A');
-        }
+        drawSlashMatrix(c,q,SPAL.leaf,q.trail>1?20:16,6);
       },
       ambient(dt,tip,p){
         p.wepT=(p.wepT||0)-dt;
@@ -3364,23 +3442,16 @@ const EQUIP={
       },
     },
     storm_glaive:{
-      name:'雷霆戟', desc:'菇菇王的遺物 — 揮擊時劈出閃電', len:31,
+      name:'雷霆戟', desc:'菇菇王的遺物 — 揮擊時劈出閃電', len:36,
       stats:{atk:0.55, crit:0.10, cdr:0.08},
       element:'storm',
       rarity:'legend', drop:{king:1.0},
       icon(c){icoBlade(c,['#2A1050','#B858F0','#F0D8FF','#FFC83C'],'#FFF3A0');},
       draw(c){
-        bladeShape(c,{lt:'#F0D8FF',md:'#B858F0',dk:'#5A18A0',gd:'#FFC83C',tip:31,half:3,guard:4});
+        drawWeaponMatrix(c,MTX_GLAIVE,WPAL.storm);
       },
       trail(c,q){
-        const a1=q.armA, a0=a1-1.45, R=[0,24,29][q.trail];
-        for(let i=0;i<16;i++){
-          const a=a0+(a1-a0)*(i/15);
-          const rr=R-(15-i)*0.8;
-          const sz=3+((i>6)?1:0)+((i>11)?1:0);
-          B(c,4+Math.cos(a)*rr-sz/2,-13+Math.sin(a)*rr-sz/2,sz,sz,
-            i>12?'#FFFFFF':i>9?'#F0D8FF':i>5?'#B858F0':'#5A18A0');
-        }
+        drawSlashMatrix(c,q,SPAL.storm,q.trail>1?25:21,7);
       },
       ambient(dt,tip,p){
         p.wepT=(p.wepT||0)-dt;
@@ -4340,31 +4411,39 @@ function drawSlashes(c){
 function drawProjs(c){
   c=c||ctx;
   for(const q of G.projs){
+    const _S=artPx();
     c.save();
-    c.translate(q.x,q.y);
+    c.translate(Math.floor((q.x-G.cam.x)/_S)*_S+G.cam.x,
+                Math.floor((q.y-G.cam.y)/_S)*_S+G.cam.y);
     c.globalCompositeOperation='lighter';
     if(q.type==='fire'||q.type==='meteor'){
-      const R=q.type==='meteor'?q.r*1.5:q.r;
+      const R=(q.type==='meteor'?q.r*1.5:q.r)*1.5;
       const ep=ELEM_PROJ[q.el]||ELEM_PROJ.fire;
-      c.fillStyle=radGrad(c,'proj'+(q.el||'fire'),R*2.1,
-        [[0,'#FFFFFF'],[.25,ep[0]],[.55,ep[1]],[1,ep[2]]]);
-      ell(c,0,0,R*2.1,R*2.1);c.fill();
-      c.rotate(q.spin);
-      c.fillStyle='#FFF6D0';
-      ell(c,0,0,R*.62,R*.62);c.fill();
+      const S=artPx();
+      const rc=Math.max(2,Math.round(R/S));
+      const wob=Math.sin(q.spin*2)*0.12;
+      for(let dy=-rc;dy<=rc;dy++)for(let dx=-rc;dx<=rc;dx++){
+        const d=Math.hypot(dx,dy)/rc;
+        if(d>1+wob)continue;
+        c.fillStyle=d<.34?'#FFFFFF':d<.62?ep[0]:ep[1];
+        c.fillRect(dx*S,dy*S,S,S);
+      }
       if(q.type==='meteor'){
-        c.rotate(-q.spin);
-        const tg=c.createLinearGradient(0,0,0,-96);
-        tg.addColorStop(0,'rgba(255,180,60,.55)');
-        tg.addColorStop(1,'rgba(255,120,30,0)');
-        c.beginPath();c.moveTo(-R*.7,0);c.lineTo(0,-96);c.lineTo(R*.7,0);c.closePath();
-        c.fillStyle=tg;c.fill();
+        c.fillStyle=ep[1];
+        for(let t=1;t<14;t++){
+          const w=Math.max(1,rc-t);
+          for(let k=-w;k<=w;k++)c.fillRect(k*S,-(rc+t)*S,S,S);
+        }
       }
     }else{ // 孢子
-      c.fillStyle=radGrad(c,'spore',q.r*1.6,
-        [[0,'#E8FFB0'],[.6,'#7ED43C'],[1,'rgba(90,180,40,0)']]);
-      c.rotate(q.spin*.5);
-      ell(c,0,0,q.r*1.6,q.r*1.4);c.fill();
+      const S=artPx();
+      const rc=Math.max(2,Math.round(q.r*1.4/S));
+      for(let dy=-rc;dy<=rc;dy++)for(let dx=-rc;dx<=rc;dx++){
+        const d=Math.hypot(dx,dy)/rc;
+        if(d>1)continue;
+        c.fillStyle=d<.4?'#E8FFB0':d<.75?'#9FE05A':'#4E9A28';
+        c.fillRect(dx*S,dy*S,S,S);
+      }
     }
     c.restore();
   }
@@ -4434,8 +4513,15 @@ function drawRings(c){
     c.save();
     c.globalCompositeOperation='lighter';
     c.globalAlpha=a*.85;
-    c.beginPath();c.arc(r.x,r.y,r.r,0,TAU);
-    c.strokeStyle=r.c;c.lineWidth=r.lw*a;c.stroke();
+    // 沿圓周逐格蓋印像素方塊
+    const S=artPx();
+    const th=Math.max(1,Math.round(r.lw*a/S));
+    const n=Math.max(10,Math.ceil(TAU*r.r/S));
+    c.fillStyle=r.c;
+    for(let i=0;i<n;i++){
+      const ang=i/n*TAU, cx=Math.cos(ang), sy=Math.sin(ang);
+      for(let k=0;k<th;k++)stampPx(c,r.x+cx*(r.r-k*S),r.y+sy*(r.r-k*S),S);
+    }
     c.restore();
   }
 }
