@@ -237,6 +237,31 @@ body{
 .ew-item.on{box-shadow:inset 1px 1px 0 rgba(255,240,160,.5),0 0 0 1px #FFC83C}
 .ew-item.locked{filter:grayscale(1) brightness(.55);cursor:not-allowed}
 .ew-item .tx{min-width:0}
+/* NPC 對話框 */
+#dialog{position:absolute;left:0;right:0;bottom:126px;z-index:9;
+  display:flex;justify-content:center;pointer-events:none}
+#dialog[hidden]{display:none!important}
+.dlg{width:min(620px,88vw);pointer-events:auto;padding:0}
+.dlg-head{display:flex;justify-content:space-between;align-items:center;
+  padding:5px 8px 4px;font-family:var(--f-cjk);font-weight:700;font-size:13px;
+  color:#3A2410;border-bottom:2px solid var(--wood-dk);
+  background:linear-gradient(180deg,var(--wood-lt),var(--wood))}
+.dlg-body{display:flex;gap:9px;padding:9px}
+#dlgFace{width:72px;height:72px;flex:none;image-rendering:pixelated;
+  background:#26324E;border:2px solid var(--wood-ink);
+  box-shadow:inset 2px 2px 0 rgba(0,0,0,.5)}
+.dlg-side{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px}
+#dlgLine{margin:0;font-family:var(--f-cjk);font-size:14px;line-height:1.5;
+  color:#3A2410;min-height:44px}
+#dlgBtns{display:flex;flex-wrap:wrap;gap:5px}
+.dlg-b{cursor:pointer;padding:6px 14px;
+  font-family:var(--f-cjk);font-weight:700;font-size:12px;color:#3A2410;
+  background:var(--wood);border:2px solid var(--wood-ink);
+  box-shadow:inset 2px 2px 0 var(--wood-lt),inset -2px -2px 0 var(--wood-dk)}
+.dlg-b:hover{background:var(--wood-lt)}
+.dlg-b.hot{background:#FFE08A}
+.dlg-b em{font-style:normal;color:#8A2A00}
+
 /* 商店 */
 #shopwin{position:absolute;right:14px;
   top:calc(132px + env(safe-area-inset-top,0px));
@@ -464,6 +489,19 @@ body.touch #uibar{height:92px}
         <p class="ew-tip" id="swTip"></p>
         <div id="swPurse"></div>
         <div id="swList"></div>
+      </div>
+    </div>
+
+    <div id="dialog" hidden>
+      <div class="dlg bevel">
+        <div class="dlg-head"><span id="dlgName">NPC</span><span class="ew-x" id="dlgX">[X]</span></div>
+        <div class="dlg-body">
+          <canvas id="dlgFace" width="72" height="72"></canvas>
+          <div class="dlg-side">
+            <p id="dlgLine"></p>
+            <div id="dlgBtns"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -696,32 +734,53 @@ function buildSky(){
   c.imageSmoothingEnabled=false;
   c.clearRect(0,0,W,H);
 
-  // 清澈的天青藍 → 淺藍
+  const sky=TH.sky;
   const g=c.createLinearGradient(0,0,0,H);
-  g.addColorStop(0,'#2E93E8');
-  g.addColorStop(.38,'#5FC0F5');
-  g.addColorStop(.72,'#A6E3FF');
-  g.addColorStop(1,'#E2F7FF');
+  g.addColorStop(0,sky[0]);
+  g.addColorStop(.38,sky[1]);
+  g.addColorStop(.72,sky[2]);
+  g.addColorStop(1,sky[3]);
   c.fillStyle=g;c.fillRect(0,0,W,H);
 
-  const rnd=seeded(4242);
+  const rnd=seeded((MAPDEF.seed||4242)+7);
 
-  // 太陽
-  const sx=Math.round(W*.80), sy=Math.round(H*.15);
-  pxDisc(c,sx,sy,H*.11,'rgba(255,248,190,.16)');
-  pxDisc(c,sx,sy,H*.075,'rgba(255,246,170,.3)');
-  pxDisc(c,sx,sy,H*.045,'#FFF8D0');
-  pxDisc(c,sx,sy,H*.033,'#FFFFFF');
+  if(TH.sun){
+    const sx=Math.round(W*.80), sy=Math.round(H*.15);
+    pxDisc(c,sx,sy,H*.11,'rgba(255,248,190,.16)');
+    pxDisc(c,sx,sy,H*.075,'rgba(255,246,170,.3)');
+    pxDisc(c,sx,sy,H*.045,'#FFF8D0');
+    pxDisc(c,sx,sy,H*.033,'#FFFFFF');
+  }else{
+    // 地穴：洞頂垂下的鐘乳石與零星的螢光結晶
+    for(let i=0;i<26;i++){
+      const cx=Math.round(rnd()*W), len=Math.round(H*(.04+rnd()*.13));
+      const wdt=Math.max(2,Math.round(H*.012));
+      c.fillStyle='#1A1C3E';
+      for(let k=0;k<len;k+=2){
+        const ww=Math.max(1,Math.round(wdt*(1-k/len)));
+        c.fillRect(cx-ww,k,ww*2,2);
+      }
+      if(rnd()<0.4){
+        c.fillStyle='#3FD8E8';
+        c.fillRect(cx-1,len-3,2,3);
+      }
+    }
+    for(let i=0;i<40;i++){
+      const cx=rnd()*W, cy=rnd()*H;
+      c.fillStyle=rnd()<.5?'rgba(63,216,232,.5)':'rgba(159,246,255,.35)';
+      const u=Math.max(1,Math.round(H*.005));
+      c.fillRect(Math.round(cx),Math.round(cy),u,u);
+    }
+  }
 
-  // 蓬鬆的像素雲
-  for(let i=0;i<14;i++){
+  for(let i=0;i<(TH.sun?14:5);i++){
     const cx=rnd()*W, cy=H*(.06+rnd()*.52);
     const u=Math.max(2,Math.round(H*(.012+rnd()*.016)));
     const puffs=[[0,0,5,2],[-3,1,4,2],[3,1,4,2],[-1,-1,3,2],[2,-1,3,2]];
-    c.fillStyle='#FFFFFF';
+    c.fillStyle=TH.cloud;
     for(const [ox,oy,pw,ph] of puffs)
       c.fillRect(Math.round(cx+ox*u),Math.round(cy+oy*u),pw*u,ph*u);
-    c.fillStyle='#CFE9FA';
+    c.fillStyle=TH.cloudDk;
     for(const [ox,oy,pw] of [[-3,2,4],[0,2,5],[3,2,4]])
       c.fillRect(Math.round(cx+ox*u),Math.round(cy+oy*u),pw*u,u);
   }
@@ -955,38 +1014,190 @@ const BGM={
 
 /* ============================================================
    地圖
+   楓之谷是由一張張小地圖靠傳送門串起來的，不是一條無盡的長廊。
+   每張圖有自己的名字、配色、怪物與 NPC；走到傳送門上按 ↑ 就換圖。
    ============================================================ */
-const WORLD={w:4600,h:1460,groundY:1250};
-const PLATS=[
-  {x:0,y:WORLD.groundY,w:WORLD.w,solid:true},
-  // 第一層
-  {x:300,y:1085,w:250},{x:780,y:1085,w:210},{x:1200,y:1085,w:290},
-  {x:1720,y:1085,w:230},{x:2160,y:1085,w:310},{x:2720,y:1085,w:250},{x:3160,y:1085,w:270},
-  // 第二層
-  {x:470,y:925,w:230},{x:980,y:925,w:290},{x:1500,y:925,w:250},
-  {x:2000,y:925,w:270},{x:2520,y:925,w:290},{x:3020,y:925,w:230},
-  // 第三層
-  {x:760,y:765,w:270},{x:1300,y:765,w:310},{x:1920,y:765,w:250},{x:2500,y:765,w:290},
-  // 第四層（高空）
-  {x:1060,y:605,w:290},{x:1720,y:605,w:320},
-  // BOSS 場
-  {x:3760,y:1010,w:210},{x:4180,y:1010,w:210},
+const THEMES={
+  meadow:{
+    sky:['#2E93E8','#5FC0F5','#A6E3FF','#E2F7FF'], sun:true, clouds:26,
+    cloud:'#FFFFFF', cloudDk:'#CFE9FA',
+    hill:'#7FC8D8', hillLt:'#BFEAF2',
+    trunk:'#8A5A32', trunkDk:'#7A4A22',
+    leafA:'#6FD44A', leafB:'#A8F06A', leafC:'#4FB33A', leafD:'#2F8A3A', leafE:'#78D45A',
+    soilA:'#9A6438', soilB:'#7C4E28', soilC:'#633D1E', edge:'#2A1C10',
+    grassA:'#2F8A3A', grassB:'#4FB33A', grassC:'#78D45A', grassD:'#A8F06A',
+    beam:'#FFF6C0', leafFall:['#FF9AC8','#FFD24D','#8AE86A','#7AC8FF'],
+  },
+  cavern:{
+    sky:['#0E1030','#161A42','#22265C','#312A6E'], sun:false, clouds:10,
+    cloud:'#3A3A70', cloudDk:'#242452',
+    hill:'#2A2E60', hillLt:'#3E4486',
+    trunk:'#3A3560', trunkDk:'#282448',
+    leafA:'#3FD8E8', leafB:'#9FF6FF', leafC:'#2A9AB8', leafD:'#1A6A88', leafE:'#6FE8F0',
+    soilA:'#4A4470', soilB:'#383256', soilC:'#26223C', edge:'#120E22',
+    grassA:'#2A6A88', grassB:'#2A9AB8', grassC:'#3FD8E8', grassD:'#9FF6FF',
+    beam:'#7AE8FF', leafFall:['#9FF6FF','#7AC8FF','#C89AF0','#FFFFFF'],
+  },
+  ember:{
+    sky:['#3A1038','#7A2038','#C24A2A','#F29A3C'], sun:true, clouds:16,
+    cloud:'#F2C08A', cloudDk:'#C2703A',
+    hill:'#6A2A3A', hillLt:'#9A4A46',
+    trunk:'#4A2418', trunkDk:'#341810',
+    leafA:'#E8642A', leafB:'#FFB03A', leafC:'#B23A18', leafD:'#7A2410', leafE:'#FF8A3C',
+    soilA:'#6A3A26', soilB:'#522A1A', soilC:'#3A1C10', edge:'#1A0A06',
+    grassA:'#7A2410', grassB:'#B23A18', grassC:'#E8642A', grassD:'#FFB03A',
+    beam:'#FFC86A', leafFall:['#FFB03A','#FF6A1E','#FFF3A0','#C42410'],
+  },
+};
+
+const MAPS={
+  field:{
+    name:'楓葉平原 · 深處', theme:'meadow', seed:4242,
+    w:3600, h:1460, groundY:1250,
+    plats:[
+      {x:0,y:1250,w:3600,solid:true},
+      {x:300,y:1085,w:250},{x:780,y:1085,w:210},{x:1200,y:1085,w:290},
+      {x:1720,y:1085,w:230},{x:2160,y:1085,w:310},{x:2720,y:1085,w:250},
+      {x:470,y:925,w:230},{x:980,y:925,w:290},{x:1500,y:925,w:250},
+      {x:2000,y:925,w:270},{x:2520,y:925,w:290},{x:3020,y:925,w:230},
+      {x:760,y:765,w:270},{x:1300,y:765,w:310},{x:1920,y:765,w:250},{x:2500,y:765,w:290},
+      {x:1060,y:605,w:290},{x:1720,y:605,w:320},
+    ],
+    ropes:[
+      {x:400,t:1085,b:1250},{x:850,t:1085,b:1250},{x:1300,t:1085,b:1250},
+      {x:1850,t:1085,b:1250},{x:2300,t:1085,b:1250},{x:2850,t:1085,b:1250},
+      {x:510,t:925,b:1085},{x:1235,t:925,b:1085},{x:2215,t:925,b:1085},{x:2765,t:925,b:1085},
+      {x:1005,t:765,b:925},{x:1555,t:765,b:925},{x:2085,t:765,b:925},{x:2655,t:765,b:925},
+      {x:1325,t:605,b:765},{x:1980,t:605,b:765},
+    ],
+    spawns:[
+      ['slime',180,1250,60,560],['slime',640,1250,560,1000],
+      ['slime',380,1085,300,550],['slime',860,1085,780,990],
+      ['slime',1260,1085,1200,1490],['slime',540,925,470,700],
+      ['mush',1080,925,980,1270],['mush',1560,925,1500,1750],
+      ['mush',1800,1250,1420,2100],['mush',1380,765,1300,1610],
+      ['mush',2240,1085,2160,2470],['mush',2100,925,2000,2270],
+      ['bat',1150,540,1000,1500,true],['bat',1800,520,1600,2200,true],
+      ['slime',2400,1250,2200,2900],['mush',2600,925,2520,2810],
+      ['mush',3080,925,3020,3250],['slime',3300,1250,3000,3560],
+    ],
+    portals:[{id:'east',x:3500,y:1250,to:'cavern',at:'west',label:'螢光地穴'}],
+    npcs:[
+      {id:'m1',x:300,y:1250,kind:'shop',name:'流浪商人 · 柯爾',
+       line:'武器決定你是什麼職業。換把武器，整套技能就換了。'},
+      {id:'q1',x:520,y:1250,kind:'quest',name:'村長 · 阿蒙',
+       pal:{'H':'#2A6AE0','h':'#1A4098','R':'#7AA8E8','r':'#3A5A9A'},
+       line:'孢子從地穴滲出來，平原上的綠水靈全瘋了。'},
+      {id:'m2',x:2200,y:1085,kind:'shop',name:'高台補給商',
+       line:'打到這裡了？該換新流派試試看了。'},
+    ],
+  },
+  cavern:{
+    name:'螢光地穴', theme:'cavern', seed:9137,
+    w:3000, h:1460, groundY:1250,
+    plats:[
+      {x:0,y:1250,w:3000,solid:true},
+      {x:240,y:1090,w:280},{x:700,y:1040,w:240},{x:1120,y:1100,w:300},
+      {x:1620,y:1040,w:260},{x:2100,y:1100,w:300},{x:2600,y:1050,w:260},
+      {x:420,y:880,w:260},{x:950,y:840,w:300},{x:1480,y:880,w:280},
+      {x:2000,y:840,w:280},{x:2500,y:880,w:260},
+      {x:700,y:660,w:300},{x:1300,y:620,w:320},{x:1900,y:660,w:300},
+      {x:1100,y:430,w:340},
+    ],
+    ropes:[
+      {x:330,t:1090,b:1250},{x:820,t:1040,b:1250},{x:1260,t:1100,b:1250},
+      {x:1740,t:1040,b:1250},{x:2240,t:1100,b:1250},{x:2700,t:1050,b:1250},
+      {x:500,t:880,b:1090},{x:1080,t:840,b:1100},{x:1620,t:880,b:1040},
+      {x:2160,t:840,b:1100},{x:2580,t:880,b:1050},
+      {x:850,t:660,b:880},{x:1420,t:620,b:880},{x:2050,t:660,b:840},
+      {x:1230,t:430,b:620},
+    ],
+    spawns:[
+      ['bat',300,900,120,900,true],['bat',900,700,600,1400,true],
+      ['bat',1600,760,1300,2100,true],['bat',2300,880,1900,2800,true],
+      ['mush',420,1250,120,820],['mush',1400,1250,1000,1900],
+      ['golem',2200,1250,1800,2900],['golem',1180,1100,1120,1400],
+      ['golem',2150,1100,2100,2380],['golem',1000,840,950,1230],
+      ['mush',760,1040,700,930],['mush',2150,840,2000,2270],
+      ['bat',1300,500,1100,1500,true],['golem',1250,620,1300,1600],
+    ],
+    portals:[
+      {id:'west',x:120,y:1250,to:'field',at:'east',label:'楓葉平原'},
+      {id:'deep',x:2880,y:1250,to:'keep',at:'gate',label:'菇菇王城'},
+    ],
+    npcs:[
+      {id:'m3',x:520,y:1250,kind:'shop',name:'地穴走私販',
+       line:'下面很黑，但東西比地面上的好。'},
+    ],
+  },
+  keep:{
+    name:'菇菇王城 · 王座', theme:'ember', seed:7711,
+    w:2200, h:1460, groundY:1250,
+    plats:[
+      {x:0,y:1250,w:2200,solid:true},
+      {x:300,y:1030,w:230},{x:760,y:960,w:260},{x:1280,y:960,w:260},{x:1720,y:1030,w:230},
+      {x:520,y:780,w:240},{x:1440,y:780,w:240},{x:930,y:700,w:340},
+    ],
+    ropes:[
+      {x:400,t:1030,b:1250},{x:1820,t:1030,b:1250},
+      {x:880,t:960,b:1250},{x:1400,t:960,b:1250},
+      {x:620,t:780,b:1030},{x:1560,t:780,b:1030},
+      {x:1060,t:700,b:960},
+    ],
+    spawns:[
+      ['golem',420,1250,200,760],['golem',1780,1250,1440,2040],
+      ['mush',600,1250,300,1000],['mush',1600,1250,1200,1900],
+      ['bat',1100,820,700,1500,true],['bat',700,640,400,1100,true],
+      ['golem',860,960,760,1000],['golem',1340,960,1280,1520],
+    ],
+    portals:[{id:'gate',x:120,y:1250,to:'cavern',at:'deep',label:'螢光地穴'}],
+    npcs:[
+      {id:'m4',x:330,y:1250,kind:'shop',name:'前線補給官',
+       line:'再往東就是菇菇王。買齊了再過去。'},
+    ],
+    bossAt:1500,
+  },
+};
+const MAP_ORDER=['field','cavern','keep'];
+
+/* 這四個會被 loadMap 換掉 —— 其餘程式碼照舊讀它們就好 */
+let MAPID='field', MAPDEF=MAPS.field, TH=THEMES.meadow;
+let WORLD={w:3600,h:1460,groundY:1250};
+let PLATS=MAPS.field.plats, ROPES=MAPS.field.ropes, SPAWNS=MAPS.field.spawns;
+let PORTALS=MAPS.field.portals, NPCS=MAPS.field.npcs;
+
+/* ============================================================
+   任務
+   楓之谷的任務是「找 NPC 接 → 去打 → 回來交」，
+   不是打一打自己就完成了。獎勵要回報才拿得到。
+   ============================================================ */
+const QUEST_DB=[
+  {id:'slime', giver:'q1', type:'slime', need:12, text:'討伐綠水靈', lv:1,
+   ask:'平原上的綠水靈突然全瘋了，你幫我清掉 12 隻好嗎？',
+   wait:'還差幾隻，別讓牠們跑進村子。',
+   done:'乾淨多了。這點楓幣你拿去。',
+   reward:{exp:260, meso:1200}},
+  {id:'mush', giver:'q1', type:'mush', need:8, text:'菇菇寶貝的孢子', lv:1,
+   ask:'孢子是從菇菇寶貝身上來的。打掉 8 隻，我才查得出源頭。',
+   wait:'孢子還在飄，再多打幾隻。',
+   done:'源頭在東邊的地穴 —— 我就怕是這樣。',
+   reward:{exp:520, meso:2600}},
+  {id:'reach', giver:'q1', type:null, need:1, text:'深入菇菇王城', lv:1,
+   ask:'穿過螢光地穴，去看看菇菇王城現在是什麼樣子。',
+   wait:'往東走，地穴的盡頭就是。',
+   done:'你居然活著回來了。',
+   reward:{exp:900, meso:4200}},
+  {id:'boss', giver:'q1', type:'king', need:1, text:'擊倒菇菇王', lv:1,
+   ask:'孢子的源頭就是牠。把菇菇王解決掉，這件事就結束了。',
+   wait:'牠在王城最深處，去吧。',
+   done:'楓林終於能睡個好覺了。',
+   reward:{exp:7000, meso:18000}},
 ];
-const ROPES=[
-  // 地面 ↔ 第一層
-  {x:400,t:1085,b:WORLD.groundY},{x:850,t:1085,b:WORLD.groundY},
-  {x:1300,t:1085,b:WORLD.groundY},{x:1850,t:1085,b:WORLD.groundY},
-  {x:2300,t:1085,b:WORLD.groundY},{x:2850,t:1085,b:WORLD.groundY},
-  {x:3300,t:1085,b:WORLD.groundY},
-  // 第一層 ↔ 第二層
-  {x:510,t:925,b:1085},{x:1235,t:925,b:1085},{x:2215,t:925,b:1085},
-  {x:2765,t:925,b:1085},{x:3205,t:925,b:1085},
-  // 第二層 ↔ 第三層
-  {x:1005,t:765,b:925},{x:1555,t:765,b:925},{x:2085,t:765,b:925},{x:2655,t:765,b:925},
-  // 第三層 ↔ 高空層
-  {x:1325,t:605,b:765},{x:1980,t:605,b:765},
-];
-const BOSS_GATE=3560;
+const questDef=id=>QUEST_DB.find(q=>q.id===id);
+function questOf(id){return G.quests.find(q=>q.id===id);}
+function questsFor(npcId){
+  return QUEST_DB.filter(q=>q.giver===npcId).map(q=>({def:q,st:questOf(q.id)}));
+}
 
 /* 怪物圖鑑 */
 const MOBS={
@@ -1001,20 +1212,6 @@ const MOBS={
   king:   {name:'菇菇王',  hp:42000,atk:140,exp:4200,meso:[1200,1800],w:196,h:210,spd:46,
            color:'#E8402A',color2:'#8E1A10',glow:'255,160,110',fly:false,boss:true},
 };
-/* 怪物生成點：x/y 為出生處，x1/x2 為巡邏範圍 */
-const SPAWNS=[
-  ['slime',180,WORLD.groundY,60,560],['slime',640,WORLD.groundY,560,1000],
-  ['slime',380,1085,300,550],['slime',860,1085,780,990],
-  ['slime',1260,1085,1200,1490],['slime',540,925,470,700],
-  ['mush',1080,925,980,1270],['mush',1560,925,1500,1750],
-  ['mush',1800,WORLD.groundY,1420,2100],['mush',1380,765,1300,1610],
-  ['mush',2240,1085,2160,2470],['mush',2100,925,2000,2270],
-  ['bat',1150,540,1000,1500,true],['bat',1800,520,1600,2200,true],
-  ['bat',2400,600,2100,2700,true],['bat',900,660,700,1200,true],
-  ['golem',2600,925,2520,2810],['golem',2960,WORLD.groundY,2600,3200],
-  ['golem',2580,765,2500,2790],['golem',3260,1085,3160,3430],
-  ['mush',3080,925,3020,3250],['slime',3400,WORLD.groundY,3200,3520],
-];
 
 /* ============================================================
    職業（流派）
@@ -1195,14 +1392,6 @@ function activeSkills(){
    商人
    站在地圖上的實體 NPC，走近按 F 開店。
    ============================================================ */
-const NPCS=[
-  {id:'m1', x:300,  y:WORLD.groundY, name:'流浪商人 · 柯爾',
-   line:'武器決定你是什麼職業。換把武器，整套技能就換了。'},
-  {id:'m2', x:2430, y:1085,          name:'高台補給商',
-   line:'打到這裡了？該換新流派試試看了。'},
-  {id:'m3', x:3480, y:WORLD.groundY, name:'前線補給官',
-   line:'再往東就是菇菇王。買齊了再過去。'},
-];
 const NPC_PAL={
   '#':'#1B1428','S':'#F2C79A','s':'#C99468','E':'#2A2238',
   'H':'#C42410','h':'#8E1808',
@@ -1289,17 +1478,13 @@ function newGame(keep){
       aura:new Set(['none','thunder_ring']),
       shoes:new Set(['none']),
     },
-    quests:[
-      {id:'slime',type:'slime',text:'討伐綠水靈',need:12,got:0},
-      {id:'mush', type:'mush', text:'討伐菇菇寶貝',need:6, got:0},
-      {id:'reach',type:null,   text:'抵達東側核心',need:1, got:0},
-      {id:'boss', type:'king', text:'擊倒菇菇王',    need:1, got:0},
-    ],
+    quests:QUEST_DB.map(q=>({id:q.id,got:0,state:'open'})),
     spawnCd:SPAWNS.map(()=>0),
     boss:null,bossSpawned:false,bossPhase:1,bossShownHp:1,
     meteorQ:[],
     kills:keep?keep.kills:0, meso:keep?keep.meso:0,
     tier:keep?keep.tier:1,
+    map:'field', mapFade:0, runes:[],
     learned:keep&&keep.learned?new Set(keep.learned):new Set(FREE_SKILLS),
   };
   for(const sl of EQUIP_SLOTS)
@@ -1309,9 +1494,61 @@ function newGame(keep){
   if(typeof PixelFX!=='undefined')PixelFX.clear();
   recalcStats(false);   // 把裝備加成算進初始數值
   refreshClass();       // 依武器決定流派與技能格
+  loadMap(keep&&keep.map?keep.map:'field');
+}
+
+/* ------------------------------------------------------------
+   換圖
+   把世界資料整組換掉，清空場上所有實體，再依傳送門把玩家放好。
+   ------------------------------------------------------------ */
+function loadMap(id,atPortal){
+  MAPID=id;
+  MAPDEF=MAPS[id]||MAPS.field;
+  TH=THEMES[MAPDEF.theme]||THEMES.meadow;
+  WORLD={w:MAPDEF.w,h:MAPDEF.h,groundY:MAPDEF.groundY};
+  PLATS=MAPDEF.plats; ROPES=MAPDEF.ropes; SPAWNS=MAPDEF.spawns;
+  PORTALS=MAPDEF.portals||[]; NPCS=MAPDEF.npcs||[];
+  G.map=id;
+  for(const k of ['mobs','drops','projs','parts','nums','rings','anims','ghosts','leaves','meteorQ','slashes'])
+    if(G[k])G[k].length=0;
+  if(typeof PixelFX!=='undefined')PixelFX.clear();
+  G.boss=null; G.bossSpawned=false; G.bossPhase=1; G.bossShownHp=1; G.cine=0;
+  $('bossbar').classList.remove('on');
+  G.runes=[];
+  _grads.clear();
+  buildBG();
+  buildSky();
+  G.spawnCd=SPAWNS.map(()=>0);
   for(let i=0;i<SPAWNS.length;i++)spawnFromDef(i);
   for(let i=0;i<46;i++)G.leaves.push(newLeaf(true));
+  spawnRunes();
+  const pt=atPortal&&PORTALS.find(q=>q.id===atPortal);
+  P.x=pt?pt.x:(MAPDEF.start||140);
+  P.y=pt?pt.y:WORLD.groundY;
+  P.vx=P.vy=0; P.climb=null; P.inv=Math.max(P.inv,1.4); P.dashT=0;
   camSnap();
+  const chip=$('mapchip');
+  if(chip)chip.querySelector('b').textContent=MAPDEF.name;
+  G.mapFade=1;
+  if(G.state==='play'){
+    toast(MAPDEF.name,'MAP '+(MAP_ORDER.indexOf(id)+1)+' / '+MAP_ORDER.length);
+    sysmsg('進入 '+MAPDEF.name,'sys');
+    if(id==='keep')questProgress(null);
+  }
+}
+/* 走到傳送門上按 ↑ 就換圖 */
+function portalAt(x,y){
+  for(const q of PORTALS)
+    if(Math.abs(q.x-x)<44&&Math.abs(q.y-y)<80)return q;
+  return null;
+}
+function tryPortal(){
+  const q=portalAt(P.x,P.y);
+  if(!q)return false;
+  SFX.cast();
+  G.flash=Math.max(G.flash,0.35);
+  loadMap(q.to,q.at);
+  return true;
 }
 function newLeaf(spread){
   const ember=Math.random()<0.5;
@@ -1334,12 +1571,24 @@ function spawnFromDef(i){
   m.x1=x1;m.x2=x2;m.spawnIdx=i;
   G.mobs.push(m);
 }
+/* 菁英詞綴：楓之谷的菁英怪身上會多一個特性，打法要跟著換 */
+const ELITES={
+  frenzy:{name:'狂暴',col:'#FF5A3C',spd:1.9,dmg:1.35,hp:2.6},
+  bulwark:{name:'堅甲',col:'#8AC8FF',spd:0.75,dmg:1.15,hp:5.2,armor:0.42},
+  vampiric:{name:'汲血',col:'#C86BFF',spd:1.15,dmg:1.25,hp:3.4,leech:0.06},
+  volatile:{name:'爆裂',col:'#FFC83C',spd:1.2,dmg:1.3,hp:3.0,blast:true},
+};
+const ELITE_IDS=Object.keys(ELITES);
 function makeMob(type,x,y){
   const d=MOBS[type], tier=type==='king'?G.tier:1;
-  const hp=Math.round(d.hp*(1+(tier-1)*0.55));
+  let hp=Math.round(d.hp*(1+(tier-1)*0.55));
+  const elite=!d.boss&&chance(0.11)?ELITES[pick(ELITE_IDS)]:null;
+  if(elite)hp=Math.round(hp*elite.hp);
   return{
     id:mobIdSeq++,type,d,x,y,vx:0,vy:0,face:-1,
-    w:d.w,h:d.h,hp,maxHp:hp,atk:Math.round(d.atk*(1+(tier-1)*0.3)),
+    elite,
+    w:d.w*(elite?1.28:1),h:d.h*(elite?1.28:1),
+    hp,maxHp:hp,atk:Math.round(d.atk*(1+(tier-1)*0.3)*(elite?elite.dmg:1)),
     onGround:false,flash:0,stun:0,t:rand(0,10),phase:0,
     aggro:0,hopCd:rand(0.3,1.6),actCd:2.2,anim:0,dying:0,
     wind:0,windMax:d.wind||0.5,mact:0,atkCd:rand(1.4,3.4),diveVy:0,
@@ -1503,19 +1752,49 @@ function updateBuffs(dt){
 /* 任務進度 */
 function questProgress(type){
   for(const q of G.quests){
-    if(q.got>=q.need)continue;
-    if(q.type===type){
-      q.got++;
-      if(q.got>=q.need){
-        sysmsg(`【任務】${q.text} — 完成`,'qst');
-        toast('任務完成',q.text);
-        SFX.levelup();
-      }
-      break;
+    if(q.state!=='active')continue;
+    const d=questDef(q.id);
+    if(d.type!==type)continue;
+    q.got++;
+    if(q.got>=d.need){
+      q.state='ready';
+      sysmsg(`【任務】${d.text} — 條件達成，回去找 ${npcName(d.giver)}`,'qst');
+      toast('可以回報了',d.text);
+      SFX.levelup();
     }
+    break;
   }
 }
-function questsDone(){return G.quests.filter(q=>q.got>=q.need).length;}
+function npcName(id){
+  for(const mid of MAP_ORDER){
+    const n=(MAPS[mid].npcs||[]).find(v=>v.id===id);
+    if(n)return n.name;
+  }
+  return id;
+}
+function acceptQuest(id){
+  const q=questOf(id);
+  if(!q||q.state!=='open')return;
+  q.state='active';
+  const d=questDef(id);
+  sysmsg(`【接受任務】${d.text}`,'qst');
+  toast('接受任務',d.text);
+  SFX.cast();
+}
+function claimQuest(id){
+  const q=questOf(id);
+  if(!q||q.state!=='ready')return;
+  q.state='done';
+  const d=questDef(id);
+  gainExp(d.reward.exp);
+  G.meso+=Math.round(d.reward.meso*gainMul());
+  addNum(P.x,P.y-PH-26,d.reward.meso,'meso');
+  SFX.levelup();
+  G.flash=Math.max(G.flash,0.3);
+  toast('任務完成',`${d.reward.exp} EXP · ${d.reward.meso.toLocaleString()} 楓幣`);
+  sysmsg(`【任務完成】${d.text} — 獲得 ${d.reward.exp} 經驗與 ${d.reward.meso.toLocaleString()} 楓幣`,'qst');
+}
+function questsDone(){return G.quests.filter(q=>q.state==='done').length;}
 /* 左下角聊天室：系統訊息、任務、道具、警告各有顏色 */
 function sysmsg(t,cls){
   const box=document.getElementById('chatlog');
@@ -1680,6 +1959,7 @@ function updatePlayer(dt){
     doAttacks(dt);
     return;
   }
+  if(T.up&&p.onGround&&tryPortal())return;
   if(I.up){
     const r=ropeAt(p.x,p.y-PH*0.5);
     if(r&&p.y>r.t){ p.climb=r; p.y=clamp(p.y,r.t,r.b); p.jumps=2; }
@@ -1748,7 +2028,7 @@ function updatePlayer(dt){
   clampWorld(p);
   doAttacks(dt);
 
-  if(!G.bossSpawned&&p.x>BOSS_GATE){questProgress(null);spawnBoss();}
+  if(!G.bossSpawned&&MAPDEF.bossAt&&p.x>MAPDEF.bossAt)spawnBoss();
 }
 function clampWorld(p){
   p.x=clamp(p.x,22,WORLD.w-22);
@@ -1979,7 +2259,12 @@ function castBuffSkill(s,c){
 /* ---------- 傷害 ---------- */
 function hurtMob(m,d,fromX,kb){
   if(m.dying)return;
+  if(m.elite&&m.elite.armor)d={...d,amt:Math.max(1,Math.round(d.amt*(1-m.elite.armor)))};
   m.hp-=d.amt;
+  if(m.elite&&m.elite.leech){          // 汲血：牠打不到你就吸不到
+    const heal=Math.round(m.maxHp*m.elite.leech*0.12);
+    m.hp=Math.min(m.maxHp,m.hp+heal);
+  }
   m.flash=1;
   m.stun=Math.max(m.stun,0.12);
   if(!m.d.boss){
@@ -2014,11 +2299,22 @@ function killMob(m){
   SFX.die();
   G.zoomK=Math.min(1.09,G.zoomK+(m.d.boss?0.12:0.035));
   G.flash=Math.max(G.flash,m.d.boss?0.8:0.18);
-  gainExp(Math.round(m.d.exp*(m.d.boss?G.tier:1)));
-  const n=m.d.boss?42:randi(1,3);
+  const em=m.elite?2.8:1;
+  gainExp(Math.round(m.d.exp*(m.d.boss?G.tier:1)*em));
+  if(m.elite){
+    toast('擊倒菁英 · '+m.elite.name+m.d.name,'ELITE SLAIN');
+    G.flash=Math.max(G.flash,0.35);
+    G.shake=Math.max(G.shake,12);
+    if(m.elite.blast){                 // 爆裂：死亡時原地炸一圈
+      addBoom(m.x,m.y-m.h*0.5,240,40);
+      addRing(m.x,m.y-m.h*0.5,{max:300,life:.4,t:.4,c:'#FFC83C',lw:12});
+      if(Math.hypot(P.x-m.x,(P.y-PH/2)-(m.y-m.h/2))<160)hurtPlayer(m.atk*0.9,m.x);
+    }
+  }
+  const n=m.d.boss?42:randi(1,3)*(m.elite?4:1);
   for(let i=0;i<n;i++)
     G.drops.push({x:m.x+rand(-m.w,m.w),y:m.y-m.h*0.5,vx:rand(-190,190),vy:rand(-420,-190),
-      type:'meso',val:randi(m.d.meso[0],m.d.meso[1]),life:16,t:0,ground:false});
+      type:'meso',val:Math.round(randi(m.d.meso[0],m.d.meso[1])*em),life:16,t:0,ground:false});
   // 裝備掉落：依怪物種類與掉落率抽
   for(const slot of EQUIP_SLOTS){
     let dropped=false;
@@ -2026,7 +2322,7 @@ function killMob(m){
       const it=EQUIP[slot][id];
       if(!it.drop||!it.drop[m.type])continue;
       if(G.owned[slot].has(id))continue;       // 已取得就不再掉
-      if(!chance(it.drop[m.type]))continue;
+      if(!chance(it.drop[m.type]*(m.elite?4:1)))continue;
       G.drops.push({x:m.x,y:m.y-m.h*0.5,vx:rand(-150,150),vy:-rand(330,470),
         type:'gear',slot,id,life:26,t:0,ground:false});
       dropped=true;
@@ -2061,7 +2357,9 @@ function hurtPlayer(amt,fromX){
   burst(p.x,p.y-PH*0.5,10,()=>({vx:rand(-200,200),vy:rand(-220,20),c:'#FF6B76',size:rand(3,7),life:.4,max:.4}));
   if(p.hp<=0){p.hp=0;dieGame();}
 }
+function gainMul(){return 1+buffStat('gain');}
 function gainExp(v){
+  v=Math.round(v*gainMul());
   P.exp+=v;
   addNum(P.x,P.y-PH-26,v,'exp');
   let up=false;
@@ -2178,7 +2476,7 @@ function normalAI(m,dt){
   }
 
   if(m.stun<=0&&m.wind<=0){
-    const spd=m.d.spd*(m.aggro>0?1.65:1)*mobSlow(m);
+    const spd=m.d.spd*(m.aggro>0?1.65:1)*mobSlow(m)*(m.elite?m.elite.spd:1);
     if(m.d.fly){
       if(m.mact>0){                     // 俯衝中：直線突進
         m.vy=m.diveVy;
@@ -2234,7 +2532,7 @@ function normalAI(m,dt){
 /* ---------- BOSS ---------- */
 function spawnBoss(){
   G.bossSpawned=true;
-  const b=makeMob('king',4050,WORLD.groundY);
+  const b=makeMob('king',WORLD.w-300,WORLD.groundY);
   b.x1=3640;b.x2=4500;
   G.boss=b;G.mobs.push(b);
   G.shake=18;
@@ -2439,8 +2737,9 @@ function updateDrops(dt){
         else{d.vy=0;d.ground=true;}
       }
     }
-    // 吸取
-    const dist=Math.hypot(d.x-P.x,d.y-(P.y-PH/2));
+    // 吸取：玩家本體 130px，寵物幫忙再擴到 240px
+    let dist=Math.hypot(d.x-P.x,d.y-(P.y-PH/2));
+    if(P.pet&&dist>=130&&Math.hypot(d.x-P.pet.x,d.y-P.pet.y)<240)dist=129;
     if(dist<130&&d.t>0.35){
       const a=Math.atan2((P.y-PH/2)-d.y,P.x-d.x);
       const pull=760*dt;
@@ -2449,7 +2748,7 @@ function updateDrops(dt){
     }
     if(dist<34&&d.t>0.3){
       if(d.type==='meso'){
-        G.meso+=d.val; SFX.coin();
+        G.meso+=Math.round(d.val*gainMul()); SFX.coin();
         addNum(d.x,d.y-10,d.val,'meso');
       }else if(d.type==='gear'){
         const it=EQUIP[d.slot][d.id];
@@ -2535,19 +2834,22 @@ function updateCam(dt){
 let seed=1337;
 function sr(){seed=(seed*1103515245+12345)&0x7fffffff;return seed/0x7fffffff;}
 const BG={clouds:[],hills:[],trees:[],bushes:[],islands:[],birds:[],fore:[],beams:[]};
-(function buildBG(){
-  for(let i=0;i<26;i++)BG.clouds.push({x:sr()*WORLD.w*1.3,y:120+sr()*430,s:.6+sr()*1.5,sp:.1+sr()*.1});
-  for(let i=0;i<20;i++)BG.hills.push({x:i*300+sr()*130,h:150+sr()*250,w:290+sr()*230});
-  for(let i=0;i<64;i++)BG.trees.push({x:sr()*WORLD.w,h:130+sr()*130,s:.7+sr()*.7,c:sr()});
-  for(let i=0;i<120;i++)BG.bushes.push({x:sr()*WORLD.w,s:.6+sr()*.9,c:sr()});
-  for(let i=0;i<11;i++)BG.islands.push({x:220+i*440+sr()*200,y:150+sr()*300,w:70+sr()*120,c:sr()});
+function buildBG(){
+  const sr2=seeded(MAPDEF.seed||4242);
+  for(const k in BG)BG[k].length=0;
+  const n=MAPDEF.theme==='cavern'?0:1;   // 地穴沒有鳥也沒有陽光
+  for(let i=0;i<(TH.clouds||20);i++)BG.clouds.push({x:sr2()*WORLD.w*1.3,y:120+sr2()*430,s:.6+sr2()*1.5,sp:.1+sr2()*.1});
+  for(let i=0;i<20;i++)BG.hills.push({x:i*300+sr2()*130,h:150+sr2()*250,w:290+sr2()*230});
+  for(let i=0;i<64;i++)BG.trees.push({x:sr2()*WORLD.w,h:130+sr2()*130,s:.7+sr2()*.7,c:sr2()});
+  for(let i=0;i<120;i++)BG.bushes.push({x:sr2()*WORLD.w,s:.6+sr2()*.9,c:sr2()});
+  for(let i=0;i<11;i++)BG.islands.push({x:220+i*440+sr2()*200,y:150+sr2()*300,w:70+sr2()*120,c:sr2()});
   for(let i=0;i<8;i++){
-    const rot=sr()*TAU;
-    BG.beams.push({x:300+i*620+sr()*260,y:WORLD.groundY-260-sr()*300,
-      r:260+sr()*260,w:26+sr()*34,rot,a0:-2.5+sr()*.6,a1:-0.5-sr()*.6});
+    const rot=sr2()*TAU;
+    BG.beams.push({x:300+i*620+sr2()*260,y:WORLD.groundY-260-sr2()*300,
+      r:260+sr2()*260,w:26+sr2()*34,rot,a0:-2.5+sr2()*.6,a1:-0.5-sr2()*.6});
   }
-  for(let i=0;i<14;i++)BG.birds.push({x:sr()*WORLD.w,y:150+sr()*280,sp:26+sr()*30,ph:sr()*10});
-})();
+  for(let i=0;i<14*n;i++)BG.birds.push({x:sr2()*WORLD.w,y:150+sr2()*280,sp:26+sr2()*30,ph:sr2()*10});
+}
 
 /* 視差圖層：套用跟世界一樣的縮放，鏡頭位移打折 */
 function bgLayer(fx,fy,fn){
@@ -2571,10 +2873,10 @@ function drawBG(){
       if(x<0)x+=span;
       if(x>vw+320)continue;
       const y=cl.y-G.cam.y*.06, u=Math.max(3,Math.round(9*cl.s));
-      c.fillStyle='#FFFFFF';
+      c.fillStyle=TH.cloud;
       for(const [ox,oy,pw,ph] of [[0,0,5,2],[-3,1,4,2],[3,1,4,2],[-1,-1,3,2]])
         c.fillRect(Math.round(x+ox*u),Math.round(y+oy*u),pw*u,ph*u);
-      c.fillStyle='#CFE9FA';
+      c.fillStyle=TH.cloudDk;
       for(const [ox,pw] of [[-3,4],[0,5],[3,4]])
         c.fillRect(Math.round(x+ox*u),Math.round(y+2*u),pw*u,u);
     }
@@ -2587,7 +2889,7 @@ function drawBG(){
     for(const h of BG.hills){
       if(h.x-G.cam.x*.24<-h.w||h.x-G.cam.x*.24>vw+h.w)continue;
       const w=h.w*.9, hh=h.h*.8;
-      c.fillStyle='#7FC8D8';
+      c.fillStyle=TH.hill;
       c.beginPath();
       c.moveTo(h.x-w/2,base);
       c.lineTo(h.x-w*.18,base-hh);
@@ -2595,7 +2897,7 @@ function drawBG(){
       c.lineTo(h.x+w*.3,base-hh*.95);
       c.lineTo(h.x+w/2,base);
       c.closePath();c.fill();
-      c.fillStyle='#BFEAF2';
+      c.fillStyle=TH.hillLt;
       c.beginPath();
       c.moveTo(h.x-w*.18,base-hh);
       c.lineTo(h.x+w*.1,base-hh*.78);
@@ -2630,22 +2932,22 @@ function drawBG(){
       if(il.x-G.cam.x*.34<-260||il.x-G.cam.x*.34>vw+260)continue;
       const y=Math.round(il.y+Math.sin(G.t*.4+il.x*.01)*6);
       const w=il.w, h=w*.3;
-      c.fillStyle='#8A5A32';
+      c.fillStyle=TH.trunk;
       c.beginPath();
       c.moveTo(il.x-w*.46,y);
       c.lineTo(il.x+w*.46,y);
       c.lineTo(il.x+w*.1,y+h*1.5);
       c.closePath();c.fill();
-      c.fillStyle='#6FD44A';
+      c.fillStyle=TH.leafA;
       c.fillRect(il.x-w*.5,y-h*.34,w,h*.42);
-      c.fillStyle='#A8F06A';
+      c.fillStyle=TH.leafB;
       c.fillRect(il.x-w*.5,y-h*.34,w,h*.14);
       if(il.c<.5){
-        c.fillStyle='#7A4A22';
+        c.fillStyle=TH.trunkDk;
         c.fillRect(il.x-2,y-h*.3-16,4,16);
-        c.fillStyle='#4FB33A';
+        c.fillStyle=TH.leafC;
         c.fillRect(il.x-12,y-h*.3-30,24,16);
-        c.fillStyle='#6FD44A';
+        c.fillStyle=TH.leafA;
         c.fillRect(il.x-12,y-h*.3-30,24,6);
       }
     }
@@ -2657,16 +2959,16 @@ function drawBG(){
     for(const t of BG.trees){
       if(t.x-G.cam.x*.55<-200||t.x-G.cam.x*.55>vw+200)continue;
       const w=Math.round(30*t.s), hh=t.h*.85;
-      c.fillStyle='#7A4A22';
+      c.fillStyle=TH.trunkDk;
       c.fillRect(t.x-w*.18,base-hh*.55,w*.36,hh*.55);
       const cy=base-hh;
-      c.fillStyle='#2F8A3A';
+      c.fillStyle=TH.leafD;
       c.fillRect(t.x-w,cy,w*2,hh*.5);
       c.fillRect(t.x-w*.7,cy-hh*.16,w*1.4,hh*.2);
-      c.fillStyle='#4FB33A';
+      c.fillStyle=TH.leafC;
       c.fillRect(t.x-w,cy,w*2,hh*.16);
       c.fillRect(t.x-w*.7,cy-hh*.16,w*1.4,hh*.1);
-      c.fillStyle='#78D45A';
+      c.fillStyle=TH.leafE;
       c.fillRect(t.x-w*.7,cy-hh*.16,w*.8,hh*.06);
     }
   });
@@ -2681,7 +2983,7 @@ function drawBG(){
       const y=WORLD.groundY-60-i*150-G.cam.y*f*.55;
       const off=((G.cam.x*f)%520+520)%520;
       c.globalAlpha=.07-i*.02;
-      c.fillStyle='#FFF6C0';
+      c.fillStyle=TH.beam;
       for(let x=-520;x<vw+520;x+=520){
         c.fillRect(x-off,y-18,520,36);
       }
@@ -2723,9 +3025,9 @@ function drawPlatforms(){
     const dw=dx1-dx0;
 
     // 土壤（平塗分層，不用漸層才像像素）
-    c.fillStyle='#9A6438'; c.fillRect(dx0,p.y,dw,h);
-    c.fillStyle='#7C4E28'; c.fillRect(dx0,p.y+16,dw,Math.max(0,h-16));
-    c.fillStyle='#633D1E'; c.fillRect(dx0,p.y+48,dw,Math.max(0,h-48));
+    c.fillStyle=TH.soilA; c.fillRect(dx0,p.y,dw,h);
+    c.fillStyle=TH.soilB; c.fillRect(dx0,p.y+16,dw,Math.max(0,h-16));
+    c.fillStyle=TH.soilC; c.fillRect(dx0,p.y+48,dw,Math.max(0,h-48));
     // 土塊斑點
     c.fillStyle='rgba(255,220,170,.18)';
     const i0=Math.max(0,Math.floor((dx0-p.x)/40)*40);
@@ -2741,32 +3043,32 @@ function drawPlatforms(){
     }
 
     // 草皮
-    c.fillStyle='#2F8A3A'; c.fillRect(dx0,p.y-4,dw,14);
-    c.fillStyle='#4FB33A'; c.fillRect(dx0,p.y-6,dw,7);
-    c.fillStyle='#78D45A'; c.fillRect(dx0,p.y-8,dw,4);
-    c.fillStyle='#A8F06A'; c.fillRect(dx0,p.y-8,dw,2);
+    c.fillStyle=TH.grassA; c.fillRect(dx0,p.y-4,dw,14);
+    c.fillStyle=TH.grassB; c.fillRect(dx0,p.y-6,dw,7);
+    c.fillStyle=TH.grassC; c.fillRect(dx0,p.y-8,dw,4);
+    c.fillStyle=TH.grassD; c.fillRect(dx0,p.y-8,dw,2);
     // 草尖
-    c.fillStyle='#78D45A';
+    c.fillStyle=TH.grassC;
     const j0=Math.max(0,Math.floor((dx0-p.x)/12)*12);
     for(let j=j0;j<i1;j+=12){
       const hh=4+((j*31)%3)*2;
       c.fillRect(p.x+j,p.y-8-hh,4,hh);
     }
     // 深色描邊
-    c.fillStyle='#2A1C10';
+    c.fillStyle=TH.edge;
     c.fillRect(dx0,p.y+h-3,dw,3);
     if(!p.solid){
       c.fillRect(p.x,p.y-8,2,h+8);
       c.fillRect(p.x+p.w-2,p.y-8,2,h+8);
       // 垂下的藤蔓
-      c.fillStyle='#2F8A3A';
+      c.fillStyle=TH.grassA;
       for(let i=0;i<3;i++){
         const vx=Math.round(p.x+20+i*(p.w-40)/2);
         const len=12+((i*37)%16);
         c.fillRect(vx,p.y+h,3,len);
-        c.fillStyle='#4FB33A';
+        c.fillStyle=TH.grassB;
         c.fillRect(vx-2,p.y+h+len,6,4);
-        c.fillStyle='#2F8A3A';
+        c.fillStyle=TH.grassA;
       }
     }
   }
@@ -2780,12 +3082,12 @@ function drawDecor(){
     const s=Math.max(1,Math.round(b.s*4));
     const x=Math.round(b.x);
     if(b.c<0.4){            // 草叢
-      c.fillStyle='#2F8A3A';
+      c.fillStyle=TH.grassA;
       c.fillRect(x-s*3,y-s*2,s*6,s*2);
       c.fillRect(x-s*2,y-s*3,s*4,s);
-      c.fillStyle='#4FB33A';
+      c.fillStyle=TH.grassB;
       c.fillRect(x-s*2,y-s*3,s*4,s);
-      c.fillStyle='#78D45A';
+      c.fillStyle=TH.grassC;
       c.fillRect(x-s,y-s*4,s*2,s);
     }else if(b.c<0.62){     // 石頭
       c.fillStyle='#9AA8B8';
@@ -2796,7 +3098,7 @@ function drawDecor(){
       c.fillStyle='#6A7888';
       c.fillRect(x-s*2,y-s,s*4,s);
     }else if(b.c<0.84){     // 小花
-      c.fillStyle='#2F8A3A';
+      c.fillStyle=TH.grassA;
       c.fillRect(x-1,y-s*3,2,s*3);
       const col=b.c<0.73?'#FF7AB0':'#FFE04A';
       c.fillStyle=col;
@@ -3582,6 +3884,26 @@ function drawMobBody(c,m,f){
 function drawMob(m){
   const c=ctx, f=m.flash, d=m.d;
 
+  // 菁英：腳下一圈脈動的光盤，老遠就看得出來不好惹
+  if(m.elite&&m.dying<=0){
+    const S=artPx(), pul=.6+Math.sin(G.t*4+m.id)*.4;
+    c.save();
+    c.globalAlpha=.30+pul*.22;
+    c.fillStyle=m.elite.col;
+    const rx=m.w*(0.75+pul*0.12), ry=rx*0.30;
+    for(let dy=-ry;dy<=ry;dy+=S){
+      const w=rx*Math.sqrt(Math.max(0,1-(dy/ry)*(dy/ry)));
+      c.fillRect(Math.floor((m.x-w)/S)*S,Math.floor((m.y-3+dy)/S)*S,Math.ceil(w*2/S)*S,S);
+    }
+    c.globalAlpha=.85;
+    for(let i=0;i<10;i++){                 // 外圈轉動的光點
+      const a=G.t*1.6+i*TAU/10;
+      c.fillRect(Math.floor((m.x+Math.cos(a)*rx)/S)*S,
+                 Math.floor((m.y-3+Math.sin(a)*ry)/S)*S,S*2,S*2);
+    }
+    c.restore();
+  }
+
   // 出手前的紅色預兆 —— 玩家靠這個判斷何時該衝刺閃避
   if(m.wind>0){
     const k=1-m.wind/m.windMax;
@@ -3597,6 +3919,18 @@ function drawMob(m){
     c.beginPath();
     c.arc(m.x,m.y-m.h*.5,m.w*(1.5-k*0.7),0,TAU);
     c.stroke();
+    c.restore();
+  }
+
+  if(m.elite&&m.dying<=0){
+    c.save();
+    c.translate(m.x,m.y);
+    c.scale(m.face,1);
+    c.globalCompositeOperation='lighter';
+    c.globalAlpha=.20+Math.sin(G.t*4+m.id)*.10;
+    MOB_TINT=m.elite.col;
+    drawMobBody(c,m,0);
+    MOB_TINT=null;
     c.restore();
   }
 
@@ -3632,6 +3966,17 @@ function drawMob(m){
     c.fillStyle='rgba(3,4,10,.85)';c.fillRect(x-1,y-1,w+2,4);
     c.fillStyle='#E01030';c.fillRect(x,y,w*clamp(m.hp/m.maxHp,0,1),2);
     c.fillStyle='rgba(255,150,170,.7)';c.fillRect(x,y,w*clamp(m.hp/m.maxHp,0,1),.8);
+    if(m.elite){
+      c.font='bold 11px "Noto Sans TC",sans-serif';
+      c.textAlign='center';c.textBaseline='bottom';
+      const lbl=m.elite.name+' '+d.name;
+      c.fillStyle='rgba(3,4,10,.8)';
+      const lw=c.measureText(lbl).width+8;
+      c.fillRect(m.x-lw/2,y-16,lw,13);
+      c.fillStyle=m.elite.col;
+      c.fillText(lbl,m.x,y-4);
+      c.textAlign='left';c.textBaseline='alphabetic';
+    }
     if(m.st&&m.st.t>0){
       const E=ELEMENTS[m.st.el];
       c.fillStyle='#241B3A';c.fillRect(x-1,y-7,6,6);
@@ -4405,6 +4750,91 @@ function buildEquipWin(){
    內容全部從 EQUIP / SKILL_DB 生出來，
    之後在圖鑑裡加一把武器或一個技能，商店就會自動多一列。
    ============================================================ */
+/* ============================================================
+   NPC 對話
+   走到 NPC 旁按 F 就開口說話；任務的接取與回報都在這裡完成，
+   商人則多一個「我要交易」的選項通到商店。
+   ============================================================ */
+let dlgNpc=null;
+function drawNpcFace(npc){
+  const c=$('dlgFace').getContext('2d');
+  c.imageSmoothingEnabled=false;
+  c.clearRect(0,0,72,72);
+  c.fillStyle='#26324E';c.fillRect(0,0,72,72);
+  c.fillStyle='#3A4E78';c.fillRect(0,52,72,20);
+  const pal=npc.pal?{...NPC_PAL,...npc.pal}:NPC_PAL;
+  const U=5;
+  c.save();
+  c.translate(36,4);
+  for(let y=0;y<13;y++){                 // 只畫頭部那幾列
+    const row=M_MERCHANT[y];
+    for(let x=0;x<row.length;x++){
+      const col=pal[row[x]];
+      if(!col)continue;
+      c.fillStyle=col;
+      c.fillRect((x-7)*U,y*U,U,U);
+    }
+  }
+  c.restore();
+}
+function openDialog(npc){
+  dlgNpc=npc;
+  $('helpbar').classList.add('off');
+  closeShop();
+  toggleEquipWin(false);
+  $('dialog').hidden=false;
+  $('dlgName').textContent=npc.name;
+  drawNpcFace(npc);
+  dialogRoot();
+}
+function closeDialog(){
+  $('dialog').hidden=true;
+  dlgNpc=null;
+}
+function dlgSay(text,btns){
+  $('dlgLine').textContent=text;
+  const box=$('dlgBtns');
+  box.replaceChildren();
+  for(const b of btns){
+    const el=document.createElement('button');
+    el.className='dlg-b'+(b.hot?' hot':'');
+    el.innerHTML=b.label;
+    el.addEventListener('click',()=>b.go());
+    box.appendChild(el);
+  }
+}
+function dialogRoot(){
+  const npc=dlgNpc;
+  if(!npc)return;
+  const btns=[];
+  for(const {def,st} of questsFor(npc.id)){
+    if(st.state==='open')
+      btns.push({label:`接任務：${def.text}`,hot:true,go(){dlgQuest(def,'ask');}});
+    else if(st.state==='ready')
+      btns.push({label:`回報：${def.text} <em>✓</em>`,hot:true,go(){dlgQuest(def,'done');}});
+    else if(st.state==='active')
+      btns.push({label:`進度：${def.text}（${st.got}/${def.need}）`,go(){dlgQuest(def,'wait');}});
+  }
+  if(npc.kind==='shop')
+    btns.push({label:'我要交易',hot:true,go(){closeDialog();openShop(npc);}});
+  btns.push({label:'離開',go(){closeDialog();}});
+  dlgSay(npc.line,btns);
+}
+function dlgQuest(def,phase){
+  const st=questOf(def.id);
+  if(phase==='ask'){
+    dlgSay(def.ask,[
+      {label:'好，交給我',hot:true,go(){acceptQuest(def.id);dialogRoot();}},
+      {label:'再說吧',go(){dialogRoot();}},
+    ]);
+  }else if(phase==='wait'){
+    dlgSay(`${def.wait}（${st.got} / ${def.need}）`,[{label:'我知道了',go(){dialogRoot();}}]);
+  }else{
+    dlgSay(def.done,[{label:`領取獎勵（${def.reward.exp} EXP · ${def.reward.meso.toLocaleString()} 楓幣）`,
+      hot:true,go(){claimQuest(def.id);dialogRoot();}}]);
+  }
+}
+
 let shopTab='weapon', shopNpc=null;
 function openShop(npc){
   shopNpc=npc||NPCS[0];
@@ -4417,14 +4847,12 @@ function openShop(npc){
   SFX.coin();
 }
 function closeShop(){const w=$('shopwin');if(w)w.hidden=true;}
-function toggleShop(){
-  const w=$('shopwin');
-  if(!w)return;
-  if(w.hidden){
-    const n=nearestNpc();
-    if(!n){toast('附近沒有商人','走到金色錢幣招牌下面再按 F');return;}
-    openShop(n);
-  }else closeShop();
+function talkToNpc(){
+  if(!$('dialog').hidden){closeDialog();return;}
+  if(!$('shopwin').hidden){closeShop();return;}
+  const n=nearestNpc();
+  if(!n){toast('附近沒有人','走到 NPC 旁邊再按 F');return;}
+  openDialog(n);
 }
 function priceText(v){return v.toLocaleString()+' 楓幣';}
 function buyFx(ok){
@@ -4592,7 +5020,7 @@ function toggleEquipWin(force){
   const btn=document.getElementById('equipbtn');
   if(!w)return;
   const open=force!==undefined?force:w.hidden;
-  if(open){closeShop();if(!equipWinBuilt)buildEquipWin();}
+  if(open){closeShop();closeDialog();if(!equipWinBuilt)buildEquipWin();}
   w.hidden=!open;
   if(btn)btn.classList.toggle('on',open);
   if(open)refreshEquipWin();
@@ -5027,6 +5455,212 @@ function addBoom(x,y,scale,hue,opt){
 
 
 /* 角色氣場：像素光點繞行，取代原本的平滑漸層環 */
+/* ============================================================
+   符文
+   場上會浮著兩三根發光柱，碰到就吃到一段強力增益，
+   吃掉後過一陣子換個位置重生 —— 讓清怪的節奏有起伏。
+   ============================================================ */
+const RUNES={
+  might :{name:'力量符文',glyph:'力',col:'#FF6A4C',dur:26,stats:{atk:0.55,crit:0.10}},
+  swift :{name:'疾風符文',glyph:'風',col:'#7AE8FF',dur:26,stats:{spd:0.45,cdr:0.30}},
+  ward  :{name:'守護符文',glyph:'護',col:'#FFD24D',dur:26,stats:{def:0.50,atk:0.15}},
+  wealth:{name:'豐收符文',glyph:'豐',col:'#8AE86A',dur:30,stats:{gain:0.75}},
+};
+const RUNE_IDS=Object.keys(RUNES);
+function runeSpots(){
+  const out=[];
+  for(const pl of PLATS){
+    if(pl.solid){
+      for(let x=pl.x+300;x<pl.x+pl.w-300;x+=520)out.push({x,y:pl.y});
+    }else if(pl.w>=240)out.push({x:pl.x+pl.w/2,y:pl.y});
+  }
+  return out;
+}
+function spawnRunes(n){
+  G.runes=[];
+  const spots=runeSpots();
+  const k=n||Math.min(3,spots.length);
+  for(let i=0;i<k;i++)addRune(spots);
+}
+function addRune(spots){
+  spots=spots||runeSpots();
+  if(!spots.length)return;
+  for(let tries=0;tries<12;tries++){
+    const sp=pick(spots);
+    if(G.runes.some(r=>Math.abs(r.x-sp.x)<260))continue;
+    if(ROPES.some(r=>Math.abs(r.x-sp.x)<70))continue;
+    G.runes.push({x:sp.x,y:sp.y,type:pick(RUNE_IDS),t:rand(0,10)});
+    return;
+  }
+}
+function updateRunes(dt){
+  if(!G.runes)return;
+  for(let i=G.runes.length-1;i>=0;i--){
+    const r=G.runes[i];
+    r.t+=dt;
+    if(Math.abs(r.x-P.x)<40&&Math.abs(r.y-P.y)<86){
+      const d=RUNES[r.type];
+      addBuff('rune',d.dur,d.glyph,d.col,d.stats);
+      SFX.levelup();
+      G.flash=Math.max(G.flash,0.34);
+      G.shake=Math.max(G.shake,7);
+      toast(d.name,'RUNE — '+d.dur+' 秒');
+      sysmsg(`吸收了 ${d.name}`,'qst');
+      addRing(r.x,r.y-40,{max:300,life:.55,t:.55,c:d.col,lw:12});
+      burst(r.x,r.y-30,34,()=>({x:r.x+rand(-18,18),vx:rand(-240,240),vy:-rand(80,420),
+        c:d.col,size:rand(3,9),life:.8,max:.8,grav:320}));
+      G.runes.splice(i,1);
+      G.runeCd=rand(26,44);
+    }
+  }
+  G.runeCd=(G.runeCd||0)-dt;
+  if(G.runeCd<=0&&G.runes.length<3){G.runeCd=rand(22,40);addRune();}
+}
+function drawRunes(){
+  if(!G.runes)return;
+  const c=ctx;
+  const z=zoomNow()/PIXEL;
+  const S=Math.max(1,Math.round(AU*z))/z;
+  for(const r of G.runes){
+    if(!onScreen(r.x,r.y,220))continue;
+    const d=RUNES[r.type];
+    const dx=Math.round((r.x-G.cam.x)*z)/z+G.cam.x;
+    const dy=Math.round((r.y-G.cam.y)*z)/z+G.cam.y;
+    const fl=Math.sin(r.t*2.6)*2;
+    c.save();
+    c.translate(dx,dy);
+    c.globalCompositeOperation='lighter';
+    // 地面光圈
+    c.globalAlpha=.4;
+    c.fillStyle=d.col;
+    for(let k=-9;k<=9;k++)c.fillRect(k*S,-S,S,S);
+    // 光柱
+    c.globalAlpha=.30;
+    for(let y=0;y<26;y++){
+      const w=Math.max(1,6-Math.floor(y/5));
+      for(let k=-w;k<=w;k++)c.fillRect(k*S,(-2-y)*S,S,S);
+    }
+    c.globalAlpha=1;
+    c.globalCompositeOperation='source-over';
+    // 浮在空中的符文牌
+    const by=Math.round(-30+fl)*S;
+    c.fillStyle='#1B1428';
+    c.fillRect(-7*S,by-7*S,14*S,14*S);
+    c.fillStyle=d.col;
+    c.fillRect(-6*S,by-6*S,12*S,12*S);
+    c.fillStyle='#1B1428';
+    c.fillRect(-4*S,by-4*S,8*S,8*S);
+    c.fillStyle=d.col;
+    c.font=`bold ${Math.round(9*S)}px "Noto Sans TC",sans-serif`;
+    c.textAlign='center';c.textBaseline='middle';
+    c.fillText(d.glyph,0,by);
+    c.restore();
+  }
+}
+
+/* ============================================================
+   寵物
+   跟在身後飄、會幫你把掉落物吸過來 —— 楓之谷玩家的標準配備。
+   ============================================================ */
+const PET_PAL={
+  '#':'#1B1428','B':'#7AC8FF','b':'#3A78C8','L':'#DFF4FF',
+  'E':'#1B1428','W':'#FFFFFF','N':'#FFD24D',
+};
+const M_PET=padRows([
+  '  #####  ',
+  ' #LLLLL# ',
+  '#LBBBBBL#',
+  '#BBEBBEB#',
+  '#BBBBBBB#',
+  '#bBBNBBb#',
+  ' #bbbbb# ',
+  '  #b#b#  ',
+]);
+function updatePet(dt){
+  const p=P;
+  if(!p.pet)p.pet={x:p.x,y:p.y-60,vx:0,vy:0,t:0,face:1};
+  const t=p.pet;
+  t.t+=dt;
+  const tx=p.x-p.face*46, ty=p.y-PH-34+Math.sin(t.t*2.6)*6;
+  const dx=tx-t.x, dy=ty-t.y;
+  if(Math.hypot(dx,dy)>420){t.x=tx;t.y=ty;t.vx=t.vy=0;}
+  t.vx=lerp(t.vx,dx*6.5,dt*7);
+  t.vy=lerp(t.vy,dy*6.5,dt*7);
+  t.x+=t.vx*dt; t.y+=t.vy*dt;
+  if(Math.abs(t.vx)>24)t.face=Math.sign(t.vx);
+}
+function drawPet(){
+  const p=P;
+  if(!p.pet||p.climb)return;
+  const c=ctx;
+  const z=zoomNow()/PIXEL;
+  const S=Math.max(1,Math.round(AU*z))/z;
+  const dx=Math.round((p.pet.x-G.cam.x)*z)/z+G.cam.x;
+  const dy=Math.round((p.pet.y-G.cam.y)*z)/z+G.cam.y;
+  c.save();
+  c.translate(dx,dy);
+  c.scale(p.pet.face,1);
+  // 拍動的小翅膀
+  const flap=Math.sin(p.pet.t*11)>0?0:1;
+  c.fillStyle='#DFF4FF';
+  c.fillRect(-8*S,(-3-flap)*S,3*S,2*S);
+  c.fillRect( 5*S,(-3-flap)*S,3*S,2*S);
+  for(let y=0;y<M_PET.length;y++){
+    const row=M_PET[y];
+    for(let x=0;x<row.length;x++){
+      const col=PET_PAL[row[x]];
+      if(!col)continue;
+      c.fillStyle=col;
+      c.fillRect((x-4)*S,(y-5)*S,S,S);
+    }
+  }
+  c.restore();
+}
+
+/* 楓之谷式傳送門：一圈一圈往上飄的光環 */
+function drawPortals(){
+  const c=ctx;
+  const z=zoomNow()/PIXEL;
+  const S=Math.max(1,Math.round(AU*z))/z;
+  const near=portalAt(P.x,P.y);
+  for(const q of PORTALS){
+    if(!onScreen(q.x,q.y,240))continue;
+    const dx=Math.round((q.x-G.cam.x)*z)/z+G.cam.x;
+    const dy=Math.round((q.y-G.cam.y)*z)/z+G.cam.y;
+    c.save();
+    c.translate(dx,dy);
+    c.globalCompositeOperation='lighter';
+    for(let i=0;i<5;i++){
+      const t=((G.t*0.55+i*0.2)%1);
+      const yy=-t*46*S;
+      const rw=(10+Math.sin(t*Math.PI)*9)*S;
+      const a=Math.sin(t*Math.PI)*(near===q?0.85:0.55);
+      c.globalAlpha=a;
+      c.fillStyle=i%2?'#9FE8FF':'#FFFFFF';
+      for(let k=-rw;k<=rw;k+=S){
+        const hh=Math.sqrt(Math.max(0,1-(k/rw)*(k/rw)))*4*S;
+        c.fillRect(Math.round(k/S)*S,Math.round((yy-hh)/S)*S,S,S);
+        c.fillRect(Math.round(k/S)*S,Math.round((yy+hh)/S)*S,S,S);
+      }
+    }
+    c.globalAlpha=1;
+    c.globalCompositeOperation='source-over';
+    c.restore();
+    if(near===q){
+      const lbl='↑ '+(q.label||MAPS[q.to].name);
+      c.save();
+      c.translate(dx,dy-58*S);
+      c.font='bold 15px "Noto Sans TC",sans-serif';
+      c.textAlign='center';c.textBaseline='middle';
+      const w=c.measureText(lbl).width+18;
+      c.fillStyle='rgba(20,12,26,.78)';
+      c.fillRect(-w/2,-11,w,22);
+      c.fillStyle='#9FE8FF';
+      c.fillText(lbl,0,1);
+      c.restore();
+    }
+  }
+}
 function drawNpcs(){
   const c=ctx;
   const z=zoomNow()/PIXEL;
@@ -5045,13 +5679,27 @@ function drawNpcs(){
     for(let y=0;y<M_MERCHANT.length;y++){
       const row=M_MERCHANT[y];
       for(let x=0;x<row.length;x++){
-        const col=NPC_PAL[row[x]];
+        const col=(n.pal?(n.pal[row[x]]||NPC_PAL[row[x]]):NPC_PAL[row[x]]);
         if(!col)continue;
         c.fillStyle=col;
         c.fillRect((x-7)*S,(y-M_MERCHANT.length+bob)*S,S,S);
       }
     }
-    // 頭上的錢幣招牌
+    // 頭上的狀態標記：黃色驚嘆號 = 有任務可接，藍色問號 = 可以回報
+    const qs=questsFor(n.id);
+    const mark=qs.some(q=>q.st.state==='ready')?['?','#7AC8FF']
+             :qs.some(q=>q.st.state==='open') ?['!','#FFD24D']:null;
+    if(mark){
+      const my=(-M_MERCHANT.length-12+Math.round(Math.sin(G.t*3.4+n.x)*1.6))*S;
+      c.font=`bold ${Math.round(13*S)}px "Noto Sans TC",sans-serif`;
+      c.textAlign='center';c.textBaseline='middle';
+      c.fillStyle='#1B1428';
+      c.fillText(mark[0],S,my+S);
+      c.fillStyle=mark[1];
+      c.fillText(mark[0],0,my);
+    }
+    // 頭上的錢幣招牌（只有商人有）
+    if(n.kind!=='shop'){c.restore();continue;}
     const py=(-M_MERCHANT.length-4+Math.round(Math.sin(G.t*3+n.x)*1.2))*S;
     c.fillStyle='#FFD24D';
     c.fillRect(-3*S,py,6*S,6*S);
@@ -5069,7 +5717,7 @@ function updateNpcHint(){
   const n=nearestNpc();
   if(n&&_npcHintId!==n.id){
     _npcHintId=n.id;
-    G.hint=`${n.name} — 按 F 交易`;
+    G.hint=`${n.name} — 按 F ${n.kind==='shop'?'交易':'對話'}`;
     G.hintT=3.0;
   }else if(!n)_npcHintId=null;
 }
@@ -5414,10 +6062,13 @@ function render(){
   drawLeaves();
   drawDrops();
   for(const m of G.mobs)if(onScreen(m.x,m.y,300))drawMob(m);
+  drawPortals();
+  drawRunes();
   drawNpcs();
   drawRings();
   drawGhosts();
   drawPlayerAura();
+  drawPet();
   drawPlayer();
   PixelFX.draw();
   drawProjs();
@@ -5452,6 +6103,10 @@ function render(){
   if(vignetteG){m.fillStyle=vignetteG;m.fillRect(0,0,view.w,view.h);}
   if(G.flash>0){
     m.fillStyle=`rgba(255,255,255,${Math.min(.5,G.flash*.5)})`;
+    m.fillRect(0,0,view.w,view.h);
+  }
+  if(G.mapFade>0){                       // 換圖時整片黑淡出
+    m.fillStyle=`rgba(10,6,16,${G.mapFade})`;
     m.fillRect(0,0,view.w,view.h);
   }
   if(G.cine>0)drawLetterbox();
@@ -5576,11 +6231,14 @@ function renderQuests(){
     }));
   }
   G.quests.forEach((q,i)=>{
-    const li=ul.children[i];
-    const done=q.got>=q.need;
-    li.classList.toggle('done',done);
-    li.firstChild.textContent=q.text;
-    li.lastChild.textContent=done?'完成':`${q.got}/${q.need}`;
+    const li=ul.children[i], d=questDef(q.id);
+    li.classList.toggle('done',q.state==='done');
+    li.firstChild.textContent=d.text;
+    li.lastChild.textContent=
+      q.state==='open' ? '未接取'
+      : q.state==='done' ? '完成'
+      : q.state==='ready' ? '可回報'
+      : `${q.got}/${d.need}`;
   });
   $('qprog').textContent=questsDone()+'/'+G.quests.length;
 }
@@ -5890,7 +6548,8 @@ function nextRound(){
 }
 document.getElementById('equipbtn').addEventListener('click',()=>toggleEquipWin());
 document.getElementById('ewClose').addEventListener('click',()=>toggleEquipWin(false));
-document.getElementById('swClose').addEventListener('click',()=>closeShop());
+document.getElementById('swClose').addEventListener('click',()=>{closeShop();if(shopNpc)openDialog(shopNpc);});
+document.getElementById('dlgX').addEventListener('click',()=>closeDialog());
 document.querySelectorAll('.sw-tab').forEach(t=>{
   t.addEventListener('click',()=>{shopTab=t.dataset.tab;renderShop();});
 });
@@ -5916,7 +6575,7 @@ function frame(now){
   if(tapped.mute)Audio0.toggle();
   if(tapped.help)$('helpbar').classList.toggle('off');
   if(tapped.gear)toggleEquipWin();
-  if(tapped.shop)toggleShop();
+  if(tapped.shop)talkToNpc();
   if(tapped.pause){
     if(G.state==='play'){G.state='pause';setScreen('pause');}
     else if(G.state==='pause'){G.state='play';setScreen(null);}
@@ -5954,6 +6613,8 @@ function frame(now){
       updateHeroAnim(dt);
       updateEquipVfx(dt);
       updateNpcHint();
+      updateRunes(dt);
+      updatePet(dt);
       PixelFX.update(dt);
       updateMobs(dt);
       updateProjs(dt);
@@ -5972,6 +6633,7 @@ function frame(now){
     G.shake=Math.max(0,G.shake-dt*46);
   }
 
+  G.mapFade=Math.max(0,(G.mapFade||0)-dt*2.6);
   BGM.tick();
   render();
   updateHUD();
