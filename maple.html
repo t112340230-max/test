@@ -224,7 +224,8 @@ body{
 .ew-item canvas{width:28px;height:28px;flex:none}
 .ew-item .nm{font-family:var(--f-cjk);font-weight:700;font-size:12px;color:#F4EEDC;line-height:1.2}
 .ew-item .ds{font-family:var(--f-cjk);font-size:10px;color:#A89878;line-height:1.2}
-.ew-item.on .nm{color:#FFF0A0}
+.ew-item.on{box-shadow:inset 1px 1px 0 rgba(255,240,160,.5),0 0 0 1px #FFC83C}
+.ew-item.locked{filter:grayscale(1) brightness(.55);cursor:not-allowed}
 .ew-item .tx{min-width:0}
 /* 底部欄的開啟鍵 */
 #equipbtn{flex:none;width:44px;height:44px;cursor:pointer;padding:0;
@@ -992,6 +993,12 @@ function newGame(keep){
     cine:0,hints:{},hint:null,hintT:0,
     timeLeft:20*60, deaths:keep?keep.deaths:0, buffs:{},
     inv:{hp:keep?keep.invHp:3, mp:keep?keep.invMp:3},
+    // 只有取得過的裝備才穿得上；開局先給基本配備
+    owned:keep&&keep.owned?keep.owned:{
+      weapon:new Set(['none','basic_sword','flame_sword']),
+      aura:new Set(['none','thunder_ring']),
+      shoes:new Set(['none']),
+    },
     quests:[
       {id:'slime',type:'slime',text:'討伐綠水靈',need:12,got:0},
       {id:'mush', type:'mush', text:'討伐菇菇寶貝',need:6, got:0},
@@ -1616,6 +1623,21 @@ function killMob(m){
   for(let i=0;i<n;i++)
     G.drops.push({x:m.x+rand(-m.w,m.w),y:m.y-m.h*0.5,vx:rand(-190,190),vy:rand(-420,-190),
       type:'meso',val:randi(m.d.meso[0],m.d.meso[1]),life:16,t:0,ground:false});
+  // 裝備掉落：依怪物種類與掉落率抽
+  for(const slot of ['weapon','aura','shoes']){
+    let dropped=false;
+    for(const id in EQUIP[slot]){
+      const it=EQUIP[slot][id];
+      if(!it.drop||!it.drop[m.type])continue;
+      if(G.owned[slot].has(id))continue;       // 已取得就不再掉
+      if(!chance(it.drop[m.type]))continue;
+      G.drops.push({x:m.x,y:m.y-m.h*0.5,vx:rand(-150,150),vy:-rand(330,470),
+        type:'gear',slot,id,life:26,t:0,ground:false});
+      dropped=true;
+      break;
+    }
+    if(dropped)break;
+  }
   if(chance(m.d.boss?1:0.2))
     G.drops.push({x:m.x,y:m.y-m.h*0.5,vx:rand(-120,120),vy:-400,type:chance(.55)?'hp':'mp',val:0.3,life:16,t:0,ground:false});
   addBoom(m.x,m.y-m.h*0.5,m.d.boss?480:135,m.d.boss?340:38);
@@ -2034,6 +2056,20 @@ function updateDrops(dt){
       if(d.type==='meso'){
         G.meso+=d.val; SFX.coin();
         addNum(d.x,d.y-10,d.val,'meso');
+      }else if(d.type==='gear'){
+        const it=EQUIP[d.slot][d.id];
+        const r=rarityOf(it);
+        G.owned[d.slot].add(d.id);
+        SFX.levelup();
+        G.flash=Math.max(G.flash,.3);
+        sysmsg(`取得【${r.name}】${it.name}！按 E 裝備`,'qst');
+        toast(it.name,r.name+' '+(SLOT_LABEL[d.slot]||d.slot));
+        PixelFX.burst(30,()=>({
+          x:d.x,y:d.y,
+          vx:rand(-220,220),vy:-rand(60,280),
+          grav:240,drag:1.1,size:chance(.4)?2:1,
+          col:chance(.5)?r.col:'#FFFFFF',life:rand(.4,.9),max:.9}));
+        if(typeof refreshEquipWin==='function')refreshEquipWin();
       }else{
         G.inv[d.type]++;
         SFX.coin();
@@ -2902,13 +2938,22 @@ function icoBoot(c,col,col2){
   c.fillStyle=col2;c.fillRect(2,10,5,2);c.fillRect(1,14,5,2);
 }
 
+/* ---------- 稀有度 ---------- */
+const RARITY={
+  common:{name:'普通',col:'#D8D0C0'},
+  rare  :{name:'稀有',col:'#5FA8FF'},
+  epic  :{name:'史詩',col:'#C86BFF'},
+  legend:{name:'傳說',col:'#FFB020'},
+};
+const rarityOf=it=>RARITY[(it&&it.rarity)||'common'];
+
 /* ---------- 裝備圖鑑 ---------- */
 const EQUIP={
   weapon:{
-    none:{name:'空手',desc:'沒有武器，只剩拳頭',len:0,draw(){},trail(){},
+    none:{name:'空手',desc:'沒有武器，只剩拳頭',rarity:'common',len:0,draw(){},trail(){},
       icon(c){c.fillStyle='#E0A277';c.fillRect(9,11,10,9);c.fillStyle='#FFD9A8';c.fillRect(9,11,10,4);c.fillStyle='#E0A277';c.fillRect(11,20,6,4);}},
     basic_sword:{
-      name:'旅人之劍', desc:'樸素可靠，青白色斬擊軌跡', len:31,
+      name:'旅人之劍', desc:'樸素可靠，青白色斬擊軌跡', rarity:'common', len:31,
       icon(c){icoBlade(c,['#241B3A','#A6DCF2','#EAF6FF','#FFC83C']);},
       draw(c){
         B(c, 4,-1,4,2,C_GRIP);
@@ -2931,7 +2976,7 @@ const EQUIP={
       },
     },
     flame_sword:{
-      name:'烈焰劍', desc:'劍尖常燃，揮砍噴出大量火星', len:38,
+      name:'烈焰劍', desc:'劍尖常燃，揮砍噴出大量火星', rarity:'rare', len:38,
       icon(c){icoBlade(c,['#3A0E04','#FF6A1E','#FFC83C','#FFC83C'],'#FFF3A0');},
       draw(c){
         // 握把與火焰護手
@@ -3007,7 +3052,7 @@ const EQUIP={
       },
     },
     frost_edge:{
-      name:'冰霜之刃', desc:'揮砍散出冰晶，碎片會墜落', len:34,
+      name:'冰霜之刃', desc:'揮砍散出冰晶，碎片會墜落', rarity:'rare', drop:{bat:0.07}, len:34,
       icon(c){icoBlade(c,['#123A5A','#7AC8FF','#EAFBFF','#9FD8F0'],'#DFFFFF');},
       draw(c){
         B(c, 3,-1,5,3,'#2A4A6A');
@@ -3054,12 +3099,106 @@ const EQUIP={
         });
       },
     },
+    verdant_blade:{
+      name:'翠葉刃', desc:'揮砍捲起葉片，落地化為草屑', len:33,
+      rarity:'rare', drop:{slime:0.05, mush:0.05},
+      icon(c){icoBlade(c,['#123A18','#4FB33A','#A8F06A','#78D45A'],'#DFFFC8');},
+      draw(c){
+        B(c, 3,-1,5,3,'#5A3A18');
+        B(c, 7,-5,3,10,'#123A18');
+        B(c, 8,-4,2,8,'#A8F06A');
+        B(c,10,-4,23,8,'#123A18');
+        B(c,11,-3,22,6,'#2F8A3A');
+        B(c,11,-3,22,4,'#4FB33A');
+        B(c,11,-3,22,2,'#A8F06A');
+        B(c,31,-3,3,6,'#123A18');
+        B(c,31,-2,3,4,'#4FB33A');
+      },
+      trail(c,q){
+        const a1=q.armA, a0=a1-1.25, R=[0,26,31][q.trail];
+        for(let i=0;i<12;i++){
+          const a=a0+(a1-a0)*(i/11);
+          const rr=R-(11-i)*0.7;
+          const sz=2+((i>6)?1:0)+((i>9)?1:0);
+          B(c,4+Math.cos(a)*rr-sz/2,-13+Math.sin(a)*rr-sz/2,sz,sz,
+            i>9?'#DFFFC8':i>6?'#A8F06A':i>3?'#4FB33A':'#2F8A3A');
+        }
+      },
+      ambient(dt,tip,p){
+        p.wepT=(p.wepT||0)-dt;
+        if(p.wepT>0)return;
+        p.wepT=0.16;
+        PixelFX.spawn({x:tip.x+rand(-5,5),y:tip.y+rand(-5,5),
+          vx:rand(-18,18),vy:rand(8,28),grav:14,drag:.9,size:1,
+          col:pick(['#A8F06A','#4FB33A']),life:rand(.5,.9),max:.9});
+      },
+      onSwing(p,tip,fin){
+        PixelFX.burst(fin?26:16,()=>{
+          const a=rand(-1.3,0.6), sp=rand(110,fin?380:270);
+          return{x:tip.x+rand(-8,8),y:tip.y+rand(-8,8),
+            vx:Math.cos(a)*sp*p.face,vy:Math.sin(a)*sp-rand(20,80),
+            grav:120,drag:1.5,size:chance(.45)?2:1,
+            col:pick(['#DFFFC8','#A8F06A','#4FB33A','#2F8A3A']),
+            life:rand(.5,1.0),max:1.0};
+        });
+      },
+    },
+    storm_glaive:{
+      name:'雷霆戟', desc:'菇菇王的遺物 — 揮擊時劈出閃電', len:42,
+      rarity:'legend', drop:{king:1.0},
+      icon(c){icoBlade(c,['#2A1050','#B858F0','#F0D8FF','#FFC83C'],'#FFF3A0');},
+      draw(c){
+        B(c, 2,-2,7,4,'#3A2410');
+        B(c, 9,-7,3,14,'#2A1050');
+        B(c,10,-6,2,12,'#FFC83C');
+        B(c,12,-5,26,10,'#2A1050');
+        B(c,13,-4,25,8,'#7A2ED0');
+        B(c,13,-4,25,5,'#B858F0');
+        B(c,13,-4,25,3,'#F0D8FF');
+        B(c,14,-3,20,1,'#FFFFFF');
+        B(c,38,-4,3,8,'#2A1050');
+        B(c,38,-3,3,6,'#B858F0');
+        B(c,38,-1,2,2,'#FFF3A0');
+      },
+      trail(c,q){
+        const a1=q.armA, a0=a1-1.45, R=[0,30,36][q.trail];
+        for(let i=0;i<16;i++){
+          const a=a0+(a1-a0)*(i/15);
+          const rr=R-(15-i)*0.8;
+          const sz=3+((i>6)?1:0)+((i>11)?1:0);
+          B(c,4+Math.cos(a)*rr-sz/2,-13+Math.sin(a)*rr-sz/2,sz,sz,
+            i>12?'#FFFFFF':i>9?'#F0D8FF':i>5?'#B858F0':'#5A18A0');
+        }
+      },
+      ambient(dt,tip,p){
+        p.wepT=(p.wepT||0)-dt;
+        if(p.wepT>0)return;
+        p.wepT=0.09;
+        PixelFX.spawn({x:tip.x+rand(-7,7),y:tip.y+rand(-7,7),
+          vx:rand(-26,26),vy:-rand(20,50),grav:-16,drag:1.2,size:chance(.4)?2:1,
+          col:pick(['#F0D8FF','#B858F0','#FFF3A0']),life:rand(.25,.5),max:.5});
+        if(chance(.14))PixelFX.bolt(tip.x,tip.y,rand(0,TAU),rand(18,34),'#F0D8FF');
+      },
+      onSwing(p,tip,fin){
+        for(let i=0;i<(fin?4:2);i++)
+          PixelFX.bolt(tip.x+rand(-12,12),tip.y+rand(-12,12),
+            rand(-0.9,0.9)+(p.face>0?0:Math.PI),rand(46,90),chance(.5)?'#FFFFFF':'#F0D8FF');
+        PixelFX.burst(fin?36:22,()=>{
+          const a=rand(-1.2,0.6), sp=rand(160,fin?500:360);
+          return{x:tip.x+rand(-10,10),y:tip.y+rand(-10,10),
+            vx:Math.cos(a)*sp*p.face,vy:Math.sin(a)*sp-rand(30,110),
+            grav:-30,drag:1.7,size:chance(.45)?2:1,
+            col:pick(['#FFFFFF','#F0D8FF','#B858F0','#FFC83C']),
+            life:rand(.3,.7),max:.7};
+        });
+      },
+    },
   },
 
   aura:{
-    none:{name:'無',desc:'不帶光環',icon(c){c.fillStyle='#8A7A5A';c.fillRect(6,13,16,3);}},
+    none:{name:'無',desc:'不帶光環',rarity:'common',icon(c){c.fillStyle='#8A7A5A';c.fillRect(6,13,16,3);}},
     thunder_ring:{
-      name:'雷霆光環', desc:'腳下雷紋陣，周身不斷落雷',
+      name:'雷霆光環', desc:'腳下雷紋陣，周身不斷落雷', rarity:'epic',
       icon(c){icoRing(c,'#FFE04A','#FFF3A0');},
       update(dt,p){
         p.auraT=(p.auraT||0)-dt;
@@ -3124,7 +3263,7 @@ const EQUIP={
       },
     },
     petal_veil:{
-      name:'落櫻之環', desc:'櫻瓣環繞飄落，安靜但好看',
+      name:'落櫻之環', desc:'櫻瓣環繞飄落，安靜但好看', rarity:'rare', drop:{mush:0.04},
       icon(c){icoRing(c,'#FF9AC8','#FFD6E8');},
       update(dt,p){
         p.auraT=(p.auraT||0)-dt;
@@ -3155,12 +3294,49 @@ const EQUIP={
         c.restore();
       },
     },
+    ember_halo:{
+      name:'餘燼光環', desc:'腳下火環不滅，餘燼緩緩上升',
+      rarity:'epic', drop:{golem:0.12},
+      icon(c){icoRing(c,'#FF6A1E','#FFC83C');},
+      update(dt,p){
+        p.auraT=(p.auraT||0)-dt;
+        if(p.auraT>0)return;
+        p.auraT=0.07;
+        PixelFX.spawn({x:p.x+rand(-22,22),y:p.y-rand(0,6),
+          vx:rand(-14,14),vy:-rand(28,66),grav:-22,drag:.8,
+          size:chance(.35)?2:1,
+          col:pick(['#FFF3A0','#FFC83C','#FF6A1E','#C42410']),
+          life:rand(.5,1.0),max:1.0});
+      },
+      under(c,p){
+        const z=zoomNow()/PIXEL;
+        const S=Math.max(1,Math.round(AU*z))/z;
+        const snap=(v,cv)=>Math.floor((v-cv)*z)/z+cv;
+        const t=G.t;
+        c.save();
+        for(let ring=0;ring<2;ring++){
+          const n=ring?8:14;
+          const rad=((ring?15:24)+Math.sin(t*4+ring)*2)*S;
+          const rot=t*(ring?-1.8:1.2);
+          for(let i=0;i<n;i++){
+            const a=rot+i*TAU/n;
+            const x=snap(p.x+Math.cos(a)*rad,G.cam.x);
+            const y=snap(p.y-2*S+Math.sin(a)*rad*0.42,G.cam.y);
+            const sz=S*(ring?1:2);
+            c.fillStyle='rgba(50,10,0,.5)';c.fillRect(x,y+S,sz,sz);
+            c.fillStyle=ring?'#FFF3A0':(i%2?'#FF6A1E':'#FFC83C');
+            c.fillRect(x,y,sz,sz);
+          }
+        }
+        c.restore();
+      },
+    },
   },
 
   shoes:{
-    none:{name:'布鞋',desc:'普通的鞋子',icon(c){icoBoot(c,'#9A5E2A','#C98A48');}},
+    none:{name:'布鞋',desc:'普通的鞋子',rarity:'common',icon(c){icoBoot(c,'#9A5E2A','#C98A48');}},
     gale_boots:{
-      name:'疾風之靴', desc:'奔跑與落地揚起風塵',
+      name:'疾風之靴', desc:'奔跑與落地揚起風塵', rarity:'rare', drop:{bat:0.05, golem:0.08},
       icon(c){icoBoot(c,'#8FE8FF','#DFFFFF');},
       onStep(p){
         PixelFX.burst(3,()=>({
@@ -3221,10 +3397,15 @@ function buildEquipWin(){
       tx.className='tx';
       tx.innerHTML='<div class="nm"></div><div class="ds"></div>';
       tx.querySelector('.nm').textContent=it.name||id;
+      tx.querySelector('.nm').style.color=rarityOf(it).col;
       tx.querySelector('.ds').textContent=it.desc||'';
       el.appendChild(cv); el.appendChild(tx);
       el.addEventListener('pointerdown',e=>{
         e.preventDefault();
+        if(!G.owned[slot].has(id)){
+          sysmsg(`還沒取得 ${it.name} — 打倒怪物才會掉落`,'warn');
+          return;
+        }
         equip(slot,id);
         refreshEquipWin();
       });
@@ -3238,8 +3419,30 @@ function buildEquipWin(){
 }
 function refreshEquipWin(){
   document.querySelectorAll('#ewSlots .ew-item').forEach(el=>{
-    el.classList.toggle('on',P.equipment[el.dataset.slot]===el.dataset.id);
+    const slot=el.dataset.slot, id=el.dataset.id;
+    const have=G.owned[slot].has(id);
+    el.classList.toggle('on',have&&P.equipment[slot]===id);
+    el.classList.toggle('locked',!have);
+    const ds=el.querySelector('.ds');
+    if(!ds)return;
+    if(!have)ds.textContent='未取得 — 打怪掉落';
+    else ds.textContent=EQUIP[slot][id].desc||'';
   });
+}
+/* 地上的裝備圖示（畫一次就快取） */
+const _gearIco={};
+function gearIcon(slot,id){
+  const k=slot+'/'+id;
+  let cv=_gearIco[k];
+  if(!cv){
+    cv=document.createElement('canvas');cv.width=28;cv.height=28;
+    const c=cv.getContext('2d');
+    c.imageSmoothingEnabled=false;
+    const it=EQUIP[slot][id];
+    if(it&&it.icon)it.icon(c);
+    _gearIco[k]=cv;
+  }
+  return cv;
 }
 function toggleEquipWin(force){
   const w=document.getElementById('equipwin');
@@ -3255,6 +3458,10 @@ function toggleEquipWin(force){
 /* 主控台也可直接呼叫：equip('weapon','basic_sword') */
 function equip(slot,id){
   if(!EQUIP[slot]||!EQUIP[slot][id]){console.warn('沒有這件裝備：',slot,id);return;}
+  if(G.owned&&G.owned[slot]&&!G.owned[slot].has(id)){
+    sysmsg(`還沒取得 ${EQUIP[slot][id].name||id}`,'warn');
+    return;
+  }
   P.equipment[slot]=id;
   sysmsg(`裝備變更 — ${EQUIP[slot][id].name||id}`,'item');
   if(typeof refreshEquipWin==='function')refreshEquipWin();
@@ -3920,7 +4127,22 @@ function drawDrops(){
     c.save();
     c.translate(d.x,d.y+bob);
     c.globalAlpha=fade;
-    if(d.type==='meso'){
+    if(d.type==='gear'){
+      const it=EQUIP[d.slot][d.id];
+      const r=rarityOf(it);
+      const z=zoomNow()/PIXEL;
+      const S=Math.max(1,Math.round(AU*z))/z;
+      const box=22*S;
+      c.globalAlpha=(.22+Math.sin(d.t*4)*.1)*fade;   // 稀有度光柱
+      c.fillStyle=r.col;
+      c.fillRect(-box*.55,-box*3.0,box*1.1,box*3.0);
+      c.globalAlpha=fade;
+      c.fillStyle='#241B3A';c.fillRect(-box/2-S,-box-S,box+S*2,box+S*2);
+      c.fillStyle=r.col;   c.fillRect(-box/2,-box,box,box);
+      c.fillStyle='#1E2436';c.fillRect(-box/2+S,-box+S,box-S*2,box-S*2);
+      c.imageSmoothingEnabled=false;
+      c.drawImage(gearIcon(d.slot,d.id),0,0,28,28,-box/2+S,-box+S,box-S*2,box-S*2);
+    }else if(d.type==='meso'){
       const sw=Math.abs(Math.cos(d.t*3.4));
       c.save();c.scale(clamp(sw,.25,1),1);
       const g=c.createRadialGradient(-3,-3,1,0,0,10);
@@ -4421,7 +4643,7 @@ function winGame(){
 }
 function nextRound(){
   const keep={lv:P.lv,exp:P.exp,meso:G.meso,kills:G.kills,tier:G.tier+1,best:G.combo.best,
-    deaths:G.deaths,invHp:G.inv.hp,invMp:G.inv.mp};
+    deaths:G.deaths,invHp:G.inv.hp,invMp:G.inv.mp,owned:G.owned};
   newGame(keep);
   G.state='play';
   hud.bossbar.classList.remove('on');
